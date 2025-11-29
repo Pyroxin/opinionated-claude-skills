@@ -1,0 +1,8 @@
+{
+  "name": "opinionated-java-ecosystem",
+  "description": "Java ecosystem development: modern Java idioms, tooling, documentation standards, and testing practices.",
+  "license": "EPL-2.0",
+  "skills": [
+    "./skills/java-programmer"
+  ]
+}

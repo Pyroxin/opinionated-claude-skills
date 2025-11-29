@@ -1,0 +1,8 @@
+{
+  "name": "opinionated-logic-development",
+  "description": "Logic programming with SWI-Prolog: relational thinking, steadfastness, DCGs, constraints, and PlUnit testing.",
+  "license": "EPL-2.0",
+  "skills": [
+    "./skills/swi-prolog-programmer"
+  ]
+}

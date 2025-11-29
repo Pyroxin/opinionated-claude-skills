@@ -1,0 +1,8 @@
+{
+  "name": "opinionated-python-development",
+  "description": "Python development: Pythonic idioms, testing ecosystem, type hints trade-offs, and modern Python features.",
+  "license": "EPL-2.0",
+  "skills": [
+    "./skills/python-programmer"
+  ]
+}

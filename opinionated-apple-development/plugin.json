@@ -1,0 +1,9 @@
+{
+  "name": "opinionated-apple-development",
+  "description": "Apple platform development: Swift language (Swift 6+ concurrency, protocol-oriented programming) and macOS platform patterns (SwiftUI/AppKit, sandboxing).",
+  "license": "EPL-2.0",
+  "skills": [
+    "./skills/swift-programmer",
+    "./skills/macos-programmer"
+  ]
+}

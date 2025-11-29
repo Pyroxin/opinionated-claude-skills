@@ -1,0 +1,60 @@
+{
+  "name": "opinionated-claude-skills",
+  "owner": {
+    "name": "Pyroxin"
+  },
+  "metadata": {
+    "description": "Opinionated skills for Claude Code reflecting SICP principles, functional and logic programming paradigms, and expert-level software engineering judgment.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "opinionated-software-engineering",
+      "description": "Core opinionated software engineering skills: SICP-based software engineering, paradigm skills (functional, OOP, logic), development process (TDD, git), and research agent.",
+      "source": "./opinionated-software-engineering",
+      "strict": true
+    },
+    {
+      "name": "opinionated-apple-development",
+      "description": "Apple platform development: Swift language (Swift 6+ concurrency, protocol-oriented programming) and macOS platform patterns (SwiftUI/AppKit, sandboxing).",
+      "source": "./opinionated-apple-development",
+      "strict": true
+    },
+    {
+      "name": "opinionated-lisp-development",
+      "description": "Lisp family languages: Clojure (data-oriented design, REPL-driven development) and Racket (language-oriented programming, contracts, macros).",
+      "source": "./opinionated-lisp-development",
+      "strict": true
+    },
+    {
+      "name": "opinionated-java-ecosystem",
+      "description": "Java ecosystem development: modern Java idioms, tooling, documentation standards, and testing practices.",
+      "source": "./opinionated-java-ecosystem",
+      "strict": true
+    },
+    {
+      "name": "opinionated-logic-development",
+      "description": "Logic programming with SWI-Prolog: relational thinking, steadfastness, DCGs, constraints, and PlUnit testing.",
+      "source": "./opinionated-logic-development",
+      "strict": true
+    },
+    {
+      "name": "opinionated-python-development",
+      "description": "Python development: Pythonic idioms, testing ecosystem, type hints trade-offs, and modern Python features.",
+      "source": "./opinionated-python-development",
+      "strict": true
+    },
+    {
+      "name": "opinionated-fish-shell",
+      "description": "Fish shell scripting: Fish vs bash decisions, cross-platform compatibility, and Fish-specific patterns.",
+      "source": "./opinionated-fish-shell",
+      "strict": true
+    },
+    {
+      "name": "opinionated-skill-creation",
+      "description": "Expert-level guidance for creating high-quality Claude Code skills. Use alongside Anthropic's skill-creator.",
+      "source": "./opinionated-skill-creation",
+      "strict": true
+    }
+  ]
+}

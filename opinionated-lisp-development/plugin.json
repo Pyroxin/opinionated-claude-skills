@@ -1,0 +1,9 @@
+{
+  "name": "opinionated-lisp-development",
+  "description": "Lisp family languages: Clojure (data-oriented design, REPL-driven development) and Racket (language-oriented programming, contracts, macros).",
+  "license": "EPL-2.0",
+  "skills": [
+    "./skills/clojure-programmer",
+    "./skills/racket-programmer"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "opinionated-fish-shell",
+  "description": "Fish shell scripting: Fish vs bash decisions, cross-platform compatibility, and Fish-specific patterns.",
+  "license": "EPL-2.0",
+  "skills": [
+    "./skills/fish-shell-scripting"
+  ]
+}

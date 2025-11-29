@@ -1,0 +1,8 @@
+{
+  "name": "opinionated-skill-creation",
+  "description": "Expert-level guidance for creating high-quality Claude Code skills. Use alongside Anthropic's skill-creator.",
+  "license": "EPL-2.0",
+  "skills": [
+    "./skills/expert-skill-creator"
+  ]
+}
