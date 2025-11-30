@@ -379,32 +379,46 @@ After research, create a research summary in the skill directory:
 ## Citation Requirements
 
 <citation_requirements>
-**All third-party information quoted in skills must be cited with ACM citations.**
+**All third-party content must be attributed. Use formal ACM citations when the source adds value.**
 
-### What Requires Citation
+### What Requires Attribution
 
 <citation_scope>
-**Must cite:**
-- Direct quotes from documentation, papers, or articles
+**Distinguish attribution from formal citation:**
+- **Attribution**: Acknowledging the source (always required for third-party content)
+- **Formal ACM citation**: Full bibliographic reference with footnote (sometimes required)
+
+**Must attribute:**
+- Direct quotes from any source
 - Specific claims attributed to sources
 - Statistics, benchmarks, or empirical findings
-- Tool recommendations from official sources
-- Copyrighted material, especially when the author is known
-- **Well-known concepts with identifiable originators** (e.g., Liskov Substitution Principle → Liskov & Wing 1994, Expression Problem → Wadler 1998, Test Doubles taxonomy → Meszaros 2007)
-- **Documentation references** — "From the X documentation" needs a formal citation to the documentation
+- Code patterns adapted from specific sources
+- Well-known concepts with identifiable originators
 
-**Does not require citation:**
+**Informal attribution is sufficient for:**
+- Short quotes (single sentences) — use `"quote" — Author, Source Work`
+- Well-known aphorisms where author is the key information
+- Cases where the source work is widely known (e.g., SICP, "Simple Made Easy")
+
+**Formal ACM citations are warranted when:**
+- The source would be useful for Claude to look up (URLs, documentation)
+- Fair-use concerns exist (substantial portions, not just short quotes)
+- Content substantially paraphrases a source (cite the source being paraphrased)
+- Statistics or empirical claims need verification
+- Code or patterns are adapted from a specific source
+
+**Does not require attribution:**
 - General programming knowledge without an identifiable originator (e.g., "functions should do one thing")
 - Claude's own analysis and synthesis
 - Content the skill author created
 
-**Judgment call:** When in doubt, cite. Attribution is professional practice.
+**Judgment call:** When in doubt, attribute. Formal citation when the source adds value.
 </citation_scope>
 
-### Citation Format
+### Formal Citation Format
 
 <citation_format>
-**Use ACM citation style with Markdown footnote syntax.**
+**When formal citations are warranted, use ACM style with Markdown footnote syntax.**
 
 **In-text citation:** Use Markdown footnote references: `[^1]`, `[^2]`
 
@@ -441,7 +455,7 @@ Rich Hickey's "Simple Made Easy" talk[^1] distinguishes simplicity from ease...
 **CRITICAL: Never fabricate bibliographic details.**
 
 - Verify DOIs resolve correctly before including
-- Use actual access dates, not invented dates
+- Use actual access dates, not invented dates (when adding citations retroactively, use the date content was originally retrieved, not the current date)
 - If uncertain about any field, omit it rather than guess
 - Mark uncertain information as `[unverified]`
 - Prefer incomplete but accurate over complete but fabricated
@@ -457,7 +471,7 @@ Rich Hickey's "Simple Made Easy" talk[^1] distinguishes simplicity from ease...
 - **Unsourced statistics** — Specific numbers (e.g., "58% adoption", "100x slower") require sources. If no source exists, either find one, remove the claim, or qualify it (e.g., "significant performance issues" instead of "100x slower")
 - **Informal documentation references** — "From the X documentation" is insufficient. Cite formally: `[^1]: Author. Title. URL`
 - **Paraphrased official guidance without disclosure** — If a skill substantially paraphrases official documentation (like style guides), add upfront disclosure: "This skill synthesizes and paraphrases the official X guidelines."
-- **Assuming well-known means no citation needed** — Named concepts (Liskov Substitution Principle, Test Pyramid, Arrange-Act-Assert) should cite their originators even if "everyone knows" them
+- **Assuming well-known means no attribution needed** — Named concepts (Liskov Substitution Principle, Test Pyramid) should acknowledge their originators. Informal attribution is fine when the name itself attributes (e.g., "Liskov Substitution Principle" names Liskov); formal citation when the source would be useful to look up.
 </citation_mistakes>
 </citation_requirements>
 
@@ -484,16 +498,16 @@ Before completing a skill, verify:
 - [ ] Safety constraints are explicitly stated
 - [ ] Resources are machine-readable (no videos)
 
-**Citations:**
-- [ ] All third-party quotes have ACM citations
-- [ ] DOIs/URLs have been verified
+**Attribution and Citations:**
+- [ ] All third-party content is attributed (author + source work)
+- [ ] Formal ACM citations used where warranted (see `<citation_scope>`)
+- [ ] DOIs/URLs verified for formal citations
 - [ ] Sources section uses proper format
 - [ ] No probable plagiarism
 - [ ] Incomplete quotes end with ellipses
 - [ ] No "Unknown" attributions (verify or remove)
 - [ ] Quantitative claims have sources (or are qualified)
-- [ ] Well-known concepts cite originators
-- [ ] Documentation references are formally cited
+- [ ] Substantial paraphrasing cites the source
 
 **Consistency:**
 - [ ] No conflicts with related skills

@@ -161,7 +161,7 @@ git push --force             # Dangerous
 <llm_checkpoints>
 Lightweight savepoints before LLM modifications without commit overhead.
 
-**Git aliases:**
+**Git aliases** (adapted from Nathan Orick's checkpoint pattern[^1]):
 ```bash
 [alias]
 checkpoint = "!f() { git add -A && git commit --no-verify -m \"SAVEPOINT\"; git tag \"checkpoint/$(date +%Y_%m_%d_%H_%M_%S)\"; git reset HEAD~1 --mixed; }; f"
@@ -301,3 +301,9 @@ git worktree add ../agent-2-workspace feature-payment
 - [ConventionalCommits.org](https://www.conventionalcommits.org/en/v1.0.0/)
 - [Nathan Orick: Git Checkpoints](https://nathanorick.com/git-checkpoints/)
 </resources>
+
+## Sources
+
+<sources>
+[^1]: Nathan Orick. Git Checkpoints. Retrieved November 28, 2025 from https://nathanorick.com/git-checkpoints/
+</sources>

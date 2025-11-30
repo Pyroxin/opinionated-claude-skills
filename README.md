@@ -11,9 +11,19 @@ A collection of opinionated, experimental skills and agents for [Claude Code](ht
 
 If these perspectives don't align with yours, these skills may not be for you.
 
-These skills are also an experiment in getting Claude to write effective instructions for itself. Very few direct manual edits were made.
+These skills are also an experiment in getting Claude to write effective instructions for itself.
+
+## How These Skills Were Created
+
+These skills were compiled from a collection of hand-written prompts Pyroxin had previously maintained for personal use. Some skills were also augmented with bits of public documentation and research guides generated with Claude Desktop. Sources for the third-party material are available in the text of each skill, with an emphasis on things Claude can potentially look up itself.
+
+Very few manual changes were made to the skills. The content is written by Claude after preparing a context window and ensuring that Claude is able to have a sensible discussion about the topic. Then, Claude is asked to write instructions for itself to create the skill file. Similarly, improvements to the skills are made by calling out behavioral issues while using the skills with Claude Code. Claude is told what was actually expected of it and then asked to reflect on why it did what it did and whether any of the skill instructions need to be updated. Claude is then asked to propose an update to the skill. The `expert-skill-creator` skill was made by tracking the kinds of improvements that were made while tuning the other skills and then extracting those patterns into a skill, using the above process.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the creation process and how to contribute improvements.
 
 ## Installation
+
+### Claude Code
 
 Add this marketplace to Claude Code:
 
@@ -26,6 +36,12 @@ Then install plugins:
 ```
 /plugin add opinionated-software-engineering@opinionated-claude-skills
 ```
+
+### Claude Desktop / Claude Web
+
+Individual skills can be downloaded as ZIP files from the [Releases](https://github.com/Pyroxin/opinionated-claude-skills/releases) page and uploaded to Claude Desktop or Claude Web via **Settings > Capabilities**.
+
+ZIP files are named `plugin.skill.TIMESTAMP.SHA.zip` (e.g., `opinionated-software-engineering.software-engineer.20251130-014305.c7223ee.zip`). The timestamp and commit SHA identify the exact build.
 
 ## Plugins
 
@@ -103,10 +119,12 @@ Meta-skill for creating skills.
 
 ## License
 
+Copyright (c) 2025 Pyroxin and contributors. Third-party content remains the property of its respective copyright holders.
+
 [Eclipse Public License 2.0](LICENSE)
 
-This license allows use, modification, and distribution. If you distribute as part of a commercial product, you must defend and indemnify other contributors against third-party claims arising from your distribution.
+This license allows use, modification, and distribution, even for commercial purposes. Be aware that if you distribute as part of a commercial offering, you must defend and indemnify other contributors against third-party claims arising from your distribution.
 
------
+## Content Notice
 
 Good faith steps were taken to ensure no material was plagiarized by the LLM when compiling these skills but complete accuracy cannot be guaranteed. If you identify content in these skills that you own and wish to have removed or cited, open an issue including clear evidence of ownership.
