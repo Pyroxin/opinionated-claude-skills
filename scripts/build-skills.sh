@@ -76,7 +76,7 @@ for plugin_dir in */; do
     rm -rf "$temp_dir"
 
     echo "Built: ${zip_name}"
-    ((count++))
+    count=$((count + 1))
   done
 done
 
