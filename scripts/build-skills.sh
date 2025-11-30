@@ -33,20 +33,6 @@ fi
 
 echo "Build version: ${BUILD_VERSION}"
 
-# Inject version into SKILL.md frontmatter
-# Adds version line after name line (name is mandatory, description is optional)
-inject_version() {
-  local src="$1"
-  local dst="$2"
-  local version="$3"
-
-  # Insert version: line after the name: line in frontmatter
-  awk -v ver="$version" '
-    /^name:/ { print; print "version: " ver; next }
-    { print }
-  ' "$src" > "$dst"
-}
-
 count=0
 
 for plugin_dir in */; do
@@ -63,8 +49,8 @@ for plugin_dir in */; do
     temp_dir=$(mktemp -d)
     mkdir -p "${temp_dir}/${skill_name}"
 
-    # Copy SKILL.md with version injected
-    inject_version "${skill_dir}SKILL.md" "${temp_dir}/${skill_name}/SKILL.md" "$BUILD_VERSION"
+    # Copy SKILL.md
+    cp "${skill_dir}SKILL.md" "${temp_dir}/${skill_name}/SKILL.md"
 
     # Copy resources if present
     if [[ -d "${skill_dir}resources" ]]; then
