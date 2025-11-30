@@ -1,0 +1,56 @@
+name: Build and Release Skills
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate version
+        id: version
+        run: |
+          TIMESTAMP=$(date -u '+%Y%m%d-%H%M%S')
+          SHORT_SHA=$(git rev-parse --short=7 HEAD)
+          VERSION="${TIMESTAMP}.${SHORT_SHA}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Generated version: ${VERSION}"
+
+      - name: Build skill ZIPs
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          chmod +x scripts/build-skills.sh
+          ./scripts/build-skills.sh
+
+      - name: List artifacts
+        run: ls -la dist/
+
+      - name: Update latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete existing 'latest' release if it exists
+          gh release delete latest --yes 2>/dev/null || true
+
+          # Delete the tag too so we can recreate it
+          git push origin :refs/tags/latest 2>/dev/null || true
+
+          # Create new release with all ZIPs
+          gh release create latest \
+            dist/*.zip \
+            --title "Latest Build (${{ steps.version.outputs.version }})" \
+            --notes "Continuous build from commit ${{ github.sha }}
+
+          **Version:** \`${{ steps.version.outputs.version }}\`
+
+          Download individual skill ZIPs and upload to Claude Desktop via **Settings > Capabilities**.
+
+          See [README](https://github.com/${{ github.repository }}#claude-desktop--claude-web) for installation instructions."
