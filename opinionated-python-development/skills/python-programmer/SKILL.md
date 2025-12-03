@@ -5,19 +5,26 @@ description: Python-specific idioms, philosophy, and expert-level patterns. Use 
 
 # Python Programmer
 
-## Purpose
+<skill_scope skill="python-programmer">
+This skill provides guidance on Python-specific idioms, philosophy, and expert-level judgment calls. Python's design emphasizes readability and "one obvious way" to do things, but achieving truly Pythonic code requires understanding when and why to use Python's idioms.
 
-This skill provides guidance on Python-specific idioms, philosophy, and expert-level judgment calls. Python's design emphasizes readability and "one obvious way" to do things, but achieving truly Pythonic code requires understanding when and why to use Python's idioms. This skill focuses on expert-level decisions, common pitfalls from other language backgrounds, and navigating Python's evolving ecosystem.
+**Related skills:**
+- `software-engineer` — Core engineering philosophy, system design principles
+- `functional-programmer` — When functional approaches are clearer
+- `test-driven-development` — Testing philosophy and TDD principles
+</skill_scope>
 
 ## When to Use This Skill
 
+<when_to_use>
 Use this skill when:
 - Working with Python code
 - Deciding when Python is the right tool for a problem
 - Navigating between Python's "obvious ways" and edge cases
 - Choosing between testing frameworks, type systems, or async patterns
 - Avoiding anti-patterns from Java, C, or JavaScript backgrounds
-- Making trade-offs between Pythonic idioms and performance
+- Making trade-offs between Pythonic idioms and readability
+</when_to_use>
 
 <core_philosophy>
 ## Core Philosophy
@@ -37,6 +44,33 @@ Python's design philosophy is captured in "The Zen of Python" (import this to se
 - Practicality beats purity (Python isn't a pure functional or OO language)
 
 **Staff insight:** The Zen is philosophy, not law. Sometimes implicit is fine (context managers hide `__enter__` and `__exit__`). Sometimes there are two ways (list comprehension vs `map`). The Zen guides judgment; it doesn't eliminate it.
+
+<pythonic_vs_readable>
+### When Pythonic Idioms Hurt Readability
+
+The Zen says both "Explicit is better than implicit" and to use Python idioms. When they conflict, optimize for readers.
+
+| Code Characteristic | Use Pythonic Idiom | Use Explicit Form |
+|---------------------|-------------------|-------------------|
+| Reader must pause to parse | No | Yes |
+| Requires advanced feature knowledge | No | Yes |
+| In critical path / main logic | No | Yes |
+| In isolated utility function | Yes | Maybe |
+| Junior engineer would need to look it up | No | Yes |
+| Saves 1-2 lines at cost of clarity | No | Yes |
+| Standard pattern (simple dict comprehension) | Yes | No |
+| Clever trick (tuple sort keys, walrus operator chains) | No | Yes |
+
+**Heuristics:**
+- If you need a comment explaining the trick, the trick is too clever
+- Nested comprehensions beyond 2 levels need explicit loops
+- One-letter variables acceptable only in comprehensions under 10 lines
+- Tuple sort keys are clever unless the tuple structure is obvious
+- Walrus operator (`:=`) in comprehension conditions is usually too clever
+- Code golf is not a virtue—readable beats concise
+
+**Staff insight:** Pythonic doesn't mean cryptic. The goal is code that Python programmers read at a glance, not code that demonstrates language mastery. When an idiom requires mental parsing, you've crossed from idiomatic to showing off. Write code for the maintainer, not the interpreter.
+</pythonic_vs_readable>
 
 <eafp_principle>
 ### EAFP: Easier to Ask Forgiveness than Permission
@@ -97,25 +131,36 @@ else:
 </duck_typing>
 </core_philosophy>
 
+<fundamental_principles>
 ## Fundamental Principles
 
-### Comprehensions Are the Default for Transformations
+<comprehensions>
+### Comprehensions: Simple Cases Only
 
-List/dict/set comprehensions are the Pythonic way to transform collections. Use them unless clarity suffers.
+List/dict/set comprehensions are Pythonic for *simple* transformations. Complexity thresholds matter.
 
 **When comprehensions win:**
-- Simple transformations (`[x*2 for x in numbers]`)
-- Filtering (`[x for x in items if condition]`)
-- Cartesian products (`[(x,y) for x in a for y in b]`)
-- Clarity improves over explicit loops
+- Single transformation (`[x*2 for x in numbers]`)
+- Single filter (`[x for x in items if x > 0]`)
+- Transformation + filter (`[x.name for x in users if x.active]`)
 
 **When to use explicit loops:**
-- Complex logic that obscures comprehension readability
+- More than one level of nesting (`[[... for y in x] for x in items]` — borderline)
+- Two or more conditions in the filter
+- Any logic requiring explanation
 - Side effects (comprehensions shouldn't have side effects)
-- Early termination needed (use generator with `next` or explicit loop)
+- Early termination needed
 
-**Staff insight:** "Map/filter vs comprehensions" isn't about performance — comprehensions are usually faster and always more readable in Python. Save `map` for when you already have a function reference. Don't use `map(lambda ...)` — that's unpythonic.
+**Comprehension complexity limits:**
+- One `for` clause: usually fine
+- Two `for` clauses: acceptable for obvious Cartesian products
+- Three+ `for` clauses: use explicit loops
+- Walrus operator (`:=`) in conditions: almost always too clever
 
+**Staff insight:** Comprehensions are readable when they fit on one line and scan left-to-right. The moment you nest, chain conditions, or use walrus operators, you're optimizing for concision over clarity. A 4-line explicit loop is better than a 1-line comprehension that requires careful reading.
+</comprehensions>
+
+<context_managers>
 ### Context Managers for Resource Management
 
 The `with` statement ensures cleanup happens. Always use it for files, locks, database connections.
@@ -131,7 +176,9 @@ The `with` statement ensures cleanup happens. Always use it for files, locks, da
 - Transactions (begin/commit/rollback)
 
 **Staff insight:** The `contextlib` module provides helpers: `contextmanager` decorator for simple cases, `ExitStack` for dynamic resource management. Don't write try/finally when a context manager expresses intent better.
+</context_managers>
 
+<iterators_generators>
 ### Iterators and Generators Over Materialized Lists
 
 Python's iterators are lazy by design. Use them to avoid unnecessary memory allocation.
@@ -149,7 +196,9 @@ Python's iterators are lazy by design. Use them to avoid unnecessary memory allo
 - Debugging (generators can't be inspected without consuming)
 
 **Staff insight:** Generator expressions `(x for x in items)` are like comprehensions but lazy. Use them in function calls that consume iterables: `sum(x**2 for x in numbers)` doesn't build a list. But don't cargo-cult generators — lists are fine for small data.
+</iterators_generators>
 
+<mutable_defaults>
 ### Mutable Default Arguments Are Dangerous
 
 Default arguments are evaluated once at function definition, not each call. Mutable defaults (lists, dicts) persist across calls.
@@ -179,12 +228,13 @@ def append_to(element, to=None):
 - Cached computation in default arguments (evaluated at import time)
 
 **Staff insight:** This isn't a bug — it's how Python works. Defaults are values, not expressions. Use `None` as a sentinel, or document the sharing behavior if it's intentional (rare).
+</mutable_defaults>
+</fundamental_principles>
 
+<when_python_works>
 ## When Python Works Well
 
 Python excels in specific problem domains. Recognize when Python's strengths align with your needs.
-
-**Problem characteristics favoring Python:**
 
 **Rapid prototyping and iteration:**
 - Fast development cycle matters more than runtime performance
@@ -213,10 +263,10 @@ Python excels in specific problem domains. Recognize when Python's strengths ali
 - Readable syntax lowers entry barrier
 - Interactive REPL for experimentation
 - Extensive documentation and community
+</when_python_works>
 
+<when_python_struggles>
 ## When Python Struggles
-
-**Avoid Python when:**
 
 **Performance-critical computation:**
 - Tight loops over large data (use NumPy or drop to C/Rust)
@@ -247,7 +297,9 @@ Python excels in specific problem domains. Recognize when Python's strengths ali
 - Consider statically-typed languages (Java, C#, TypeScript) for very large teams
 
 **Staff insight:** Python's sweet spot is prototyping, scripting, data processing, and web services. Don't force it into low-level, high-performance, or mobile domains. Use Python where its strengths (development speed, ecosystem, readability) outweigh its weaknesses (performance, GIL, mobile).
+</when_python_struggles>
 
+<staff_level_insights>
 ## Staff-Level Insights
 
 ### Type Hints and Documentation Are Essential
@@ -674,6 +726,7 @@ Python's Global Interpreter Lock (GIL) prevents true parallelism for CPU-bound t
 - Pattern matching is not switch/case (more powerful)
 
 **Staff insight:** Modern features are nice but not necessary. Use them where they improve clarity. Don't rewrite code just to use new syntax.
+</staff_level_insights>
 
 <common_pitfalls>
 ## Common Pitfalls and Anti-Patterns
@@ -762,18 +815,12 @@ Avoid `global` except in rare cases. It makes code hard to reason about.
 - **NEVER** use `global` for shared state—use classes or explicit parameter passing
 - **NEVER** catch bare `Exception` and swallow errors silently
 - **NEVER** use `eval()` or `exec()` on untrusted input
+- **NEVER** sacrifice readability for cleverness—a 4-line loop beats a cryptic 1-line comprehension
 - **ALWAYS** use context managers (`with`) for file handles, locks, and database connections
 - **ALWAYS** use parameterized queries—never string concatenation for SQL
 - **ALWAYS** validate and sanitize untrusted input at system boundaries
+- **ALWAYS** prefer explicit, readable code over clever tricks that require mental parsing
 </safety_constraints>
-
-<related_skills>
-## Related Skills
-
-- **software-engineer** — Core engineering philosophy, system design principles
-- **functional-programmer** — When functional approaches are clearer
-- **test-driven-development** — Testing philosophy and TDD principles
-</related_skills>
 
 <resources>
 ## Resources
@@ -794,16 +841,18 @@ Avoid `global` except in rare cases. It makes code hard to reason about.
 - Google Python Style Guide: https://google.github.io/styleguide/pyguide.html
 </resources>
 
+<summary>
 ## Summary
 
 Python programming emphasizes:
-- **Readability and explicitness** — Code is read more than written
+- **Readability over cleverness** — Code is read more than written; don't show off
 - **Type hints everywhere** — Essential for code quality and LLM-assisted development
 - **Comprehensive Sphinx documentation** — Mandatory for all production code
 - **Modern tooling** — Hatch+UV for project management, Black/Bandit/Flake8/MyPy for quality
 - **EAFP over LBYL** — Try and catch exceptions rather than checking first
 - **Duck typing** — Accept behavior, not types
-- **Pythonic idioms** — Comprehensions, context managers, iterators
+- **Simple Pythonic idioms** — Comprehensions for simple cases, explicit loops for complex ones
 - **Pragmatism over purity** — Python isn't purely functional or OO
 
 Apply Python where it excels (scripting, prototyping, data processing, web APIs) and use other languages where it struggles (performance-critical, mobile, systems programming). **All new projects must use Hatch+UV, with Black, Bandit, Flake8, and MyPy enabled in CI/CD.** Type hints and Sphinx documentation are mandatory for all production code (exceptions: throwaway scripts). Choose pytest over unittest, understand async/await limitations, and avoid anti-patterns from other language backgrounds. Success in Python comes from embracing its philosophy: readable, explicit, well-documented, well-tooled code.
+</summary>

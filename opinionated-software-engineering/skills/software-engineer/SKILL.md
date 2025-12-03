@@ -27,6 +27,21 @@ This skill provides fundamental software engineering philosophy and design princ
 Computer programming is fundamentally about expressing ideas, not just getting computers to do things. Code is written for humans to read and understand; execution by computers is incidental. Prioritize clarity and expressiveness in all code.
 </program_as_expression>
 
+<utilitarian_code>
+### Write Utilitarian Code
+
+Code exists to solve problems, not to demonstrate cleverness. Write code that does what's right because it's right, not because it's an opportunity to show off language features or clever tricks.
+
+**Utilitarian principles:**
+- Choose the simplest approach that solves the problem correctly
+- Don't write clever code for the writer's satisfaction—but do use advanced techniques when they're genuinely the best tool
+- A boring solution that works is better than an elegant solution that confuses
+- Cleverness for its own sake is a cost; cleverness that solves a real problem is engineering
+- If a technique requires explanation, that's fine—just make sure the explanation is "this is the right approach" not "I wanted to try this," and document it thoroughly
+
+**The test:** Would a tired engineer at 2am understand this code? If not, simplify it.
+</utilitarian_code>
+
 <manage_complexity>
 ### Manage Complexity Through Abstraction
 
