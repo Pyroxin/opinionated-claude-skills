@@ -5,9 +5,18 @@ description: Core software engineering philosophy and design principles based on
 
 # Software Engineer
 
+<skill_scope skill="software-engineer">
 ## Overview
 
 This skill provides fundamental software engineering philosophy and design principles derived from _Structure and Interpretation of Computer Programs_ (SICP) by Abelson and Sussman. Apply these principles to all software development work to create well-designed, maintainable, and robust systems.
+
+**Related skills:**
+- `functional-programmer` — Functional paradigm principles and patterns
+- `object-oriented-programmer` — OOP principles including SOLID
+- `logic-programmer` — Logic/relational programming patterns
+- `test-driven-development` — Testing philosophy and practices
+- `git-version-control` — Version control workflows
+</skill_scope>
 
 <core_philosophy>
 ## Core Philosophy
@@ -62,267 +71,143 @@ The commitment being delayed is to internal representations and algorithms, not 
 <code_as_ontology>
 ## Code as Ontology: Names, Stability, and Evolution
 
-Software design is fundamentally about creating ontologies—systems of names that carry enduring semantic commitments. This perspective, drawn from knowledge representation and semantic web principles, shapes how we think about API design, versioning, and system evolution.
+Public APIs are ontologies—systems of names carrying semantic commitments. This perspective, drawn from knowledge representation, shapes how we approach API design and system evolution.[^hickey-speculation]
 
 <semantic_commitments>
 ### Names Create Semantic Commitments
 
-**When you name something in a public API, you make a promise.** That name represents a concept, a contract, a relationship. Breaking that semantic commitment breaks your users' understanding of your system.
+When you name something in a public API, you make a promise about what that name means. `User`, `createAccount`, `/api/users`—these establish concepts in your system's ontology. Changing what a name means changes the ontology itself.
 
-**Key principle:** Names should be enduringly meaningful. `User`, `createAccount`, `/api/users`—these names establish concepts in your system's ontology. Changing what they mean is changing the ontology itself.
-
-**Implications for design:**
-- Choose names carefully—you're making a long-term commitment
-- Prefer precise, specific names over generic ones
-- Names should reveal the semantic concept, not implementation details
-- Don't reuse names for different concepts (even across versions)
+**Design implications:**
+- Choose names carefully; they're long-term commitments
+- Names should reveal semantic concepts, not implementation details
+- Never reuse names for different concepts (even across versions)
+- When meaning must change, create a new name
 </semantic_commitments>
 
 <open_world_assumption>
 ### The Open-World Assumption
 
-**Design systems as if unknown facts might exist.** This is the open-world assumption from knowledge representation: what you don't know might be true, not just false.
+Design systems as if unknown facts might exist. From knowledge representation: what you don't know might be true, not merely false.
 
-**In practice:**
-- Data structures should tolerate unknown fields
-- APIs should accept more data than they strictly need
-- Systems should ignore what they don't understand
-- Don't fail on unexpected information
+**In practice:** Data structures should tolerate unknown fields. Systems should ignore what they don't understand. Don't fail on unexpected information.
 
-**Why this matters:**
-- Enables independent evolution of clients and servers
-- Allows adding capabilities without breaking existing code
-- Supports graceful degradation
-- Makes systems composable
-
-<open_world_examples>
 ```javascript
 // Open-world: tolerates unknown fields
 function processUser(user) {
   const { id, name, email } = user;
-  // Ignores any other fields in user
+  // Ignores any other fields—system can evolve independently
   return { id, processedName: name.toUpperCase(), email };
 }
-
-// Closed-world: breaks when given unexpected fields
-function processUser(user) {
-  if (Object.keys(user).length !== 3) {
-    throw new Error("Invalid user object");
-  }
-  // Breaks when system evolution adds new fields
-}
 ```
-</open_world_examples>
+
+**Why this matters:** Enables independent evolution of clients and servers. Adding capabilities doesn't break existing code. Systems compose safely.
 </open_world_assumption>
 
-<accretion_over_breakage>
-### Accretion Over Breakage
+<accretion_framework>
+### Growth Through Accretion
 
-**Growth happens through addition, not modification.** Add new capabilities alongside existing ones rather than changing what exists.
+Rich Hickey's accretion/breakage framework[^hickey-speculation] provides clear criteria for compatible changes:
 
-**Accretion (growth):**
-- Add new fields to responses
-- Add new optional parameters to functions
-- Add new functions/methods/endpoints
-- Add new types/classes alongside existing ones
-- Make required parameters optional (require less)
-- Return more information (provide more)
+**Compatible changes (accretion):**
+- Require less from callers (make required parameters optional)
+- Provide more to callers (add fields, return more information)
+- Add new functions/endpoints alongside existing ones
 
-**Breakage:**
-- Remove fields from responses
-- Remove functions/methods/endpoints
-- Add required parameters (require more)
-- Remove information from returns (provide less)
+**Breaking changes:**
+- Require more from callers (add required parameters)
+- Provide less to callers (remove fields, return less)
 - Change semantics under the same name
 
-<accretion_examples>
 ```python
-# Instead of modifying:
-def create_user(name, email):  # v1
+# Accretion: add alongside, don't modify
+def create_user(name, email):           # Original—still works
     ...
 
-def create_user(name, email, role):  # v2 - BREAKS v1 callers!
+def create_user_with_role(name, email, role):  # New capability
     ...
 
-# Add alongside:
-def create_user(name, email):  # v1 - still works
-    ...
-
-def create_user_with_role(name, email, role):  # v2 - new capability
-    ...
-```
-
-**Or use optional parameters:**
-
-```python
+# Or relax requirements:
 def create_user(name, email, role=None):  # Backward compatible
     ...
 ```
-</accretion_examples>
-</accretion_over_breakage>
 
-### Levels and Scopes: Don't Conflate Changes
+**Level independence:** Changes at one level shouldn't force version changes at containing levels. Modifying one function doesn't change the module; modifying a module doesn't change the package. Version at the level where change occurs.
+</accretion_framework>
 
-**Software has levels, each with its own identity.** Don't version at the wrong level.
+<semver_limitations>
+### Semantic Versioning Limitations
 
-**The levels:**
-- **Functions/methods** — Individual operations (require args, provide returns)
-- **Modules/classes** — Collections of functions
-- **Packages/libraries** — Collections of modules
-- **Services/applications** — Collections of packages
+One perspective[^hickey-speculation] on SemVer: major versions conflate all breaking changes into one signal. You know *something* broke, but not *what* or *how badly*. This makes major version bumps minimally informative.
 
-**Key insight:** Changing a function doesn't change the module. Changing a module doesn't change the package. **"If I put on a hat, it does not change what my family is."**
+**Alternative approach:** When incompatible changes are necessary, use new names rather than version numbers:
+- Function level: `createUser` → `createUserV2`
+- Module level: `users` → `users.v2`
+- Package level: `my-lib` → `my-lib-next`
 
-**Common mistake:**
+New names allow old and new to coexist, enabling gradual migration without forced upgrades.
+</semver_limitations>
 
-```
-my-library v1.0 → v2.0 because one function changed
-```
-
-This forces all users to update when most aren't affected by the change. Better:
-
-```
-my-library v1.0
-  - user.create()     # Original
-  - user.create_v2()  # New version, both coexist
-```
-
-### Semantic Versioning is Broken
-
-**SemVer's major version is about "how to break software."** The semantics are:
-- Patch (1.2.X): "You don't care"
-- Minor (1.X.0): "You don't care"
-- Major (X.0.0): "You're screwed" (or worse: "You might be screwed")
-
-**The problem:** Major version changes conflate all breaking changes at all levels into one signal. You don't know what broke or how. **You might as well change the name.**
-
-**Better approach:**
-
-```
-# Instead of my-library v2.0.0
-# Use: my-library-ng (or my-library-2, but as a new name)
-```
-
-**When you need incompatible changes:**
-- At function level: Add new function (`foo` → `foo-v2` or `foo-improved`)
-- At module level: Add new module (`users` → `users-v2`)
-- At package level: New package name (`my-lib` → `my-lib-ng`)
-
-**Why this works:**
-- Old and new coexist (gradual migration)
-- Clear what changed (specific function/module)
-- No forced upgrades
-- Dependency hell becomes manageable
-
-### API Evolution Patterns
-
-**Design APIs to grow without breaking:**
-
-**For REST APIs:**
-```
-# Add new endpoints, keep old ones
-POST /api/v1/users          # Original
-POST /api/v2/users          # New version, both live
-POST /api/users/enhanced    # Or new resource name
-```
-
-**For data formats:**
-```json
-{
-  "id": 123,
-  "name": "Alice",
-  "email": "alice@example.com"
-  // Can add new fields - clients ignore what they don't understand
-}
-```
-
-**For function signatures:**
-- Use optional/keyword parameters for new capabilities
-- Add new functions for incompatible changes
-- Use builder patterns or config objects for complex options
-
+<stability_enables_composition>
 ### Stability Enables Composition
 
-**When names are enduring and changes are accretive:**
-- Systems compose without fear
-- Dependencies update safely
-- Latest versions work without surprises
-- "Upgrade with impunity"
+When names are enduring and changes accretive, systems compose safely:
+- Dependencies update without surprises
+- Latest versions work reliably
+- Integration happens without fear
 
-**Examples of enduring names:**
-- Unix system calls (1970s → today)
-- Java core APIs (backward compatible across decades)
-- HTML (ancient pages still render)
-- Maven Central (never removes or changes artifacts)
+**Examples of enduring APIs:** Unix system calls (1970s → today), Java core APIs (decades of backward compatibility), HTML (ancient pages still render), Maven Central (artifacts never removed or changed).
 
-**The pattern:** Accreting collection of immutable artifacts. Names mean what they've always meant. Growth through addition, not modification.
+The pattern: an accreting collection of immutable artifacts where names mean what they've always meant.
+</stability_enables_composition>
+
+<ontology_connection>
+### Connection to Knowledge Engineering
+
+These principles aren't just good practice for general APIs—they're essential for semantic systems:
+
+**Ontology evolution:** Vocabularies grow monotonically. Predicates don't change meaning; new predicates are added. Deprecation through annotation, not removal.
+
+**Schema evolution:** Add types and properties; don't remove or redefine. New schemas extend old ones.
+
+**Query compatibility:** Adding facts doesn't break existing queries. New data enriches results rather than invalidating them.
+
+**Inference stability:** Adding axioms doesn't invalidate existing inferences. Monotonic reasoning preserves prior conclusions.
+
+**The discipline transfers both ways:** Design software APIs as you would design an ontology—semantic commitments made carefully, growth through accretion, meaning preserved over time. Conversely, apply API evolution practices to ontology maintenance.
+</ontology_connection>
 
 <ontological_design_checklist>
 ### Ontological Design Checklist
 
-When designing public APIs:
-
-<checklist_names_semantics>
-**1. Names and Semantics:**
-- [ ] Names precisely describe concepts, not implementation
-- [ ] Names are enduring commitments, not placeholders
+**Names and Semantics:**
+- [ ] Names describe concepts, not implementation
+- [ ] Names are enduring commitments
 - [ ] No semantic overloading (same name, different meaning)
-- [ ] Namespaces/modules prevent name collisions
-</checklist_names_semantics>
 
-<checklist_open_world>
-**2. Open-World Properties:**
+**Open-World Properties:**
 - [ ] Data structures tolerate unknown fields
 - [ ] Systems ignore what they don't understand
-- [ ] No "closed" validation that prohibits extension
-- [ ] Select/extract what you need, ignore the rest
-</checklist_open_world>
+- [ ] No closed validation that prohibits extension
 
-<checklist_evolution>
-**3. Evolution Strategy:**
-- [ ] Growth through accretion (adding), not breakage (removing/changing)
+**Evolution Strategy:**
+- [ ] Growth through accretion, not breakage
 - [ ] New capabilities coexist with old
-- [ ] Parameters are optional when possible (require less)
-- [ ] Returns include more data over time (provide more)
-- [ ] Changes at appropriate level (function vs module vs package)
-</checklist_evolution>
+- [ ] Changes versioned at appropriate level
 
-<checklist_stability>
-**4. Stability Guarantees:**
-- [ ] Existing APIs remain functional
-- [ ] Semantics don't change under same name
-- [ ] Deprecation includes migration path
-- [ ] Breaking changes use new names
-</checklist_stability>
-
-<when_breaking_necessary>
-**When you must break:**
-- Use new names (new function, new module, new package)
+**When breaking is necessary:**
+- Use new names (function, module, or package)
 - Document migration path
 - Keep old version functional alongside new
-- Give users control over when to migrate
-</when_breaking_necessary>
 </ontological_design_checklist>
-
-<knowledge_engineering_connection>
-### Connection to Knowledge Engineering
-
-**For systems involving ontologies, knowledge bases, or semantic data:**
-
-These principles aren't just good practice—they're essential:
-- **RDF/OWL evolution** — Vocabularies grow monotonically, predicates don't change meaning
-- **Schema evolution** — Add types and properties, don't remove or redefine
-- **Query compatibility** — New data doesn't break existing queries
-- **Inference stability** — Adding facts doesn't invalidate existing inferences
-
-**The discipline transfers:** Design software APIs the way you'd design an ontology. Make semantic commitments carefully. Grow through accretion. Preserve meaning over time.
-</knowledge_engineering_connection>
 </code_as_ontology>
 
+<mixed_paradigm_thinking>
 ## Mixed-Paradigm Thinking
 
-Effective software engineering requires choosing the right paradigm for each problem. Different paradigms excel at different tasks.
+Effective software engineering requires choosing the right paradigm for each problem. Different paradigms excel at different tasks. For detailed guidance, see the paradigm-specific skills: `functional-programmer`, `object-oriented-programmer`, `logic-programmer`.
 
+<when_functional>
 ### When to Use Functional Programming
 
 Use functional approaches when:
@@ -332,12 +217,10 @@ Use functional approaches when:
 - Composing small, reusable operations
 - Avoiding state-related bugs
 
-**Key principles:**
-- Pure functions (no side effects)
-- Immutable data structures
-- First-class and higher-order functions
-- Composition over inheritance
+**Key principles:** Pure functions, immutable data structures, first-class and higher-order functions, composition over inheritance.
+</when_functional>
 
+<when_oop>
 ### When to Use Object-Oriented Programming
 
 Use object-oriented approaches when:
@@ -348,12 +231,10 @@ Use object-oriented approaches when:
 
 **Caution:** Avoid overuse. Not every program needs objects. OOP can obscure functional clarity when misapplied.
 
-**Key principles when using OOP:**
-- Encapsulation of state
-- Clear interfaces and contracts
-- Composition over inheritance
-- SOLID principles (covered in object-oriented-programmer skill)
+**Key principles:** Encapsulation of state, clear interfaces and contracts, composition over inheritance, SOLID principles (see `object-oriented-programmer` skill).
+</when_oop>
 
+<when_logic>
 ### When to Use Logic Programming
 
 Use logic/relational approaches when:
@@ -362,12 +243,10 @@ Use logic/relational approaches when:
 - Working with symbolic reasoning
 - Declaratively specifying what rather than how
 
-**Key principles:**
-- Relations over functions
-- Unification and pattern matching
-- Declarative specification
-- Backtracking search
+**Key principles:** Relations over functions, unification and pattern matching, declarative specification, backtracking search.
+</when_logic>
 
+<paradigm_integration>
 ### Paradigm Integration
 
 Modern software often benefits from mixing paradigms:
@@ -376,9 +255,13 @@ Modern software often benefits from mixing paradigms:
 - Use logic programming for constraint solving within imperative systems
 
 Choose the paradigm that makes the problem clearest, not the paradigm most fashionable.
+</paradigm_integration>
+</mixed_paradigm_thinking>
 
+<code_planning>
 ## Code Planning and Scaffolding
 
+<design_iteration>
 ### Iterate on Design Before Final Implementation
 
 Design iteration is development work, not a delay before "real work." Do not jump to final implementation before understanding the problem space:
@@ -395,9 +278,10 @@ Design iteration is development work, not a delay before "real work." Do not jum
 - Build throwaway implementations to learn about the problem and solution space
 - Experiment with different interface designs through working code
 - Discover hidden complexity and interaction patterns
-- Learn what works by making it "wrong first" (SuperfastMatt quote)
+- Prototype against real constraints—actual data shapes, real APIs, production frameworks—so you discover problems you'll face in production, not hypothetical ones
+- Learn what works by making it "wrong first" — SuperfastMatt
 - Throw away the prototype and design/scaffold the real implementation with that knowledge
-- "You don't completely know what you're doing 'till you've done it once" (Leo Brodie)
+- "You don't completely know what you're doing 'till you've done it once." — Leo Brodie
 
 **The distinction:**
 - **Design iteration/prototyping** (good): Exploring to build understanding, expecting to throw away and redesign
@@ -410,6 +294,7 @@ Design iteration is development work, not a delay before "real work." Do not jum
 - You're unsure about major architectural decisions
 - The design doesn't trace back to user needs
 - You can't articulate the trade-offs you're making
+- Your prototypes use toy data or mocked APIs, which hide the problems you need to discover
 
 **Design exploration techniques:**
 - Sketch component interactions and data flows
@@ -427,7 +312,9 @@ Design iteration is development work, not a delay before "real work." Do not jum
 - You've considered alternatives and their trade-offs
 
 Only after design iteration should you begin scaffolding production code.
+</design_iteration>
 
+<scaffolding>
 ### Scaffolding Production Code
 
 Plan code by writing scaffolds that can be filled out later:
@@ -438,9 +325,13 @@ Plan code by writing scaffolds that can be filled out later:
 - **Design for maintainability**: Assume code will be maintained by junior engineers and LLMs. Prefer strongly defined structures based on idiomatic design and architectural patterns for the language
 
 When uncertain, ask the user—they are a senior software engineer who either has an answer or can find one.
+</scaffolding>
+</code_planning>
 
+<design_principles>
 ## Design Principles
 
+<modularity>
 ### Modularity and Decomposition
 
 Break programs into modules with clear responsibilities:
@@ -448,16 +339,21 @@ Break programs into modules with clear responsibilities:
 - Modules should be independently testable
 - Dependencies between modules should be explicit and minimal
 - Use dependency injection to reduce coupling
+</modularity>
 
+<testability>
 ### Design for Testability
 
-Write code that is easy to test:
+Write code that is easy to test. For detailed testing philosophy, see `test-driven-development` skill.
+
 - Separate pure logic from side effects
 - Use dependency injection for external resources
 - Keep functions small and focused
 - Design clear interfaces with testable contracts
 - Avoid global state and hidden dependencies
+</testability>
 
+<progressive_enhancement>
 ### Progressive Enhancement
 
 Build systems incrementally:
@@ -466,8 +362,10 @@ Build systems incrementally:
 3. Add complexity only when needed
 4. Refactor continuously to maintain clarity
 
-**Quote to remember:** "...the best way to make something is sometimes to just make it wrong first." — SuperfastMatt
+"...the best way to make something is sometimes to just make it wrong first." — SuperfastMatt
+</progressive_enhancement>
 
+<optimization>
 ### Avoid Premature Optimization
 
 Optimize for clarity first, performance second—but distinguish between speculation and expertise:
@@ -490,9 +388,13 @@ The distinction: Premature optimization is optimizing based on speculation. Info
 2. Measure to identify actual bottlenecks beyond obvious ones
 3. Optimize proven bottlenecks
 4. Preserve clarity when optimizing
+</optimization>
+</design_principles>
 
+<requirements_driven_design>
 ## Requirements-Driven Design
 
+<user_needs>
 ### Start with User Needs and End-Goals
 
 Before designing solutions, understand and document what you're building and why:
@@ -513,7 +415,9 @@ Before designing solutions, understand and document what you're building and why
 - Every requirement should reference the user stories or goals that motivate it
 - Every design decision should reference the requirements it satisfies
 - Maintain this traceability to evaluate whether decisions serve actual needs
+</user_needs>
 
+<future_evolution>
 ### Consider Future Evolution
 
 Explicitly think about how the system might evolve:
@@ -528,7 +432,9 @@ Explicitly think about how the system might evolve:
 - Don't over-engineer for unlikely futures
 - Don't under-engineer for probable futures
 - Make evolution paths explicit in design documentation
+</future_evolution>
 
+<success_criteria>
 ### Define Success Criteria
 
 Establish how you'll know if the system serves its purpose:
@@ -542,7 +448,9 @@ Establish how you'll know if the system serves its purpose:
 - Build observability for success criteria from the start
 - Include both "is it working?" and "is it serving its purpose?" metrics
 - Plan for collecting the data needed to evaluate KPIs
+</success_criteria>
 
+<design_documentation>
 ### When to Write Design Documentation
 
 Document design when:
@@ -573,7 +481,9 @@ Document design when:
 - Traceability reveals gaps
 - Structure helps identify missing considerations
 - Documentation is a thinking tool, not just a communication artifact
+</design_documentation>
 
+<decision_grounding>
 ### Ground All Decisions in User Needs
 
 When evaluating design alternatives or making implementation decisions:
@@ -584,9 +494,13 @@ When evaluating design alternatives or making implementation decisions:
 4. **Verify alignment**: Does this move us toward our ultimate goals?
 
 If you can't trace a decision back to user needs or requirements, either the decision is unnecessary or the user needs and requirements are incomplete. Investigate which is true—you may have identified a gap in requirements that should be documented.
+</decision_grounding>
+</requirements_driven_design>
 
+<engineering_judgment>
 ## Engineering Judgment and Trade-offs
 
+<strategic_alignment>
 ### Strategic Path Alignment
 
 Not everything that gets you from today to tomorrow also gets you from today to the day-after-tomorrow. Evaluate whether each decision advances toward ultimate goals, not just immediate milestones.
@@ -611,7 +525,9 @@ Not everything that gets you from today to tomorrow also gets you from today to 
 - Sometimes the right answer is to take the detour, but do so consciously
 
 **Reference point for all decisions:** The ultimate goals and end-state capabilities, not just the next feature or milestone.
+</strategic_alignment>
 
+<context_over_dogma>
 ### Context Over Dogma
 
 What works in one context (team size, domain, scale, constraints) may not work in another. Staff-level judgment requires:
@@ -623,7 +539,9 @@ What works in one context (team size, domain, scale, constraints) may not work i
 - **Re-evaluate decisions** when circumstances change
 
 The same approach that works at Google scale may be over-engineering at startup scale, and vice versa.
+</context_over_dogma>
 
+<understanding_tradeoffs>
 ### Understanding Trade-offs
 
 Every architectural and design decision involves trade-offs between competing concerns. There are no solutions, only trade-offs:
@@ -634,7 +552,9 @@ Every architectural and design decision involves trade-offs between competing co
 - **Revisit trade-offs**: As context changes, previously correct trade-offs may become incorrect
 
 The goal is not to avoid trade-offs, but to make them consciously and document the reasoning.
+</understanding_tradeoffs>
 
+<decision_reversibility>
 ### Decision Reversibility
 
 Weight decisions differently based on the cost of reversibility. All decisions can be reversed if enough force is applied, but an expensive two-way door is effectively a one-way door.
@@ -656,7 +576,9 @@ Weight decisions differently based on the cost of reversibility. All decisions c
 - Document assumptions that would trigger revisiting the decision
 - Make the cost of reversal explicit when communicating the decision
 - Choose designs that minimize reversal cost when practical
+</decision_reversibility>
 
+<systems_thinking>
 ### Systems Thinking and Emergent Behavior
 
 Systems behave as wholes, not just as collections of parts. Staff-level engineers understand:
@@ -668,7 +590,9 @@ Systems behave as wholes, not just as collections of parts. Staff-level engineer
 - **Unintended consequences**: Changes have effects beyond their immediate purpose
 
 Design with the whole system in mind, not just individual components in isolation.
+</systems_thinking>
 
+<abstraction_costs>
 ### When Abstractions Are Too Expensive
 
 While this skill emphasizes abstraction as a complexity management tool, experienced engineers recognize when abstractions become counterproductive:
@@ -687,7 +611,9 @@ While this skill emphasizes abstraction as a complexity management tool, experie
 - The cost of understanding the abstraction exceeds the cost of understanding the concrete implementation
 
 Sometimes the right answer is concrete, direct code rather than clever abstraction.
+</abstraction_costs>
 
+<technical_debt>
 ### Technical Debt as Strategic Investment
 
 Not all "technical debt" is bad—sometimes it's a deliberate, informed choice to ship faster:
@@ -714,7 +640,9 @@ Not all "technical debt" is bad—sometimes it's a deliberate, informed choice t
 - Track debt and its interest (maintenance burden)
 - Pay down debt before interest compounds uncontrollably
 - Distinguish between debt and poor engineering
+</technical_debt>
 
+<failure_resilience>
 ### Design for Failure and Resilience
 
 Assume components will fail; don't hope they won't. Resilient systems expect and handle failure:
@@ -734,7 +662,9 @@ Assume components will fail; don't hope they won't. Resilient systems expect and
 - **Fallback mechanisms**: Alternative paths when primary path fails
 
 Design systems that continue functioning, perhaps with reduced capability, when components fail.
+</failure_resilience>
 
+<observability>
 ### Observability as a First-Class Concern
 
 Build systems that can be understood in production, not just in development:
@@ -753,6 +683,7 @@ Build systems that can be understood in production, not just in development:
 - Design for troubleshooting by people who didn't write the code
 
 The question is not "does this work in my development environment" but "can we understand what's happening in production when things go wrong."
+</observability>
 
 <architectural_patterns>
 ### Architectural Patterns for System Organization
@@ -833,9 +764,12 @@ Complex systems benefit from architectural patterns that isolate business logic 
 </hex_when_simpler_suffices>
 </hexagonal_architecture>
 </architectural_patterns>
+</engineering_judgment>
 
+<code_quality>
 ## Code Quality Standards
 
+<naming_conventions>
 ### Naming Conventions
 
 Use names that reveal intent:
@@ -844,7 +778,9 @@ Use names that reveal intent:
 - Classes: nouns describing what they are
 - Constants: descriptive names indicating purpose
 - Avoid abbreviations unless universally understood
+</naming_conventions>
 
+<documentation_comments>
 ### Documentation and Comments
 
 Document the why, not the what:
@@ -857,7 +793,9 @@ Document the why, not the what:
 - Documentation serves both as communication and as memory
 
 **Documentation as context:** Poor documentation is unacceptable. Strive for perfect documentation on all code entities, even tests. Address linter findings for documentation immediately to ensure documentation is written with proper context.
+</documentation_comments>
 
+<error_handling>
 ### Error Handling
 
 Handle errors explicitly and meaningfully:
@@ -865,7 +803,9 @@ Handle errors explicitly and meaningfully:
 - Provide actionable error messages
 - Distinguish between recoverable and unrecoverable errors
 - Use types and contracts to prevent errors when possible
+</error_handling>
 
+<code_organization>
 ### Code Organization
 
 Organize code for human understanding:
@@ -874,9 +814,13 @@ Organize code for human understanding:
 - Use consistent formatting and style
 - Follow language-specific conventions
 - Make dependencies explicit
+</code_organization>
+</code_quality>
 
+<working_with_existing_code>
 ## Working with Existing Code
 
+<understanding_before_changing>
 ### Understanding Before Changing
 
 Before modifying code:
@@ -886,7 +830,9 @@ Before modifying code:
 4. Check for tests that document expected behavior
 5. Examine configuration and build files to understand project commands
 6. Don't assume based solely on programming language (look for NPM scripts, rebar3 tasks, Hatch scripts, Gradle tasks, etc.)
+</understanding_before_changing>
 
+<refactoring_strategy>
 ### Refactoring Strategy
 
 When refactoring:
@@ -897,7 +843,9 @@ When refactoring:
 5. Document reasons for changes
 6. Avoid creating multiple alternate versions of source files
 7. Use Git feature branches for experimentation
+</refactoring_strategy>
 
+<legacy_code>
 ### Legacy Code
 
 When working with legacy systems:
@@ -906,9 +854,13 @@ When working with legacy systems:
 - Preserve working behavior
 - Document discoveries about system behavior (preferably, as tests)
 - Consider the cost/benefit of changes
+</legacy_code>
+</working_with_existing_code>
 
+<language_tool_selection>
 ## Language and Tool Selection
 
+<choose_tools>
 ### Choose Appropriate Tools
 
 Select languages and tools based on:
@@ -917,7 +869,9 @@ Select languages and tools based on:
 - Ecosystem maturity and library availability
 - Performance and scalability needs
 - Development velocity vs. long-term maintenance
+</choose_tools>
 
+<favor_existing>
 ### Favor Existing Solutions
 
 Before writing new code:
@@ -927,9 +881,13 @@ Before writing new code:
 4. Understand the trade-off between dependency and custom code
 
 Search the web for existing solutions when asked to write code—finding an existing library is preferable to writing new code. Clarify user expectations when unclear about whether they want a solution or actual code.
+</favor_existing>
+</language_tool_selection>
 
+<principles_in_practice>
 ## Principles in Practice
 
+<iterative_development>
 ### Iterative Development
 
 Develop software iteratively:
@@ -939,8 +897,10 @@ Develop software iteratively:
 4. Refactor regularly to maintain quality
 5. Expect to rewrite significant portions
 
-**Quote to remember:** "...you don't completely know what you're doing 'till you've done it once." — Leo Brodie
+"...you don't completely know what you're doing 'till you've done it once." — Leo Brodie
+</iterative_development>
 
+<practical_constraints>
 ### Practical Constraints
 
 When working on projects:
@@ -948,7 +908,9 @@ When working on projects:
 - If tools fail, stop and wait for corrective action
 - Prefer file patching over full rewrites to avoid response length limits
 - Always clean up unnecessary code and files before completing tasks
+</practical_constraints>
 
+<continuous_learning>
 ### Continuous Learning
 
 Software engineering requires continuous learning:
@@ -957,7 +919,9 @@ Software engineering requires continuous learning:
 - Understand multiple paradigms and languages
 - Keep current with evolving practices
 - Apply lessons from experience to future work
+</continuous_learning>
 
+<pragmatism_idealism>
 ### Balance Pragmatism and Idealism
 
 Strike balance between:
@@ -968,6 +932,8 @@ Strike balance between:
 - Technical excellence and practical constraints
 
 The goal is sustainable software that serves its purpose well, not perfect code.
+</pragmatism_idealism>
+</principles_in_practice>
 
 <safety_constraints>
 ## Safety Constraints
@@ -1010,3 +976,23 @@ These guardrails apply regardless of context or time pressure. They constrain to
 - **Always** leave code cleaner than you found it
 </process_constraints>
 </safety_constraints>
+
+<resources>
+## Resources
+
+**Primary texts:**
+- Abelson, Harold and Gerald Jay Sussman. _Structure and Interpretation of Computer Programs_. https://mitp-content-server.mit.edu/books/content/sectbyfn/books_pres_0/6515/sicp.zip/index.html
+
+**Related skills:**
+- `functional-programmer` — Functional paradigm principles and patterns
+- `object-oriented-programmer` — OOP principles including SOLID
+- `logic-programmer` — Logic/relational programming patterns
+- `test-driven-development` — Testing philosophy and practices
+- `git-version-control` — Version control workflows
+</resources>
+
+## Sources
+
+<sources>
+[^hickey-speculation]: Rich Hickey. 2016. Spec-ulation (keynote). Clojure/conj 2016. https://www.youtube.com/watch?v=oyLBGkS5ICk
+</sources>

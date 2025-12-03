@@ -5,7 +5,7 @@ description: Expert-level guidance for creating high-quality Claude Code skills.
 
 # Expert Skill Creator
 
-<overview>
+<skill_scope skill="expert-skill-creator">
 **Related skills:**
 - `skill-creator` (Anthropic) - Basic skill mechanics, directory structure, initialization
 - `software-engineer` - Design principles that inform skill architecture
@@ -16,7 +16,7 @@ description: Expert-level guidance for creating high-quality Claude Code skills.
 Skills are modular packages that extend Claude's capabilities by providing specialized knowledge, workflows, and tool integrations. They function as **retrieval triggers** that activate and organize Claude's trained knowledge, not as teaching material that explains concepts from scratch.
 
 **Critical insight**: For LLMs, skills activate existing knowledge rather than teaching new content. The risk is that too much detail *constrains* behavior rather than enhancing it. Skills should provide high-level frameworks that trigger trained knowledge, with detailed content reserved for genuinely novel or problematic areas.
-</overview>
+</skill_scope>
 
 ## When to Use This Skill
 
@@ -87,6 +87,9 @@ These guidelines emerged from creating 15+ skills and observing their performanc
 - Maintain consistent names throughout—same concept, same tag name
 - Wrap coherent conceptual chunks that could be referenced independently
 - Nest tags for hierarchical content: `<platform_differences><macos_specifics>...</macos_specifics></platform_differences>`
+
+**Standard tags:**
+- `<skill_scope skill="skill-name">` — Use for the skill's introductory section (overview, purpose, related skills). The `skill` attribute prevents collision when multiple skills are loaded. Every skill should begin with this tag after the title.
 
 **Explicit tag references:**
 Reference tags by name when discussing their content. This reinforces connections between sections and helps readers navigate related guidance.
@@ -488,6 +491,7 @@ Before completing a skill, verify:
 **Structure:**
 - [ ] YAML frontmatter has `name` and `description`
 - [ ] Description includes WHAT and WHEN (max 1024 chars)
+- [ ] Opens with `<skill_scope skill="skill-name">` containing related skills
 - [ ] Major sections use XML tags with `snake_case` names
 - [ ] Cross-references point to correct skill names
 
@@ -666,7 +670,7 @@ touch skill-name/SKILL.md
 
 **Order of writing:**
 1. YAML frontmatter (name, description)
-2. Overview and related skills
+2. `<skill_scope skill="skill-name">` with related skills and purpose
 3. When to use section
 4. Core content sections with XML tags
 5. Common mistakes section
