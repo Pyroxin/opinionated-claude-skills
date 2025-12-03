@@ -5,9 +5,13 @@ description: Git commit standards, branch strategy, and LLM-assisted development
 
 # Git Version Control
 
+<skill_scope skill="git-version-control">
 **Related skills:**
-- `software-engineer` - Design principles that inform commit granularity
-- `test-driven-development` - Test-commit cycles and when to commit during TDD
+- `software-engineer` — Design principles that inform commit granularity
+- `test-driven-development` — Test-commit cycles and when to commit during TDD
+
+This skill covers Git commit standards, branch strategy, and LLM-assisted development workflows. It emphasizes atomic commits, meaningful commit messages, and high-frequency integration.
+</skill_scope>
 
 ## Core Philosophy
 
@@ -108,6 +112,18 @@ Before committing, verify you're on the appropriate branch:
 
 <conventional_commits>
 **Style preference:** Use full keywords (`feature:` not `feat:`). Imperative mood. Subject ≤50 chars, body wraps at 72, explain WHY.
+
+**Imperative mood test:** Subject line should complete the sentence "If applied, this commit will _____."[^beams] Examples: "Add caching for API responses" ✓, "Added caching" ✗, "Adds caching" ✗.
+
+**Content principles:**
+- **Delta, not journey** — Describe what changed, not how you discovered what to change. The debugging process doesn't belong in the permanent record.
+- **Neutral framing** — Avoid judgmental language about prior state ("fix broken", "remove wrong", "correct mistake"). Prefer neutral verbs: "update", "change", "revise".
+- **Outcome, not process** — Don't document how you verified, tested, or arrived at the change. The commit message records *what*, not *how you figured it out*.
+- **Let the diff speak** — Implementation details belong in the diff. The message explains intent and scope; the diff shows specifics.
+
+**Anti-pattern:** "Fix incorrect attribution that cited Apple docs when the quote was actually from a community blog post" — this documents the debugging journey, uses judgmental framing, and includes detail the diff already shows.
+
+**Better:** "Update source attributions" — neutral, outcome-focused, appropriate abstraction level.
 </conventional_commits>
 
 <fixup_workflow>
@@ -161,7 +177,7 @@ git push --force             # Dangerous
 <llm_checkpoints>
 Lightweight savepoints before LLM modifications without commit overhead.
 
-**Git aliases** (adapted from Nathan Orick's checkpoint pattern[^1]):
+**Git aliases** (adapted from Nathan Orick's checkpoint pattern[^orick]):
 ```bash
 [alias]
 checkpoint = "!f() { git add -A && git commit --no-verify -m \"SAVEPOINT\"; git tag \"checkpoint/$(date +%Y_%m_%d_%H_%M_%S)\"; git reset HEAD~1 --mixed; }; f"
@@ -305,5 +321,7 @@ git worktree add ../agent-2-workspace feature-payment
 ## Sources
 
 <sources>
-[^1]: Nathan Orick. Git Checkpoints. Retrieved November 28, 2025 from https://nathanorick.com/git-checkpoints/
+[^beams]: Chris Beams. 2014. How to Write a Git Commit Message. https://cbea.ms/git-commit/
+
+[^orick]: Nathan Orick. Git Checkpoints. https://nathanorick.com/git-checkpoints/
 </sources>
