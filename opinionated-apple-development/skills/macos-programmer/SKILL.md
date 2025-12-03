@@ -5,8 +5,14 @@ description: macOS-specific development patterns, platform APIs, and decision fr
 
 # macOS Programming
 
-**For Swift language fundamentals and Swift 6 concurrency, see the `swift-programmer` skill.**
-**For general software engineering principles and system architecture, see the `software-engineer` skill.**
+<skill_scope skill="macos-programmer">
+**Related skills:**
+- `swift-programmer` — Swift language fundamentals and Swift 6 concurrency
+- `software-engineer` — General software engineering principles and system architecture
+- `test-driven-development` — Testing philosophy and practices
+
+This skill covers macOS-specific development patterns, platform APIs, and decision frameworks. It applies when developing Mac apps, working with Cocoa/AppKit code, or making SwiftUI vs AppKit decisions.
+</skill_scope>
 
 ## Core Philosophy
 
@@ -21,9 +27,7 @@ description: macOS-specific development patterns, platform APIs, and decision fr
 <swiftui_vs_appkit_decision>
 **The Ground Truth from Production Apps:**
 
-SwiftUI maturity varies dramatically by platform. The Ghostty Terminal case study (Mitchell Hashimoto, documented in Ghostty Devlog 002) demonstrates this: had to completely rip out SwiftUI's app/window lifecycle (+802/-239 lines) just to implement non-native fullscreen. Multi.app's approach: moved to SwiftUI but noted they were "approaching the cusp of dropping macOS 11 support entirely" due to SwiftUI bugs on older versions.[^1]
-
-[^1]: Mitchell Hashimoto. 2024. Ghostty Devlog 002. https://mitchellh.com/writing/ghostty-devlog-002; Multi.app. 2023. Moving to SwiftUI from macOS Cocoa. https://multi.app/blog/moving-to-swiftui-from-macos-cocoa-or-ios-cocoa-touch
+SwiftUI maturity varies dramatically by platform. The Ghostty Terminal case study demonstrates this: had to completely rip out SwiftUI's app/window lifecycle (+802/-239 lines) just to implement non-native fullscreen.[^ghostty-devlog] Multi.app's approach: moved to SwiftUI but noted they were "approaching the cusp of dropping macOS 11 support entirely" due to SwiftUI bugs on older versions.[^multi-swiftui]
 
 **Use SwiftUI When:**
 - New apps targeting macOS 14+, simple-to-medium complexity
@@ -389,7 +393,7 @@ xcrun stapler validate App.app
 - When MVVM feels like overkill
 
 **Reality check:**
-- "In SwiftUI, the view is also the view model" - Apple's philosophy
+- SwiftUI's reactive binding means views often serve as their own view models[^mv-pattern]
 - Minimal boilerplate, fastest development velocity
 - Works for most SwiftUI apps until models exceed ~500 lines
 - When models get large, extract logic or move to MVVM
@@ -524,7 +528,7 @@ Main thread for UI updates and user input handling ONLY. Move off main thread:
 
 **Layer-Backed View Optimization:**
 
-Layer-backed views have default redraw policy `NSViewLayerContentsRedrawDuringViewResize` which is "detrimental to animation performance" as it triggers drawing step for each frame.
+Layer-backed views have default redraw policy `NSViewLayerContentsRedrawDuringViewResize` which is "detrimental to animation performance" as it triggers the drawing step for each frame.[^layer-redraw]
 
 Change to:
 ```swift
@@ -724,3 +728,15 @@ Testing workflow:
 **Stay Pragmatic:** The perfect architecture that ships beats the theoretical ideal that doesn't. Balance theoretical purity with practical delivery. Ship working software, iterate based on real problems, refactor when justified by pain.
 
 **Final Wisdom:** The best Mac apps feel like Mac apps. They embrace platform conventions, leverage macOS strengths, and don't feel like iPad apps in disguise. Build for Mac users, not iOS users with keyboards. Master the frameworks, respect the platform, ship great software.
+
+## Sources
+
+<sources>
+[^ghostty-devlog]: Mitchell Hashimoto. 2024. Ghostty Devlog 002. https://mitchellh.com/writing/ghostty-devlog-002
+
+[^multi-swiftui]: Multi.app. 2023. Moving to SwiftUI from macOS Cocoa. https://multi.app/blog/moving-to-swiftui-from-macos-cocoa-or-ios-cocoa-touch
+
+[^mv-pattern]: Mohammad Azam. 2022. SwiftUI Architecture — A Complete Guide to the MV Pattern Approach. https://betterprogramming.pub/swiftui-architecture-a-complete-guide-to-mv-pattern-approach-5f411eaaaf9e
+
+[^layer-redraw]: objc.io. AppKit for UIKit Developers. Issue #14. https://www.objc.io/issues/14-mac/appkit-for-uikit-developers
+</sources>

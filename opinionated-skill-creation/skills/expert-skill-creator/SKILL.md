@@ -464,6 +464,33 @@ Rich Hickey's "Simple Made Easy" talk[^1] distinguishes simplicity from ease...
 - Prefer incomplete but accurate over complete but fabricated
 </citation_accuracy>
 
+### Source Verification
+
+<source_verification>
+**Training data is not verification. Use tools to confirm sources before citing.**
+
+Memories from training are hypotheses, not facts. Before adding any citation:
+
+1. **Verify URLs exist** — Fetch the URL to confirm it resolves and contains relevant content
+2. **Verify quotes are accurate** — Search for the exact quote; paraphrased memories often drift from originals
+3. **Verify attributions** — Confirm who actually said something; community interpretations often get misattributed to authoritative sources (e.g., "Apple says..." when it's actually a blog post)
+4. **Verify content matches claim** — Read the source to confirm it supports what you're citing it for
+
+**When verification tools are available (WebFetch, WebSearch, Kagi, Exa), use them.** The cost of a few tool calls is trivial compared to publishing incorrect citations.
+
+**Common verification failures:**
+- Attributing secondary interpretations to primary sources (e.g., a blogger's synthesis cited as official documentation)
+- URLs constructed from memory that return 404 or redirect elsewhere
+- Quotes that are paraphrases or composites of what was actually said
+- Version-specific claims stated as fact without verification
+
+**Verification workflow:**
+1. Draft citations based on memory
+2. Before finalizing, verify each citation with appropriate tools
+3. Correct or remove citations that don't verify
+4. Note in commit message that sources were verified
+</source_verification>
+
 ### Common Citation Mistakes
 
 <citation_mistakes>
@@ -505,7 +532,10 @@ Before completing a skill, verify:
 **Attribution and Citations:**
 - [ ] All third-party content is attributed (author + source work)
 - [ ] Formal ACM citations used where warranted (see `<citation_scope>`)
-- [ ] DOIs/URLs verified for formal citations
+- [ ] Sources verified with tools, not just memory (see `<source_verification>`)
+- [ ] URLs fetched to confirm they exist and contain claimed content
+- [ ] Quotes verified against original source (not paraphrased from memory)
+- [ ] Attributions confirmed (e.g., "Apple says" actually comes from Apple)
 - [ ] Sources section uses proper format
 - [ ] No probable plagiarism
 - [ ] Incomplete quotes end with ellipses
@@ -765,6 +795,7 @@ touch skill-name/SKILL.md
 - **No validation**: Shipping skills without verification
 - **No iteration**: Treating skills as write-once artifacts
 - **No citations**: Including third-party content without attribution
+- **Memory as verification**: Treating training data memories as verified facts; citing URLs, quotes, or attributions without using tools to confirm accuracy
 </anti_patterns>
 
 ## Resources

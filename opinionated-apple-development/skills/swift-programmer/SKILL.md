@@ -5,17 +5,24 @@ description: Swift-specific idioms, tooling, and philosophy. Use when working wi
 
 # Swift Programming
 
+<skill_scope skill="swift-programmer">
+**Related skills:**
+- `software-engineer` — Core design principles and system architecture
+- `macos-programmer` — macOS-specific patterns when building Mac apps
+- `test-driven-development` — Testing philosophy and practices
+- `functional-programmer` — Functional paradigm principles (Swift supports FP)
+
+This skill covers Swift-specific idioms, tooling, and philosophy. It emphasizes protocol-oriented programming, value semantics, strict concurrency (Swift 6+), and compile-time safety guarantees.
+</skill_scope>
+
 ## Core Philosophy
 
 <philosophy>
 **Swift 6 fundamental shift**: From memory safety to **compile-time data-race safety**. Think in **isolation domains, not threads**.
 
-**Version targeting**: Always use latest Swift (currently 6.2, released September 2025). For internal apps, never support older versions. For open-source libraries, support N-1 or N-2 versions maximum.
+**Version targeting**: Use the latest Swift version available. For internal apps, don't support older versions. For open-source libraries, support N-1 or N-2 versions maximum.
 
 **Prefer**: Protocol composition over inheritance, value semantics over reference semantics, static dispatch over dynamic dispatch.
-
-**For general software engineering philosophy, see the software-engineer skill.**
-**For testing principles, see the test-driven-development skill.**
 </philosophy>
 
 ## Swift 6 Concurrency: Critical Concepts and Gotchas
@@ -487,7 +494,7 @@ final class Singleton: Sendable {
 ## Protocol-Oriented Programming
 
 <protocol_oriented>
-**Core principle**: "Don't start with a class, start with a protocol." (Dave Abrahams, WWDC 2015)
+**Core principle**: "Don't start with a class, start with a protocol."[^abrahams-pop]
 
 **When to use protocols**:
 - Multiple types share behavior WITHOUT shared state
@@ -511,7 +518,7 @@ final class Singleton: Sendable {
 ## Value vs Reference Types
 
 <value_vs_reference>
-**Apple's guidance**: "Prefer structs over classes unless you need reference semantics."
+**Apple's guidance**: "Prefer structs over classes unless you need reference semantics."[^value-semantics]
 
 **Decision tree**:
 ```
@@ -603,7 +610,7 @@ func loadFile(_ path: String) throws(FileError) -> Data {
 ## API Design Core Principles
 
 <api_design>
-**Apple's three pillars**:
+**Apple's three pillars**[^api-guidelines]:
 1. **Clarity at point of use** (most important)
 2. **Clarity over brevity**
 3. **Document every declaration**
@@ -687,3 +694,13 @@ When contributing to open-source Swift:
 - Google: https://google.github.io/swift/
 - Kodeco: https://github.com/kodecocodes/swift-style-guide
 </resources>
+
+## Sources
+
+<sources>
+[^abrahams-pop]: Dave Abrahams. 2015. Protocol-Oriented Programming in Swift (Session 408). WWDC 2015. https://developer.apple.com/videos/play/wwdc2015/408/
+
+[^api-guidelines]: Apple Inc. Swift API Design Guidelines. https://www.swift.org/documentation/api-design-guidelines/
+
+[^value-semantics]: Apple Inc. Choosing Between Structures and Classes. Swift Documentation. https://developer.apple.com/documentation/swift/choosing-between-structures-and-classes
+</sources>
