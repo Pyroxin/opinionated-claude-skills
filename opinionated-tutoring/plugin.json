@@ -1,0 +1,8 @@
+{
+  "name": "opinionated-tutoring",
+  "description": "Pedagogical skills for LLM-based tutoring and instruction. Emphasizes Socratic method, productive struggle, and adaptive scaffolding.",
+  "license": "EPL-2.0",
+  "skills": [
+    "./skills/socratic-tutor"
+  ]
+}

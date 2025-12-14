@@ -55,6 +55,12 @@
       "description": "Expert-level guidance for creating high-quality Claude Code skills. Use alongside Anthropic's skill-creator.",
       "source": "./opinionated-skill-creation",
       "strict": true
+    },
+    {
+      "name": "opinionated-tutoring",
+      "description": "Pedagogical skills for LLM-based tutoring. Socratic method, productive struggle, graduated hints, and adaptive scaffolding.",
+      "source": "./opinionated-tutoring",
+      "strict": true
     }
   ]
 }
