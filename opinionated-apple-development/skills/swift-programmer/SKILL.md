@@ -34,7 +34,7 @@ This skill covers Swift-specific idioms, tooling, and philosophy. It emphasizes 
 
 **Structured concurrency**: Task hierarchies with automatic cancellation propagation. Use `TaskGroup` for parallel work with bounded lifetime. Avoid detached tasks except in exceptional circumstances.
 
-**Swift 6.2 "Approachable Concurrency"**: Code is single-threaded by default until you explicitly introduce parallelism with `@concurrent` attribute. Async functions stay on the calling actor unless explicitly offloaded. This eliminates most data-race errors for naturally sequential code.
+**Swift 6.2 Approachable Concurrency**[^approachable-concurrency]: Code is single-threaded by default until you explicitly introduce parallelism with `@concurrent` attribute. Async functions stay on the calling actor unless explicitly offloaded. This eliminates most data-race errors for naturally sequential code.
 </concurrency_fundamentals>
 
 ### Actor Re-entrancy (Most Common Bug)
@@ -289,9 +289,9 @@ processAsync {
 ### Region-Based Isolation & Transfer Semantics
 
 <region_isolation>
-**SE-0414 (Region-based isolation)**: Allows safe transfer of non-Sendable values when ownership is provably transferred.
+**SE-0414 Region-based Isolation**[^se-0414]: Allows safe transfer of non-Sendable values when ownership is provably transferred.
 
-**SE-0430 (`sending` keyword)**: Explicitly marks parameters/returns as transferring ownership across isolation boundaries.
+**SE-0430 `sending` Keyword**[^se-0430]: Explicitly marks parameters/returns as transferring ownership across isolation boundaries.
 
 ```swift
 class NonSendable {
@@ -333,7 +333,7 @@ func use() async {
 ### @concurrent Attribute (Swift 6.2)
 
 <concurrent_attribute>
-**Purpose**: Explicitly offload async work to background thread pool, freeing up the calling actor.
+**Purpose**[^se-0461]: Explicitly offload async work to background thread pool, freeing up the calling actor.
 
 **Before `@concurrent`** (Swift 6.0-6.1):
 ```swift
@@ -629,9 +629,9 @@ func loadFile(_ path: String) throws(FileError) -> Data {
 ## Swift 6.2 New Features
 
 <swift_6_2>
-**InlineArray**: Fixed-size arrays with stack allocation, no heap, no ref-counting. Use for performance-critical fixed-size collections.
+**InlineArray**[^se-0453]: Fixed-size arrays with stack allocation, no heap, no ref-counting. Use for performance-critical fixed-size collections.
 
-**Span**: Safe contiguous memory access without unsafe pointers. Compile-time lifetime checking prevents use-after-free.
+**Span**[^se-0447]: Safe contiguous memory access without unsafe pointers. Compile-time lifetime checking prevents use-after-free.
 
 **Isolated conformances**: Protocol conformances can be tied to specific actors (e.g., `@MainActor Exportable`).
 
@@ -703,4 +703,18 @@ When contributing to open-source Swift:
 [^api-guidelines]: Apple Inc. Swift API Design Guidelines. https://www.swift.org/documentation/api-design-guidelines/
 
 [^value-semantics]: Apple Inc. Choosing Between Structures and Classes. Swift Documentation. https://developer.apple.com/documentation/swift/choosing-between-structures-and-classes
+
+[^approachable-concurrency]: Swift Project. 2025. Approachable Concurrency Vision Document. Swift Evolution. https://github.com/swiftlang/swift-evolution/blob/main/visions/approachable-concurrency.md
+
+[^se-0414]: Michael Gottesman, et al. 2024. SE-0414: Region-based Isolation. Swift Evolution. https://github.com/swiftlang/swift-evolution/blob/main/proposals/0414-region-based-isolation.md
+
+[^se-0430]: Michael Gottesman, et al. 2024. SE-0430: `sending` parameter and result values. Swift Evolution. https://github.com/swiftlang/swift-evolution/blob/main/proposals/0430-transferring-parameters-and-results.md
+
+[^se-0447]: Guillaume Lessard, et al. 2024. SE-0447: Span: Safe Access to Contiguous Storage. Swift Evolution. https://github.com/swiftlang/swift-evolution/blob/main/proposals/0447-span-access-shared-contiguous-storage.md
+
+[^se-0453]: Alejandro Alonso, et al. 2025. SE-0453: Vector (InlineArray). Swift Evolution. https://github.com/swiftlang/swift-evolution/blob/main/proposals/0453-vector.md
+
+[^se-0461]: Holly Borla, et al. 2025. SE-0461: Run nonisolated async functions on the caller's actor by default. Swift Evolution. https://github.com/swiftlang/swift-evolution/blob/main/proposals/0461-async-function-isolation.md
+
+[^tspl]: Apple Inc. and Swift Project Authors. 2014–2025. The Swift Programming Language. https://docs.swift.org/swift-book/
 </sources>

@@ -28,7 +28,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the creation process and h
 Add this marketplace to Claude Code:
 
 ```
-/plugin marketplace add https://github.com/Pyroxin/opinionated-claude-skills
+/plugin marketplace add Pyroxin/opinionated-claude-skills
 ```
 
 Then install plugins:
@@ -36,6 +36,8 @@ Then install plugins:
 ```
 /plugin add opinionated-software-engineering@opinionated-claude-skills
 ```
+
+**NOTE:** You need to restart Claude Code after making changes to plugins. If you don't see the skills after restarting, you may need to disable some plugins because you're running into the system's token limit for skill information.
 
 ### Claude Desktop / Claude Web
 
