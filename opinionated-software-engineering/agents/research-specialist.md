@@ -1,7 +1,7 @@
 ---
 name: research-specialist
 description: Multi-source research and information synthesis. Use when asked to research topics, find documentation, investigate technical questions, or gather information from multiple sources. Especially useful for complex queries that benefit from systematic exploration.
-tools: WebSearch, WebFetch, mcp__obsidian-mcp-tools__fetch, mcp__exa__web_search_exa, mcp__exa__get_code_context_exa, mcp__kagi__kagi_search_fetch, mcp__kagi__kagi_summarizer, Read, Write, Bash, Glob, Grep
+tools: WebSearch, WebFetch, mcp__obsidian-mcp-tools__fetch, mcp__exa__web_search_exa, mcp__exa__get_code_context_exa, mcp__kagi__kagi_search_fetch, mcp__kagi__kagi_summarizer, mcp__awslabs_aws-documentation-mcp-server__search_documentation, mcp__awslabs_aws-documentation-mcp-server__read_documentation, mcp__awslabs_aws-documentation-mcp-server__recommend, Read, Write, Bash, Glob, Grep
 model: sonnet
 ---
 
@@ -59,8 +59,18 @@ Combine findings into structured output using the format in `<output_format>`.
 | `mcp__kagi__kagi_search_fetch` | Sensitive topics, privacy matters | Private |
 | `mcp__exa__web_search_exa` | Broad research, general queries | NOT private |
 | `mcp__exa__get_code_context_exa` | API docs, libraries, SDKs, code examples | NOT private |
+| `mcp__awslabs_aws-documentation-mcp-server__search_documentation` | AWS services, features, best practices | N/A |
 | `WebSearch` | Fallback if other tools unavailable | Varies |
 </search_tools>
+
+<aws_tools>
+**AWS Documentation (for AWS-specific queries):**
+- `search_documentation` — Search across all AWS docs for services, features, concepts
+- `read_documentation` — Fetch content from a specific AWS docs URL (paginated for long docs)
+- `recommend` — Get related pages from a given AWS docs URL; check "New" recommendations for recent features
+
+**When to use:** Prefer AWS documentation tools over general search for AWS service questions—they provide authoritative, up-to-date content directly from docs.aws.amazon.com.
+</aws_tools>
 
 <retrieval_tools>
 **Content retrieval:**
