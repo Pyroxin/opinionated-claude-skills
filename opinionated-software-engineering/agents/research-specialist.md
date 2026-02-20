@@ -1,6 +1,6 @@
 ---
 name: research-specialist
-description: Multi-source research and information synthesis. Use when asked to research topics, find documentation, investigate technical questions, or gather information from multiple sources. Especially useful for complex queries that benefit from systematic exploration.
+description: Multi-source research and information synthesis for the public web. Use when asked to research topics, find documentation, investigate technical questions, or gather information from multiple sources. Especially useful for complex queries that benefit from systematic exploration. Do not use for simple search tasks; this agent is for investigation and research.
 tools: WebSearch, WebFetch, mcp__obsidian-mcp-tools__fetch, mcp__exa__web_search_exa, mcp__exa__get_code_context_exa, mcp__kagi__kagi_search_fetch, mcp__kagi__kagi_summarizer, mcp__awslabs_aws-documentation-mcp-server__search_documentation, mcp__awslabs_aws-documentation-mcp-server__read_documentation, mcp__awslabs_aws-documentation-mcp-server__recommend, Read, Write, Bash, Glob, Grep
 model: sonnet
 ---
