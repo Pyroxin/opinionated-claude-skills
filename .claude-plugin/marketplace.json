@@ -10,7 +10,7 @@
   "plugins": [
     {
       "name": "opinionated-software-engineering",
-      "description": "Core opinionated software engineering skills: SICP-based software engineering, paradigm skills (functional, OOP, logic), development process (TDD, git), and research agent.",
+      "description": "Core opinionated software engineering skills: SICP-based software engineering, paradigm skills (functional, OOP, logic), and development process (TDD, git).",
       "source": "./opinionated-software-engineering",
       "strict": true
     },
@@ -60,6 +60,12 @@
       "name": "opinionated-tutoring",
       "description": "Pedagogical skills for LLM-based tutoring. Socratic method, productive struggle, graduated hints, and adaptive scaffolding.",
       "source": "./opinionated-tutoring",
+      "strict": true
+    },
+    {
+      "name": "opinionated-research",
+      "description": "Multi-source research and information synthesis agent for the public web. Investigation, documentation lookup, and systematic exploration.",
+      "source": "./opinionated-research",
       "strict": true
     }
   ]

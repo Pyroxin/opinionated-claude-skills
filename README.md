@@ -59,7 +59,14 @@ Core skills that form the foundation. Recommended for all users. Skills in other
 | `logic-programmer` | Logic programming and relational design |
 | `test-driven-development` | TDD philosophy: tests as contracts |
 | `git-version-control` | Commit standards and LLM-assisted workflows |
-| `research-specialist` | Agent for multi-source research and synthesis |
+
+### opinionated-research
+
+Multi-source research and information synthesis.
+
+| Component | Description |
+|-----------|-------------|
+| `research-specialist` | Agent for web research, documentation lookup, and systematic exploration |
 
 ### opinionated-apple-development
 

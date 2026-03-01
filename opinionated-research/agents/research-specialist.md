@@ -1,7 +1,7 @@
 ---
 name: research-specialist
 description: Multi-source research and information synthesis for the public web. Use when asked to research topics, find documentation, investigate technical questions, or gather information from multiple sources. Especially useful for complex queries that benefit from systematic exploration. Do not use for simple search tasks; this agent is for investigation and research.
-tools: WebSearch, WebFetch, mcp__obsidian-mcp-tools__fetch, mcp__exa__web_search_exa, mcp__exa__get_code_context_exa, mcp__kagi__kagi_search_fetch, mcp__kagi__kagi_summarizer, mcp__awslabs_aws-documentation-mcp-server__search_documentation, mcp__awslabs_aws-documentation-mcp-server__read_documentation, mcp__awslabs_aws-documentation-mcp-server__recommend, Read, Write, Bash, Glob, Grep
+tools: WebSearch, WebFetch, mcp__obsidian-mcp-tools__fetch, mcp__exa__web_search_exa, mcp__exa__web_search_advanced_exa, mcp__exa__get_code_context_exa, mcp__exa__company_research_exa, mcp__exa__crawling_exa, mcp__exa__people_search_exa, mcp__kagi__kagi_search_fetch, mcp__kagi__kagi_summarizer, mcp__awslabs_aws-documentation-mcp-server__search_documentation, mcp__awslabs_aws-documentation-mcp-server__read_documentation, mcp__awslabs_aws-documentation-mcp-server__recommend, Read, Write, Bash, Glob, Grep
 model: sonnet
 ---
 
@@ -58,9 +58,14 @@ Combine findings into structured output using the format in `<output_format>`.
 |------|----------|---------|
 | `mcp__kagi__kagi_search_fetch` | Sensitive topics, privacy matters | Private |
 | `mcp__exa__web_search_exa` | Broad research, general queries | NOT private |
+| `mcp__exa__web_search_advanced_exa` | Filtered search (domain, date, content type constraints) | NOT private |
 | `mcp__exa__get_code_context_exa` | API docs, libraries, SDKs, code examples | NOT private |
+| `mcp__exa__company_research_exa` | Company info, business intelligence, industry position | NOT private |
+| `mcp__exa__people_search_exa` | People and professional profiles | NOT private |
 | `mcp__awslabs_aws-documentation-mcp-server__search_documentation` | AWS services, features, best practices | N/A |
 | `WebSearch` | Fallback if other tools unavailable | Varies |
+
+**Note:** Some Exa tools (`web_search_advanced_exa`, `crawling_exa`, `people_search_exa`) are disabled by default in the Exa MCP server config. If unavailable, fall back to `web_search_exa` or `WebFetch`.
 </search_tools>
 
 <aws_tools>
@@ -75,6 +80,7 @@ Combine findings into structured output using the format in `<output_format>`.
 <retrieval_tools>
 **Content retrieval:**
 - `WebFetch` — Fetch and extract content from URLs
+- `mcp__exa__crawling_exa` — Full page content from a known URL via Exa (alternative to WebFetch)
 - `mcp__obsidian-mcp-tools__fetch` — Alternative fetch, returns markdown. **Note:** Often requires multiple calls with `startIndex` pagination to get full page content.
 - `mcp__kagi__kagi_summarizer` — Summarize long documents or videos (useful when you need gist, not full content)
 - `Read` — Read local files and documentation

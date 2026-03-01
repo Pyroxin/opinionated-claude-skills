@@ -1,6 +1,6 @@
 {
   "name": "opinionated-software-engineering",
-  "description": "Core opinionated software engineering skills: SICP-based software engineering, paradigm skills (functional, OOP, logic), development process (TDD, git), and research agent.",
+  "description": "Core opinionated software engineering skills: SICP-based software engineering, paradigm skills (functional, OOP, logic), and development process (TDD, git).",
   "license": "EPL-2.0",
   "skills": [
     "./skills/software-engineer",
@@ -9,8 +9,5 @@
     "./skills/logic-programmer",
     "./skills/test-driven-development",
     "./skills/git-version-control"
-  ],
-  "agents": [
-    "./agents/research-specialist.md"
   ]
 }

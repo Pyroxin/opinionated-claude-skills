@@ -1,0 +1,8 @@
+{
+  "name": "opinionated-research",
+  "description": "Multi-source research and information synthesis agent for the public web. Investigation, documentation lookup, and systematic exploration.",
+  "license": "EPL-2.0",
+  "agents": [
+    "./agents/research-specialist.md"
+  ]
+}
