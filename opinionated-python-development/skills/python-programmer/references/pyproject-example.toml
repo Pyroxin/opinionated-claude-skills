@@ -1,0 +1,66 @@
+# Example pyproject.toml for a new Python project using uv + Ruff + pydoclint
+#
+# IMPORTANT: Verify current versions on PyPI before using!
+# These version floors are illustrative, not authoritative.
+# LLMs hallucinate version numbers — always check PyPI.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "my-project"
+version = "0.1.0"
+description = "Project description"
+requires-python = ">=3.12"
+dependencies = [
+    # Check PyPI for current versions before adding dependencies
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+    "mypy",
+    "pydoclint",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (import sorting)
+    "N",    # pep8-naming
+    "UP",   # pyupgrade (modernize syntax)
+    "S",    # flake8-bandit (security)
+    "B",    # flake8-bugbear
+    "D",    # pydocstyle (docstring presence/format)
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+strict = true
+
+[tool.pydoclint]
+style = "sphinx"
+arg-type-hints-in-docstring = false
+arg-type-hints-in-signature = true
+check-return-types = true
+check-class-attributes = true
+check-style-mismatch = true
+skip-checking-short-docstrings = false
