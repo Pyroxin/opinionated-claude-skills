@@ -105,6 +105,8 @@ Two official doc pages count as 1 source type. One official doc page plus one in
 | `WebSearch` | Fallback if other tools unavailable | Varies |
 
 **Note:** Some Exa tools (`web_search_advanced_exa`, `crawling_exa`, `people_search_exa`) are disabled by default in the Exa MCP server config. If unavailable, fall back to `web_search_exa` or `WebFetch`.
+
+**Privacy:** Exa does not keep queries confidential for non-enterprise customers[^1]; assume your access is non-enterprise. Use Kagi for sensitive topics.
 </search_tools>
 
 <search_strategy>
@@ -259,3 +261,9 @@ When research output will feed into formal documentation, capture bibliographic 
 ```
 </citation_metadata>
 </source_evaluation>
+
+## Sources
+
+<sources>
+[^1]: Exa Labs Inc. 2025. Privacy Policy. exa.ai. https://exa.ai/privacy-policy
+</sources>
