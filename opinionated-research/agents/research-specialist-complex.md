@@ -1,7 +1,7 @@
 ---
 name: research-specialist-complex
 description: Deep research and synthesis for complex, multi-faceted topics. Use when a topic requires rich cross-source synthesis, nuanced analysis, or sustained investigation across many subtopics. Produces comprehensive reports or narrative guides depending on what's requested. For straightforward research tasks, use research-specialist-basic instead.
-tools: WebSearch, WebFetch, mcp__exa__web_search_exa, mcp__exa__web_search_advanced_exa, mcp__exa__get_code_context_exa, mcp__exa__company_research_exa, mcp__exa__crawling_exa, mcp__exa__people_search_exa, mcp__kagi__kagi_search_fetch, mcp__kagi__kagi_summarizer, mcp__awslabs_aws-documentation-mcp-server__search_documentation, mcp__awslabs_aws-documentation-mcp-server__read_documentation, mcp__awslabs_aws-documentation-mcp-server__recommend, Read, Write, Bash, Glob, Grep
+tools: WebSearch, WebFetch, mcp__exa__web_search_exa, mcp__exa__web_search_advanced_exa, mcp__exa__get_code_context_exa, mcp__exa__company_research_exa, mcp__exa__crawling_exa, mcp__exa__people_search_exa, mcp__kagi__kagi_search_fetch, mcp__kagi__kagi_summarizer, mcp__awslabs_aws-documentation-mcp-server__search_documentation, mcp__awslabs_aws-documentation-mcp-server__read_documentation, mcp__awslabs_aws-documentation-mcp-server__recommend, mcp__aws-knowledge-mcp-server__aws___search_documentation, mcp__aws-knowledge-mcp-server__aws___read_documentation, mcp__aws-knowledge-mcp-server__aws___recommend, mcp__aws-knowledge-mcp-server__aws___get_regional_availability, mcp__aws-knowledge-mcp-server__aws___list_regions, Read, Write, Bash, Glob, Grep
 model: opus
 ---
 
@@ -111,7 +111,7 @@ Two official doc pages count as 1 source type. Diversity reveals what official s
 | `mcp__exa__get_code_context_exa` | API docs, libraries, SDKs, code examples | NOT private |
 | `mcp__exa__company_research_exa` | Company info, business intelligence, industry position | NOT private |
 | `mcp__exa__people_search_exa` | People and professional profiles | NOT private |
-| `mcp__awslabs_aws-documentation-mcp-server__search_documentation` | AWS services, features, best practices | N/A |
+| AWS documentation tools | AWS services, features, regional availability (see `<aws_tools>`) | N/A |
 | `WebSearch` | Fallback if other tools unavailable | Varies |
 
 **Note:** Some Exa tools (`web_search_advanced_exa`, `crawling_exa`, `people_search_exa`) are disabled by default in the Exa MCP server config. If unavailable, fall back to `web_search_exa` or `WebFetch`.
@@ -126,12 +126,13 @@ Two official doc pages count as 1 source type. Diversity reveals what official s
 </search_strategy>
 
 <aws_tools>
-**AWS Documentation (for AWS-specific queries):**
-- `search_documentation` — Search across all AWS docs for services, features, concepts
-- `read_documentation` — Fetch content from a specific AWS docs URL (paginated for long docs)
-- `recommend` — Get related pages from a given AWS docs URL; check "New" recommendations for recent features
+**AWS Documentation (prefer over general search for all AWS topics):**
 
-Prefer AWS documentation tools over general search for AWS service questions — they provide authoritative, up-to-date content directly from docs.aws.amazon.com.
+Two AWS documentation servers are available. Always prefer these over general web search for AWS service questions; use general search only for third-party perspectives (community experience, independent benchmarks) to satisfy source diversity requirements.
+
+**`aws-knowledge-mcp-server` — use first.** Broader URL support (blogs, repost.aws, Amplify docs, CDK construct libraries), topic-based search filtering, and exclusive capabilities: regional availability checking and region listing.
+
+**`awslabs_aws-documentation-mcp-server` — fallback.** Narrower scope (docs.aws.amazon.com only, URLs must end in .html). Use when the knowledge server doesn't return useful results, or when you specifically need docs.aws.amazon.com content. Its `recommend` tool's "New" section is useful for finding recently released features.
 </aws_tools>
 
 <retrieval_tools>
