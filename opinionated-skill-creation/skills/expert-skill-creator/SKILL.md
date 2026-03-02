@@ -348,7 +348,7 @@ Research is warranted when:
 
 <research_process>
 1. **Scope the research**: Define specific questions the skill must answer
-2. **Delegate to research-specialist**: Use the Task tool with `subagent_type='research-specialist'`
+2. **Delegate to a research-specialist agent**: Use `subagent_type='research-specialist-basic'` for standard research or `subagent_type='research-specialist-complex'` for deep, multi-faceted topics
 3. **Specify output requirements**: Request structured findings with URLs for citation
 4. **Synthesize results**: Integrate research into skill content with proper citations
 
@@ -366,7 +366,7 @@ Return findings with URLs for each source so I can create proper citations.
 
 ### Research Agent Configuration
 
-For skill research, configure the research-specialist agent:
+For skill research, configure the research-specialist-basic agent:
 - **Tools needed**: WebSearch, WebFetch, Exa (web + code), Kagi (private search + summarizer)
 - **Privacy note**: Use Kagi for sensitive topics; Exa does not keep queries confidential
 - **Output format**: Request URLs as source identifiers for citation
@@ -635,7 +635,7 @@ Follow this process in order, skipping steps only with clear justification.
 
 **Activities:**
 1. Identify what content requires research (vs. existing knowledge)
-2. Use research-specialist agent for unfamiliar domains
+2. Use research-specialist-basic (or research-specialist-complex for deep topics) for unfamiliar domains
 3. Collect URLs and sources for citation
 4. Document research findings for future reference
 

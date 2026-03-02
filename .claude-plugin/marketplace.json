@@ -64,7 +64,7 @@
     },
     {
       "name": "opinionated-research",
-      "description": "Multi-source research and information synthesis agent for the public web. Investigation, documentation lookup, and systematic exploration.",
+      "description": "Multi-source research and information synthesis agents for the public web. Two tiers: basic (Sonnet, standard research) and complex (Opus, deep multi-faceted investigation).",
       "source": "./opinionated-research",
       "strict": true
     }

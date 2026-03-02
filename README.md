@@ -66,7 +66,8 @@ Multi-source research and information synthesis.
 
 | Component | Description |
 |-----------|-------------|
-| `research-specialist` | Agent for web research, documentation lookup, and systematic exploration |
+| `research-specialist-basic` | Sonnet agent for standard research tasks with source diversity requirements |
+| `research-specialist-complex` | Opus agent for deep, multi-faceted investigation with rich cross-source synthesis |
 
 ### opinionated-apple-development
 
