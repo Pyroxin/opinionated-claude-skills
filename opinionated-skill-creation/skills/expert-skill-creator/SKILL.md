@@ -7,11 +7,11 @@ description: Expert-level guidance for creating high-quality Claude Code skills.
 
 <skill_scope skill="expert-skill-creator">
 **Related skills:**
-- `skill-creator` (Anthropic) - Basic skill mechanics, directory structure, initialization
-- `software-engineer` - Design principles that inform skill architecture
-- `test-driven-development` - Validation methodology parallels
+- `skill-creator:skill-creator` (Anthropic) - Basic skill mechanics, directory structure, initialization
+- `opinionated-software-engineering:software-engineer` - Design principles that inform skill architecture
+- `opinionated-software-engineering:test-driven-development` - Validation methodology parallels
 
-**This skill complements Anthropic's `skill-creator` skill.** Load both when creating skills: `skill-creator` provides basic mechanics (directory structure, initialization scripts, packaging), while this skill provides expert-level guidance on content quality, structure, and validation.
+**This skill complements Anthropic's `skill-creator:skill-creator` skill.** Load both when creating skills: `skill-creator:skill-creator` provides basic mechanics (directory structure, initialization scripts, packaging), while this skill provides expert-level guidance on content quality, structure, and validation.
 
 Skills are modular packages that extend Claude's capabilities by providing specialized knowledge, workflows, and tool integrations. They function as **retrieval triggers** that activate and organize Claude's trained knowledge, not as teaching material that explains concepts from scratch.
 
@@ -31,7 +31,8 @@ Use this skill when:
 
 Do not use this skill for:
 - General prompt engineering (this is skill-specific)
-- Creating subagents (different architecture)
+- Subagent packaging mechanics (i.e., tool lists, model selection, agent frontmatter fields) — though agent prompt *content* follows similar quality principles; see `<directive_language>`
+- Skill frontmatter syntax beyond `name` and `description` — see `skill-creator:skill-creator` for fields like `context`, `agent`, `allowed-tools`, `hooks`, argument substitution, and dynamic context injection
 - One-off instructions that don't warrant a reusable skill
 </when_to_use>
 
@@ -63,6 +64,23 @@ Skills use three-level loading to manage context efficiently:
 | 3. Bundled resources | Scripts, references, assets | As needed by Claude | Unlimited |
 
 **Design implication**: Keep SKILL.md lean. Move detailed reference material, schemas, and examples to `references/` files. Information should live in either SKILL.md or references, never both.
+
+### Content Patterns
+
+<content_patterns>
+Skills fall into two architectural patterns that require different content approaches:
+
+| Pattern | Frontmatter | Content style | Example |
+|---------|-------------|---------------|---------|
+| **Reference** (inline) | Default | Knowledge, conventions, decision frameworks Claude applies alongside conversation context | Style guides, API conventions, language idioms |
+| **Task** (fork) | `context: fork` | Self-contained task prompt with explicit steps; runs in an isolated subagent with no conversation history | Deployment workflows, research orchestration, batch operations |
+
+**Reference skills** provide context Claude weaves into its responses. Write them as frameworks and principles (i.e., the guidance throughout this skill). They run inline with full conversation access.
+
+**Task skills** are complete prompts that drive a subagent. They need explicit instructions because the subagent has no conversation context. Use `context: fork` and optionally `agent:` to select the execution environment (e.g., `Explore` for read-only, `general-purpose` for full tool access). Task skills can launch further agents via the Agent tool, enabling fan-out patterns like parallel research or batch code changes.
+
+Choose the pattern based on whether the skill augments Claude's knowledge (reference) or orchestrates an independent workflow (task).
+</content_patterns>
 </skill_anatomy>
 
 ## Quality Guidelines
@@ -105,7 +123,7 @@ Reference tags by name when discussing their content. This reinforces connection
 - Good uses: source attribution, example classification, conditional context markers
 
 **Position matters (primacy bias):**
-Content earlier in a tag receives more attention than content later. Evaluate the relative importance of information in each section and structure accordingly:
+Content earlier in a tag receives more attention than content later. At the document level, placing long reference material at the top with instructions and queries at the bottom improves response quality by up to 30% on multi-document inputs.[^3] Within sections, structure accordingly:
 - Put the most important guidance first within each section
 - Lead with critical constraints, follow with elaboration
 - If ordering a list by priority, highest priority items should come first
@@ -159,6 +177,29 @@ Elaboration and details follow...
 **Exception—Safety constraints are valuable even for well-known content:**
 Safety guardrails should be included even if Claude "knows" them. These constrain *toward* safety, not away from good behavior. Distinguish "teaching content" (condense) from "safety guardrails" (keep).
 </content_depth>
+
+### Directive Language
+
+<directive_language>
+**Skills are prompts. Directive intensity directly affects model behavior.**
+
+Opus 4.5/4.6 overtriggers on aggressive language.[^3] Directives like "CRITICAL: You MUST use this tool" or "ALWAYS check before proceeding" cause excessive tool invocation, unnecessary exploration, and overengineering. Sonnet 4.6 follows instructions literally and precisely — aggressive language won't cause overtriggering, but it adds no value over calm, direct statements.
+
+Write skill content the way you'd brief a senior colleague: clear, direct, without shouting.
+
+| Instead of | Write |
+|------------|-------|
+| "CRITICAL: You MUST..." | "Use [tool] when..." |
+| "ALWAYS check..." | "Check [condition] before..." |
+| "NEVER do X" | Describe the desired behavior instead |
+| "If in doubt, use [tool]" | "Use [tool] when it would improve your understanding" |
+
+**Prefer positive framing.** Describe desired behavior rather than listing prohibitions. "Compose smoothly flowing prose paragraphs" outperforms "Do not use markdown" across all tiers.[^3] This applies at every level of skill content — from high-level behavioral guidance to specific output formatting instructions.
+
+**Include 3-5 few-shot examples** when a skill needs to demonstrate output format, tone, or reasoning patterns.[^3] Wrap them in `<examples><example>...</example></examples>` tags. Choose diverse examples that cover edge cases; quality and variety matter more than quantity. For skills targeting Haiku in multi-tier systems (e.g., sub-agent tasks), scaling to 10 examples can close the performance gap with higher tiers.
+
+This connects to the "retrieval trigger" philosophy in `<skill_scope>`: if skills activate existing knowledge, aggressive directives are counterproductive. They constrain behavior rather than activating capability. The right prompt intensity is the minimum needed to reliably activate the desired behavior.
+</directive_language>
 
 ### Decision Frameworks
 
@@ -223,7 +264,7 @@ Structure mistakes by where practitioners are coming from:
 
 **Strategy:**
 1. **Primary reference**: Point to authoritative skill for detailed guidance
-   - "See `test-driven-development` skill for general testing philosophy"
+   - "See `opinionated-software-engineering:test-driven-development` skill for general testing philosophy"
 2. **Insurance duplication**: Restate essential principles briefly (1-2 sentences)
    - Core philosophy can be restated in case referenced skill not loaded
    - Critical "never do X" rules worth repeating
@@ -238,7 +279,7 @@ Structure mistakes by where practitioners are coming from:
 ```markdown
 ## Testing
 
-**For general testing philosophy, see the `test-driven-development` skill.**
+**For general testing philosophy, see the `opinionated-software-engineering:test-driven-development` skill.**
 Core principle (restated): Tests are contracts—fix implementation, not tests.
 
 This section covers language-specific practices...
@@ -305,7 +346,7 @@ description: Fish shell scripting judgment frameworks and critical idioms. Use w
 description: Fish shell scripting.
 ```
 
-**Max length:** 1024 characters. Use them wisely.
+**Max length:** 1024 characters per description. But there's also a collective budget: all skill descriptions share 2% of the context window (fallback: 16,000 characters). If total descriptions exceed this, some skills get excluded entirely. This means concise descriptions aren't just good practice — they're a shared resource. A verbose 900-character description crowds out other skills.
 </description_optimization>
 
 ### Content Assessment
@@ -348,7 +389,7 @@ Research is warranted when:
 
 <research_process>
 1. **Scope the research**: Define specific questions the skill must answer
-2. **Delegate to a research-specialist agent**: Use `subagent_type='research-specialist-basic'` for standard research or `subagent_type='research-specialist-complex'` for deep, multi-faceted topics
+2. **Delegate to a research-specialist agent**: Use `subagent_type='opinionated-research:research-specialist-basic'` for standard research or `subagent_type='opinionated-research:research-specialist-complex'` for deep, multi-faceted topics
 3. **Specify output requirements**: Request structured findings with URLs for citation
 4. **Synthesize results**: Integrate research into skill content with proper citations
 
@@ -366,7 +407,7 @@ Return findings with URLs for each source so I can create proper citations.
 
 ### Research Agent Configuration
 
-For skill research, configure the research-specialist-basic agent:
+For skill research, configure the `opinionated-research:research-specialist-basic` agent:
 - **Tools needed**: WebSearch, WebFetch, Exa (web + code), Kagi (private search + summarizer)
 - **Privacy note**: Use Kagi for sensitive topics; Exa does not keep queries confidential
 - **Output format**: Request URLs as source identifiers for citation
@@ -455,7 +496,7 @@ Rich Hickey's "Simple Made Easy" talk[^1] distinguishes simplicity from ease...
 ### Citation Accuracy
 
 <citation_accuracy>
-**CRITICAL: Never fabricate bibliographic details.**
+**Never fabricate bibliographic details.**
 
 - Verify DOIs resolve correctly before including
 - Use actual access dates, not invented dates (when adding citations retroactively, use the date content was originally retrieved, not the current date)
@@ -527,6 +568,7 @@ Before completing a skill, verify:
 - [ ] Includes decision tables for context-dependent guidance
 - [ ] Has common mistakes section organized by background
 - [ ] Safety constraints are explicitly stated
+- [ ] Directive language uses calm, direct framing (see `<directive_language>`)
 - [ ] Resources are machine-readable (no videos)
 
 **Attribution and Citations:**
@@ -565,6 +607,7 @@ After creating a skill:
 - Does Claude apply the guidance correctly?
 - Are there gaps where Claude lacks needed information?
 - Are there constraints that hurt more than help?
+- Does the skill behave consistently across Opus and Sonnet? A directive that works well on one tier may overtrigger or underperform on the other (see `<directive_language>`).
 </empirical_validation>
 
 ### Plagiarism and Citation Validation
@@ -635,7 +678,7 @@ Follow this process in order, skipping steps only with clear justification.
 
 **Activities:**
 1. Identify what content requires research (vs. existing knowledge)
-2. Use research-specialist-basic (or research-specialist-complex for deep topics) for unfamiliar domains
+2. Use `opinionated-research:research-specialist-basic` (or `opinionated-research:research-specialist-complex` for deep topics) for unfamiliar domains
 3. Collect URLs and sources for citation
 4. Document research findings for future reference
 
@@ -669,7 +712,7 @@ Follow this process in order, skipping steps only with clear justification.
 <step_initialize>
 **Goal:** Create the skill directory structure.
 
-**For new skills**, use the init script in Anthropic's `skill-creator` skill if available:
+**For new skills**, use the init script in Anthropic's `skill-creator:skill-creator` skill if available:
 ```bash
 scripts/init_skill.py <skill_name> --path <output_directory>
 ```
@@ -753,18 +796,18 @@ touch skill-name/SKILL.md
 
 | Tier | Purpose | Example |
 |------|---------|---------|
-| Meta-skill | Universal principles | `software-engineer` |
+| Meta-skill | Universal principles | `opinionated-software-engineering:software-engineer` |
 | Paradigm skills | Fallback for language families | `functional-programmer`, `object-oriented-programmer` |
 | Language skills | Specific language guidance | `java-programmer`, `clojure-programmer` |
-| Process skills | Situation-specific | `test-driven-development`, `git-version-control` |
+| Process skills | Situation-specific | `opinionated-software-engineering:test-driven-development`, `opinionated-software-engineering:git-version-control` |
 
 **Invocation behavior:**
 - Language-specific skills supersede paradigm skills (no redundant loading)
-- Meta-skill (`software-engineer`) invoked for all coding tasks
+- Meta-skill (`opinionated-software-engineering:software-engineer`) invoked for all coding tasks
 - Process skills invoked based on activity (testing, committing, etc.)
 
 **Content placement:**
-- System-level patterns (hexagonal architecture) → `software-engineer`
+- System-level patterns (hexagonal architecture) → `opinionated-software-engineering:software-engineer`
 - Paradigm-specific patterns (FP composition) → paradigm skills
 - Language-specific syntax/tooling → language skills
 - Universal processes (TDD, Git) → process skills
@@ -777,7 +820,8 @@ touch skill-name/SKILL.md
 
 ### Content Anti-Patterns
 
-- **Teaching basics**: Explaining concepts (e.g, map/filter/reduce) when Claude knows them from training
+- **Teaching basics**: Explaining concepts (e.g., map/filter/reduce) when Claude knows them from training
+- **Aggressive directives**: Using "CRITICAL", "MUST", "ALWAYS" to force behaviors — causes overtriggering on Opus and adds no value on current Sonnet models (see `<directive_language>`)
 - **Over-constraining**: So much detail that Claude can't apply judgment
 - **Duplicate content**: Same information in multiple skills
 - **Missing safety**: Not including critical guardrails because "Claude knows"
@@ -804,10 +848,11 @@ touch skill-name/SKILL.md
 **Official documentation:**
 - Claude Code Skills: https://code.claude.com/docs/en/skills.md
 - Claude Code Subagents: https://code.claude.com/docs/en/sub-agents.md
-- XML Tagging Best Practices: https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags
+- Prompting Best Practices: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+- XML Tagging Best Practices: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/use-xml-tags
 
 **Related skills:**
-- `software-engineer` - Design principles informing skill architecture
+- `opinionated-software-engineering:software-engineer` - Design principles informing skill architecture
 </resources>
 
 ## Sources
@@ -816,4 +861,6 @@ touch skill-name/SKILL.md
 [^1]: Anthropic. 2025. Use XML tags to structure your prompts. Retrieved November 24, 2025 from https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/use-xml-tags.md
 
 [^2]: Anthropic. 2025. Skills Documentation. Claude Code. Retrieved November 24, 2025 from https://code.claude.com/docs/en/skills.md
+
+[^3]: Anthropic. 2026. Prompting best practices. Claude API Documentation. Retrieved March 1, 2026 from https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
 </sources>
