@@ -14,6 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: sudo apt-get install -y shellcheck jq
+
+      - name: Install and verify plugins
+        run: ./scripts/install-and-verify.sh
+
       - name: Generate version
         id: version
         run: |
@@ -26,9 +32,7 @@ jobs:
       - name: Build skill ZIPs
         env:
           BUILD_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          chmod +x scripts/build-skills.sh
-          ./scripts/build-skills.sh
+        run: ./scripts/build-skills.sh
 
       - name: List artifacts
         run: ls -la dist/

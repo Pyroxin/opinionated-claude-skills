@@ -1,6 +1,8 @@
 #!/bin/bash
 
-set -euo pipefail
+# -x: always verbose; these scripts run in seconds and the trace is
+#     valuable for diagnosing CI failures without local reproduction.
+set -euxo pipefail
 
 # Build skill ZIPs for Claude Desktop distribution
 #
@@ -45,21 +47,20 @@ for plugin_dir in */; do
 
     zip_name="${plugin_name}.${skill_name}.${BUILD_VERSION}.zip"
 
-    # Create temp structure: skill-name/SKILL.md
-    temp_dir=$(mktemp -d)
-    mkdir -p "${temp_dir}/${skill_name}"
+    # Create temp structure and package in a subshell so trap cleanup is scoped
+    (
+      temp_dir=$(mktemp -d)
+      trap 'rm -rf "$temp_dir"' EXIT
 
-    # Copy SKILL.md
-    cp "${skill_dir}SKILL.md" "${temp_dir}/${skill_name}/SKILL.md"
+      mkdir -p "${temp_dir}/${skill_name}"
+      cp "${skill_dir}SKILL.md" "${temp_dir}/${skill_name}/SKILL.md"
 
-    # Copy resources if present
-    if [[ -d "${skill_dir}resources" ]]; then
-      cp -r "${skill_dir}resources" "${temp_dir}/${skill_name}/"
-    fi
+      if [[ -d "${skill_dir}resources" ]]; then
+        cp -r "${skill_dir}resources" "${temp_dir}/${skill_name}/"
+      fi
 
-    # Create ZIP with folder as root (required by Claude Desktop)
-    (cd "$temp_dir" && zip -rq "${OLDPWD}/${OUTPUT_DIR}/${zip_name}" "${skill_name}")
-    rm -rf "$temp_dir"
+      cd "$temp_dir" && zip -rq "${OLDPWD}/${OUTPUT_DIR}/${zip_name}" "${skill_name}"
+    )
 
     echo "Built: ${zip_name}"
     count=$((count + 1))

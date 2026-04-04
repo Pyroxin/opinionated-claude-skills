@@ -1,0 +1,2 @@
+#!/bin/bash
+exec "$(git rev-parse --show-toplevel)/scripts/install-and-verify.sh" --validate-only
