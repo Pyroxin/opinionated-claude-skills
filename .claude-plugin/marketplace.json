@@ -64,7 +64,7 @@
     },
     {
       "name": "opinionated-research",
-      "description": "Multi-source research and information synthesis agents for the public web. Two tiers: basic (Sonnet, standard research) and complex (Opus, deep multi-faceted investigation).",
+      "description": "Multi-source research, information synthesis, and decision analysis. Research agents in two tiers: basic (Sonnet) and complex (Opus). Includes deep-research orchestration and structured decision-analysis framework.",
       "source": "./opinionated-research",
       "strict": true
     }

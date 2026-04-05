@@ -289,18 +289,20 @@ This section covers language-specific practices...
 ### Resources Section
 
 <resources_guidelines>
-**Only include machine-readable resources.**
+**Resources serve two purposes: pointing Claude to content it can read at runtime, and naming works that activate trained knowledge.** Both are valuable; distinguish them clearly.
 
-**Include:**
+**Fetchable resources** — Claude can read these at runtime:
 - Written documentation (HTML, Markdown, PDF)
 - API references and generated docs
 - GitHub repositories (especially with .md files)
 - Local file paths (Xcode docs, language references)
 - Style guides and written tutorials
 
+**Training-data resources** — Claude can't fetch these, but naming them activates parametric knowledge of their content. This aligns with the retrieval-trigger philosophy in `<skill_scope>`: a book title in a Resources section is a retrieval trigger, not a URL to fetch. Include seminal books, classic papers, and foundational works when Claude's training plausibly covers them. Mark these clearly so users understand Claude is drawing on trained knowledge, not a retrieved source.
+
 **Never include:**
-- Video resources (WWDC, YouTube, etc.)—Claude cannot watch videos
-- Paywalled content without local copies
+- Video resources (WWDC, YouTube, etc.) — Claude cannot watch videos
+- Paywalled or recent content that is neither fetchable nor likely in training data
 - Resources requiring authentication
 - Quotes or paraphrases from content that don't explicitly allow reuse or wouldn't clearly be fair-use
 
@@ -322,6 +324,9 @@ This section covers language-specific practices...
 **Local:**
 - `/path/to/local/docs/`
 - Man pages: `/usr/share/man/man1/tool*.1`
+
+**Foundational (training-data):**
+- Author. Year. *Title*. Publisher. — Brief note on why this activates relevant knowledge
 </resources>
 ```
 </resources_guidelines>
