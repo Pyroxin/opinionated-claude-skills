@@ -1,10 +1,30 @@
 ---
 name: deep-research
 description: Orchestrated multi-source research with parallel agent fan-out. Use for thorough investigation of complex topics requiring diverse sources, cross-referencing, and synthesis. Decomposes topics into subtopics, delegates to specialized research agents, and produces a unified report with ACM citations.
-context: fork
-agent: general-purpose
 model: opus
-allowed-tools: Agent, Read, Write, Bash, WebSearch, WebFetch, mcp__exa__web_search_exa, mcp__exa__web_search_advanced_exa, mcp__exa__get_code_context_exa, mcp__exa__company_research_exa, mcp__exa__crawling_exa, mcp__exa__people_search_exa, mcp__kagi__kagi_search_fetch, mcp__kagi__kagi_summarizer, mcp__awslabs_aws-documentation-mcp-server__search_documentation, mcp__awslabs_aws-documentation-mcp-server__read_documentation, mcp__awslabs_aws-documentation-mcp-server__recommend, mcp__aws-knowledge-mcp-server__aws___search_documentation, mcp__aws-knowledge-mcp-server__aws___read_documentation, mcp__aws-knowledge-mcp-server__aws___recommend, mcp__aws-knowledge-mcp-server__aws___get_regional_availability, mcp__aws-knowledge-mcp-server__aws___list_regions
+allowed-tools:
+  - Agent
+  - Read
+  - Write
+  - Bash
+  - WebSearch
+  - WebFetch
+  - mcp__exa__web_search_exa
+  - mcp__exa__web_search_advanced_exa
+  - mcp__exa__get_code_context_exa
+  - mcp__exa__company_research_exa
+  - mcp__exa__crawling_exa
+  - mcp__exa__people_search_exa
+  - mcp__kagi__kagi_search_fetch
+  - mcp__kagi__kagi_summarizer
+  - mcp__awslabs_aws-documentation-mcp-server__search_documentation
+  - mcp__awslabs_aws-documentation-mcp-server__read_documentation
+  - mcp__awslabs_aws-documentation-mcp-server__recommend
+  - mcp__aws-knowledge-mcp-server__aws___search_documentation
+  - mcp__aws-knowledge-mcp-server__aws___read_documentation
+  - mcp__aws-knowledge-mcp-server__aws___recommend
+  - mcp__aws-knowledge-mcp-server__aws___get_regional_availability
+  - mcp__aws-knowledge-mcp-server__aws___list_regions
 ---
 
 # Deep Research Orchestrator
