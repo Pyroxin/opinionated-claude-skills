@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# -x: always verbose; these scripts run in seconds and the trace is
-#     valuable for diagnosing CI failures without local reproduction.
-set -euxo pipefail
+set -euo pipefail
+# Set DEBUG=1 in the environment to enable xtrace for diagnosing
+# CI failures or local issues without editing the script.
+[[ -n "${DEBUG:-}" ]] && set -x
 
 # Build skill ZIPs for Claude Desktop distribution
 #
