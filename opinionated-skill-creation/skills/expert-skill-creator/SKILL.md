@@ -36,6 +36,40 @@ Do not use this skill for:
 - One-off instructions that don't warrant a reusable skill
 </when_to_use>
 
+## Skill vs. Subagent Decision
+
+<skill_vs_subagent_decision>
+**Before designing a skill, verify that a skill is the right primitive.** Skills and subagents solve overlapping problems at different layers. A skill that should have been a subagent (or vice versa) is harder to fix later than getting the choice right up front.
+
+### The core discriminator: who writes the task?
+
+| Primitive | Task text from | Reach for it when |
+|-----------|----------------|-------------------|
+| Subagent | The caller (main agent's delegation message or user's `@mention`) | Task content varies arbitrarily per invocation; value is "handle anything in domain X"; multiple skills or workflows might want it as a worker |
+| Skill (inline) | The skill file itself; small parameterization via `$ARGUMENTS` | You have a repeatable procedure; steps are stable; you want `/slash-command` access; material benefits from the main context (conventions, reference, checklists) |
+| Skill with `context: fork` | The skill file, sent as the subagent's task prompt | Skill-shaped procedure *and* one of: it would pollute main context; it needs a specialized environment (read-only tools, different model, restricted permissions); you want to pin it to a specific subagent type |
+
+**Heuristics:**
+- If you describe the task afresh every time you invoke the capability, it's a subagent
+- If the task is fixed and only small inputs change, it's a skill
+- If it's a fixed task *and* it either pollutes main context or needs a specialized environment, it's a skill with `context: fork`
+
+### Composition, both directions
+
+Skills and subagents compose in two supported patterns[^2]:
+
+| Pattern | System prompt | Task | Also loads |
+|---------|---------------|------|------------|
+| Skill with `context: fork` + `agent:` | From the selected agent type | `SKILL.md` body, rendered | CLAUDE.md |
+| Subagent with `skills:` frontmatter field | Subagent's own markdown body | Caller's delegation message | Preloaded skills + CLAUDE.md |
+
+A "fork skill" composes the two primitives rather than replacing either: the skill supplies a fixed task, the subagent supplies the environment. Both remain independently usable on their own.
+
+**Common confusion to avoid:** "This procedure is long, so let's make it a fork skill rather than a subagent." The procedure's length isn't the discriminator — who writes the task is. A long, fixed procedure is a fork skill. A long, variable task that the caller specifies each time is a subagent with a substantial system prompt.
+
+Once you've decided a skill is the right primitive, see `<content_patterns>` for choosing between Reference (inline) and Task (fork) content.
+</skill_vs_subagent_decision>
+
 ## Skill Architecture
 
 <skill_anatomy>
