@@ -66,14 +66,14 @@ This is the foundation. SICP-derived design principles, paradigm guidance for fu
 
 ### opinionated-research
 
-Built while looking for a better way to have Claude investigate a topic than a single long search pass or delegating to external research agents. Two tiers of research agent feed two orchestration skills: `deep-research` runs multi-source investigation through a persistent agent team which can also perform research extensions after the primary task is complete. The `decision-analysis` skill structures option evaluation and introduces an epistemic citation mechanism to make it easier to track conclusion provenance and identify potential hallucinations. Anecdotally, the combination of explicit decomposition, structured analysis, and adversarial reasoning substantially improves the result.
+Built while looking for a better way to have Claude investigate a topic than a single long search pass or delegating to external research agents. Two complementary research agents feed the `deep-research` orchestration skill, which runs multi-source investigation through a persistent agent team (and supports research extensions after the primary task). The `decision-analysis` skill structures option evaluation and supplies the epistemic-label and citation discipline the research agents share. Anecdotally, the combination of explicit decomposition, structured analysis, and adversarial reasoning substantially improves the result.
 
 | Component | Description |
 |-----------|-------------|
-| `research-specialist-basic` | Sonnet agent for standard research with source-diversity requirements |
-| `research-specialist-complex` | Opus agent for multi-faceted investigation |
+| `research-investigator` | Sonnet agent for methodical evidence-gathering: case-building from primary sources with procedural rigor and an explicit Audit section |
+| `research-analyst` | Opus agent for judgment-led synthesis: cross-source pattern recognition and emergent insight beyond what any single source establishes |
 | `deep-research` | Orchestration skill that coordinates specialist agents as a team |
-| `decision-analysis` | Structured framework for evaluating options against criteria |
+| `decision-analysis` | Structured framework for evaluating options against criteria, with the epistemic-label scheme the research agents inherit |
 
 NOTE: These skills work best if you add the Kagi and Exa MCP servers to your configuration! AWS' documentation servers are also integrated since I mostly use AWS as my cloud provider.
 

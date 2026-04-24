@@ -1,10 +1,10 @@
 {
   "name": "opinionated-research",
-  "description": "Multi-source research, information synthesis, and decision analysis. Research agents in two tiers: basic (Sonnet) and complex (Opus). Includes deep-research orchestration and a structured decision-analysis framework for evaluating options with competing benefits.",
+  "description": "Multi-source research, information synthesis, and decision analysis. Two complementary research agents: investigator (Sonnet, methodical evidence-trail discipline) and analyst (Opus, judgment-led cross-source synthesis). Includes deep-research orchestration and a structured decision-analysis framework for evaluating options with competing benefits.",
   "license": "EPL-2.0",
   "agents": [
-    "./agents/research-specialist-basic.md",
-    "./agents/research-specialist-complex.md"
+    "./agents/research-investigator.md",
+    "./agents/research-analyst.md"
   ],
   "skills": [
     "./skills/deep-research",

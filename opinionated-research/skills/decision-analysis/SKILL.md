@@ -178,6 +178,8 @@ Three labels are required throughout all analysis output, with two supplementary
 **[TRAINING DATA]** — A claim derived from Claude's training data, not a retrieved source. Cannot be independently verified via a link. Users should independently confirm training-data claims before relying on them, as they may be outdated or imprecise.
 
 Use these labels consistently. Do not omit labels for "obvious" claims — if it's worth saying, it's worth labeling. The positive discipline here is: before writing any substantive claim, identify which label applies. This practice surfaces the epistemic work the analysis is doing and makes gaps visible to both Claude and the user.
+
+Define the labels you actually use when presenting analysis — in the chat itself when speaking to the user, and in any captured or shareable output (a written summary, a saved transcript, a report fed to another tool or LLM). The user reading the chat, or any downstream consumer of a captured output, should be able to interpret each label without consulting this skill prompt. Placement and wording are your choice — defining labels on first use, including a "Label Definitions" section, or providing a brief glossary all work; consistency within a session is what matters. The point is that the analysis carries its own label semantics; if your operating definition of a label has drifted from the definitions above, your stated definition surfaces that.
 </epistemic_labels>
 
 ### Citation Requirements

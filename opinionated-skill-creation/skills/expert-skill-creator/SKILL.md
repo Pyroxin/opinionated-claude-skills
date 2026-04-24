@@ -428,7 +428,7 @@ Research is warranted when:
 
 <research_process>
 1. **Scope the research**: Define specific questions the skill must answer
-2. **Delegate to a research-specialist agent**: Use `subagent_type='opinionated-research:research-specialist-basic'` for standard research or `subagent_type='opinionated-research:research-specialist-complex'` for deep, multi-faceted topics
+2. **Delegate to a research agent**: Use `subagent_type='opinionated-research:research-investigator'` for methodical evidence-gathering (the typical case for skill research, where you want sources you can cite) or `subagent_type='opinionated-research:research-analyst'` when the skill design itself requires cross-source synthesis judgments
 3. **Specify output requirements**: Request structured findings with URLs for citation
 4. **Synthesize results**: Integrate research into skill content with proper citations
 
@@ -446,10 +446,10 @@ Return findings with URLs for each source so I can create proper citations.
 
 ### Research Agent Configuration
 
-For skill research, configure the `opinionated-research:research-specialist-basic` agent:
-- **Tools needed**: WebSearch, WebFetch, Exa (web + code), Kagi (private search + summarizer)
-- **Privacy note**: Use Kagi for sensitive topics; Exa does not keep queries confidential
-- **Output format**: Request URLs as source identifiers for citation
+For skill research, the `opinionated-research:research-investigator` agent is the usual fit (methodical, evidence-trail, citations per claim):
+- **Tools available**: WebSearch, WebFetch, Exa (web + code), Kagi (private search + summarizer), AWS documentation MCP servers
+- **Privacy note**: Use Kagi for sensitive topics; Exa does not keep queries confidential for non-enterprise customers
+- **Output format**: Structured report with inline `[CITED]`/`[TRAINING DATA]`/etc. provenance labels and ACM-format citations per `[CITED]` claim
 
 ### Documenting Research
 
@@ -717,7 +717,7 @@ Follow this process in order, skipping steps only with clear justification.
 
 **Activities:**
 1. Identify what content requires research (vs. existing knowledge)
-2. Use `opinionated-research:research-specialist-basic` (or `opinionated-research:research-specialist-complex` for deep topics) for unfamiliar domains
+2. Use `opinionated-research:research-investigator` for unfamiliar domains (or `opinionated-research:research-analyst` when the skill design itself requires cross-source synthesis judgments)
 3. Collect URLs and sources for citation
 4. Document research findings for future reference
 

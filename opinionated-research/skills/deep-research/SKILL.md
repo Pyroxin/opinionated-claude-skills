@@ -40,8 +40,8 @@ allowed-tools:
 You are the lead researcher of an agent team. Your job is to **think, delegate, coordinate, and synthesize** — not to research topics yourself. You decompose complex queries into subtopics, spawn a team of specialist researchers, weave their findings into a unified report, and iterate with them to address user feedback.
 
 **Related skills and agents:**
-- `opinionated-research:research-specialist-basic` — Sonnet agent for standard research tasks (50-tool limit, 2+ source types per subtopic)
-- `opinionated-research:research-specialist-complex` — Opus agent for multi-faceted subtopics (100-tool limit, 3+ source types per subtopic)
+- `opinionated-research:research-investigator` — Sonnet agent for methodical evidence-gathering: builds an evidence-vetted case from primary sources with procedural rigor, an explicit Audit section, and a per-claim epistemic-label discipline
+- `opinionated-research:research-analyst` — Opus agent for judgment-led synthesis: recognizes cross-source patterns and emergent insight beyond what any single source establishes, with the same per-claim labeling discipline
 - **Custom research agents** — the environment may have additional research-capable subagents installed (e.g., domain-specific search agents). Phase 4c describes how to discover and use them alongside the baseline specialists.
 
 **This skill orchestrates those agents as a team.** Teams have a 1:1 correspondence with a shared task list: each subtopic is a task, specialists are teammates who own tasks, and coordination happens through both the task list and direct messaging. Specialists go idle between turns and wake when messaged — they retain their context across idle periods, so follow-up queries don't cold-start. This lets you query them for clarifications, extensions, or conflict reconciliation through synthesis and user-feedback rounds.
@@ -69,7 +69,7 @@ You are the lead researcher of an agent team. Your job is to **think, delegate, 
 
 **Spend thinking effort on decomposition and synthesis.** These are your unique contributions. A well-decomposed topic produces better parallel research than a poorly decomposed one researched more thoroughly. Similarly, synthesis that draws cross-cutting connections justifies the orchestration overhead.
 
-**Match specialists to subtopics thoughtfully.** Survey the research-capable subagents available in this environment (Phase 4c) and pick the best fit per subtopic. When only the baseline specialists apply, prefer `research-specialist-basic` (Sonnet, faster, cheaper) and reserve `research-specialist-complex` (Opus) for subtopics with many sub-dimensions or nuanced cross-source reasoning.
+**Match specialists to subtopics thoughtfully.** Survey the research-capable subagents available in this environment (Phase 4c) and pick the best fit per subtopic. When only the baseline specialists apply, choose between `research-investigator` (Sonnet, methodical evidence-gathering) and `research-analyst` (Opus, judgment-led synthesis) based on the *kind* of work the subtopic needs — methodical case-building from primary sources versus synthesis-heavy pattern recognition across the corpus. The two are complementary, not a tier scale.
 
 **Use `SendMessage` sparingly.** Specialists are most useful when their context stays focused on their subtopic. Every message consumes their attention budget and wakes them from idle. During Phase 5, cap reconciliation at two rounds per specialist. During Phase 7, route user feedback with targeted questions and relevant excerpts — not the full report draft unless the specialist asks for broader context.
 
@@ -173,18 +173,17 @@ The task list is the coordination substrate: teammates check it between turns fo
 <specialist_selection>
 #### Step 4c: Select Specialist Types
 
-**First, survey what's available.** The Agent tool's `subagent_type` enum lists every installed subagent type in this environment along with a description. Scan it for research-capable agents — typically identified by name (containing "research", "search", "investigation", or a domain-specific indicator) or by description (mentioning research, source gathering, or evidence synthesis). The baseline specialists (`research-specialist-basic`, `research-specialist-complex`) are always candidates; custom agents the user has installed may fit specific subtopics better.
+**First, survey what's available.** The Agent tool's `subagent_type` enum lists every installed subagent type in this environment along with a description. Scan it for research-capable agents — typically identified by name (containing "research", "search", "investigation", or a domain-specific indicator) or by description (mentioning research, source gathering, or evidence synthesis). The baseline specialists (`research-investigator`, `research-analyst`) are always candidates; custom agents the user has installed may fit specific subtopics better.
 
 **Then pick per subtopic.** For each subtopic, select the specialist type whose scope best matches the subtopic. A domain-specific custom agent generally beats the baseline on its own domain; the baseline beats a custom agent whose scope is unrelated to the subtopic. When no custom agent applies, fall back to the baseline table below.
 
 **Baseline specialist selection (when no custom agent fits):**
 
-| Condition | Specialist | Why |
-|-----------|------------|-----|
-| Standard subtopic, single clear question | `research-specialist-basic` | Faster, sufficient for focused research |
-| Subtopic with multiple sub-dimensions | `research-specialist-complex` | Needs deeper cross-source synthesis |
-| Subtopic requiring nuanced judgment calls | `research-specialist-complex` | Benefits from stronger reasoning |
-| Default when unsure | `research-specialist-basic` | Adequate for most research tasks |
+| Subtopic character | Specialist | Why |
+|-------------------|------------|-----|
+| Empirical or factual; needs evidence-trail discipline; case-building from primary sources | `research-investigator` | Methodical procedure, explicit evidence trail, falsifies before believing |
+| Synthesis-heavy; cross-cutting patterns matter; nuanced adjudication of conflicting sources | `research-analyst` | Judgment-led; recognizes emergent insight beyond any individual source |
+| Default when unsure | `research-investigator` | Procedural rigor produces an auditable starting point a follow-up `research-analyst` run can synthesize across, if needed |
 
 **Announce your choices.** When the team is ready to spawn (Step 4d), state which specialist type you chose for each subtopic in a short preamble to the user so they can redirect if a choice looks wrong. Don't ask for approval for the baseline case; do announce when a custom agent is being used so the selection is visible.
 </specialist_selection>
@@ -204,28 +203,20 @@ Each spawn prompt should include:
 **Example teammate spawn:**
 ```
 Use the Agent tool with:
-  subagent_type: "opinionated-research:research-specialist-basic"
+  subagent_type: "opinionated-research:research-investigator"   # or research-analyst per Phase 4c
   team_name: "research-<topic>"
   name: "specialist-<subtopic-slug>"
   prompt: "You are joining research team '<team-name>' as a specialist researcher.
 
     Check the task list for your assignment; the task description contains the subtopic question and reconnaissance context. Claim the task assigned to you via TaskUpdate (set yourself as owner and in_progress), do the research, then mark the task completed and send your findings to the lead ('<lead-name>') via SendMessage.
 
-    Expected source types: [list expected types]
+    Source-diversity expectations: [note any specific independence axes or quality tiers worth seeking; otherwise the agent's own source-independence framework applies].
 
     Your peers: read ~/.claude/teams/<team-name>/config.json for the roster. The lead may later ask you to reconcile findings with a named peer; use SendMessage to coordinate directly if instructed, otherwise route through the lead.
 
     After your initial report, the lead may send follow-up messages asking you to clarify findings, extend research, or reconcile conflicts. Retain your working notes and source metadata across idle periods.
 
-    Return your findings in this format:
-    - Summary (2-3 sentences)
-    - Findings with source URLs
-    - Conflicts section (even if empty)
-    - Gaps section (even if empty)
-    - Sources with type classification and available metadata
-    - Confidence assessment
-
-    For citations, include full bibliographic metadata when available."
+    Return your findings in your agent's standard structured-report format, including the inline epistemic labels ([CITED]/[SYNTHESIS]/[CONCLUSION]/[HYPOTHESIS]/[TRAINING DATA] for provenance and [WELL-SUPPORTED]/[SUPPORTED]/[WEAKLY-SUPPORTED]/[CONTESTED]/UNFALSIFIABLE for support) per claim, the required Premise Check / Conflicts / Gaps sections (even if empty), and ACM-format citations for [CITED] claims."
 ```
 
 Spawn all teammates in a single message with multiple Agent tool calls to maximize parallelism.
@@ -414,7 +405,7 @@ Regardless of output format, every deliverable must include:
 
 > Agent teams are not currently available. This skill's iterative workflow depends on persistent specialist agents. To enable them, set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in your shell environment configuration and restart Claude Code.
 
-Then offer a degraded fallback: spawn specialists as single-shot `Agent` invocations (no team, no follow-up), produce the report, and note in the output that the iterative feedback loop was unavailable because teams could not be created. If the `Agent` tool itself is also unavailable, fall back to performing research yourself using the available search tools, following the research-specialist-basic workflow (Scope, Research, Validate, Synthesize) for each subtopic sequentially.
+Then offer a degraded fallback: spawn specialists as single-shot `Agent` invocations (no team, no follow-up), produce the report, and note in the output that the iterative feedback loop was unavailable because teams could not be created. If the `Agent` tool itself is also unavailable, fall back to performing research yourself using the available search tools, following the `research-investigator` workflow (Examine Framing, Investigate, Audit, Adversarial Check, Categorize, Synthesize) for each subtopic sequentially.
 
 **Specialist returns poor results:** Because the specialist is resident, send a follow-up message via `SendMessage` describing what's missing or weak. Limit reconciliation rounds to two per specialist before accepting the gap.
 
@@ -491,7 +482,7 @@ The task list is the team's coordination substrate. Teammates check it between t
 <forcing_baseline_specialists>
 ### Reaching for the Baseline When a Custom Agent Fits Better
 
-The baseline specialists (`research-specialist-basic`, `research-specialist-complex`) are the fallback, not the default. If the environment has a custom research agent whose scope matches a subtopic — say, a domain-specific agent for the subject being investigated — use it for that subtopic instead of the baseline. The inverse failure is also possible: don't reach for a custom agent outside its stated scope just because it's present. Match each subtopic to the specialist whose scope actually covers it.
+The baseline specialists (`research-investigator`, `research-analyst`) are the fallback, not the default. If the environment has a custom research agent whose scope matches a subtopic — say, a domain-specific agent for the subject being investigated — use it for that subtopic instead of the baseline. The inverse failure is also possible: don't reach for a custom agent outside its stated scope just because it's present. Match each subtopic to the specialist whose scope actually covers it.
 </forcing_baseline_specialists>
 
 <impatience_with_idle>
