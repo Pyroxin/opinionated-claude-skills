@@ -166,7 +166,7 @@ for i in $(seq 0 $((plugin_count - 1))); do
   plugin_name=$(jq -r ".plugins[$i].name" "$MARKETPLACE_JSON")
   plugin_source=$(jq -r ".plugins[$i].source" "$MARKETPLACE_JSON")
   plugin_dir="${PROJECT_DIR}/${plugin_source#./}"
-  plugin_json="${plugin_dir}/plugin.json"
+  plugin_json="${plugin_dir}/.claude-plugin/plugin.json"
 
   echo ""
   echo "  Plugin: ${plugin_name}"
