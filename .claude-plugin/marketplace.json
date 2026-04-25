@@ -8,65 +8,15 @@
     "version": "1.0.0"
   },
   "plugins": [
-    {
-      "name": "opinionated-software-engineering",
-      "description": "Core opinionated software engineering skills: SICP-based software engineering, paradigm skills (functional, OOP, logic), and development process (TDD, git).",
-      "source": "./opinionated-software-engineering",
-      "strict": true
-    },
-    {
-      "name": "opinionated-apple-development",
-      "description": "Apple platform development: Swift language (Swift 6+ concurrency, protocol-oriented programming) and macOS platform patterns (SwiftUI/AppKit, sandboxing).",
-      "source": "./opinionated-apple-development",
-      "strict": true
-    },
-    {
-      "name": "opinionated-lisp-development",
-      "description": "Lisp family languages: Clojure (data-oriented design, REPL-driven development) and Racket (language-oriented programming, contracts, macros).",
-      "source": "./opinionated-lisp-development",
-      "strict": true
-    },
-    {
-      "name": "opinionated-java-ecosystem",
-      "description": "Java ecosystem development: modern Java idioms, tooling, documentation standards, and testing practices.",
-      "source": "./opinionated-java-ecosystem",
-      "strict": true
-    },
-    {
-      "name": "opinionated-logic-development",
-      "description": "Logic programming with SWI-Prolog: relational thinking, steadfastness, DCGs, constraints, and PlUnit testing.",
-      "source": "./opinionated-logic-development",
-      "strict": true
-    },
-    {
-      "name": "opinionated-python-development",
-      "description": "Python development: Pythonic idioms, testing ecosystem, type hints trade-offs, and modern Python features.",
-      "source": "./opinionated-python-development",
-      "strict": true
-    },
-    {
-      "name": "opinionated-fish-shell",
-      "description": "Fish shell scripting: Fish vs bash decisions, cross-platform compatibility, and Fish-specific patterns.",
-      "source": "./opinionated-fish-shell",
-      "strict": true
-    },
-    {
-      "name": "opinionated-skill-creation",
-      "description": "Expert-level guidance for creating high-quality Claude Code skills. Use alongside Anthropic's skill-creator.",
-      "source": "./opinionated-skill-creation",
-      "strict": true
-    },
-    {
-      "name": "opinionated-tutoring",
-      "description": "Pedagogical skills for LLM-based tutoring. Socratic method, productive struggle, graduated hints, and adaptive scaffolding.",
-      "source": "./opinionated-tutoring",
-      "strict": true
-    },
-    {
-      "name": "opinionated-research",
-      "description": "Multi-source research, information synthesis, and decision analysis. Research agents in two tiers: basic (Sonnet) and complex (Opus). Includes deep-research orchestration and structured decision-analysis framework.",
-      "source": "./opinionated-research",
-      "strict": true
-    }
+    { "name": "opinionated-software-engineering", "source": "./opinionated-software-engineering" },
+    { "name": "opinionated-apple-development", "source": "./opinionated-apple-development" },
+    { "name": "opinionated-lisp-development", "source": "./opinionated-lisp-development" },
+    { "name": "opinionated-java-ecosystem", "source": "./opinionated-java-ecosystem" },
+    { "name": "opinionated-logic-development", "source": "./opinionated-logic-development" },
+    { "name": "opinionated-python-development", "source": "./opinionated-python-development" },
+    { "name": "opinionated-fish-shell", "source": "./opinionated-fish-shell" },
+    { "name": "opinionated-skill-creation", "source": "./opinionated-skill-creation" },
+    { "name": "opinionated-tutoring", "source": "./opinionated-tutoring" },
+    { "name": "opinionated-research", "source": "./opinionated-research" }
   ]
 }

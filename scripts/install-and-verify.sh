@@ -182,52 +182,43 @@ for i in $(seq 0 $((plugin_count - 1))); do
     continue
   fi
 
-  # Check each component type: skills, agents, commands
-  for component_type in skills agents commands; do
-    component_count=$(jq -r ".${component_type} // [] | length" "$plugin_json")
-    if [[ "$component_count" -eq 0 ]]; then
-      continue
+  # Auto-discover skills (skills/<name>/SKILL.md)
+  while IFS= read -r -d '' skill_md; do
+    skill_name=$(basename "$(dirname "$skill_md")")
+    if [[ -s "$skill_md" ]]; then
+      info "  skill ${skill_name}: OK"
+    else
+      error "${plugin_name}: SKILL.md is empty at ${skill_md}"
     fi
+  done < <(find "${plugin_dir}/skills" -name "SKILL.md" -type f -print0 2>/dev/null)
 
-    for j in $(seq 0 $((component_count - 1))); do
-      component_path=$(jq -r ".${component_type}[$j]" "$plugin_json")
-      full_path="${plugin_dir}/${component_path#./}"
+  # Auto-discover agents (agents/<name>.md)
+  while IFS= read -r -d '' agent_md; do
+    agent_name=$(basename "$agent_md" .md)
+    if [[ -s "$agent_md" ]]; then
+      info "  agent ${agent_name}: OK"
+    else
+      error "${plugin_name}: agent file is empty at ${agent_md}"
+    fi
+  done < <(find "${plugin_dir}/agents" -name "*.md" -type f -print0 2>/dev/null)
 
-      case "$component_type" in
-        skills)
-          if [[ -f "${full_path}/SKILL.md" ]]; then
-            info "  skill $(basename "$full_path"): OK"
-          else
-            error "${plugin_name}: skill missing SKILL.md at ${full_path}"
-          fi
-          ;;
-        agents)
-          if [[ -f "$full_path" ]]; then
-            info "  agent $(basename "$full_path" .md): OK"
-          else
-            error "${plugin_name}: agent file missing at ${full_path}"
-          fi
-          ;;
-        commands)
-          if [[ -f "$full_path" ]]; then
-            info "  command $(basename "$full_path" .md): OK"
-          else
-            error "${plugin_name}: command file missing at ${full_path}"
-          fi
-          ;;
-      esac
-    done
-  done
+  # Auto-discover commands (commands/<name>.md)
+  while IFS= read -r -d '' cmd_md; do
+    cmd_name=$(basename "$cmd_md" .md)
+    if [[ -s "$cmd_md" ]]; then
+      info "  command ${cmd_name}: OK"
+    else
+      error "${plugin_name}: command file is empty at ${cmd_md}"
+    fi
+  done < <(find "${plugin_dir}/commands" -name "*.md" -type f -print0 2>/dev/null)
 
-  # Check hooks separately (hooks is an object, not an array)
-  has_hooks=$(jq 'has("hooks")' "$plugin_json")
-  if [[ "$has_hooks" == "true" ]]; then
-    hooks_path=$(jq -r '.hooks' "$plugin_json")
-    full_hooks_path="${plugin_dir}/${hooks_path#./}"
-    if [[ -f "$full_hooks_path" ]]; then
+  # Check hooks.json if present
+  hooks_file="${plugin_dir}/hooks/hooks.json"
+  if [[ -f "$hooks_file" ]]; then
+    if jq empty "$hooks_file" 2>/dev/null; then
       info "  hooks: OK"
     else
-      error "${plugin_name}: hooks file missing at ${full_hooks_path}"
+      error "${plugin_name}: hooks/hooks.json is invalid JSON"
     fi
   fi
 done

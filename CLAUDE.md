@@ -11,14 +11,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Repository Structure
 
 <repository_structure>
-This is a Claude Code plugin marketplace containing multiple plugins, each with skills and/or agents. The marketplace configuration is in `.claude-plugin/marketplace.json` with `strict: true`, meaning each plugin requires its own `plugin.json` manifest.
+This is a Claude Code plugin marketplace containing multiple plugins, each with skills and/or agents. The marketplace configuration is in `.claude-plugin/marketplace.json`. Each plugin has its own manifest at `.claude-plugin/plugin.json`; skills and agents are auto-discovered from their conventional directories.
 
 ```
-.claude-plugin/marketplace.json    # Marketplace catalog
+.claude-plugin/marketplace.json              # Marketplace catalog
 <plugin-name>/
-├── plugin.json                    # Plugin manifest (required in strict mode)
-├── skills/<skill-name>/SKILL.md   # Skill definitions
-└── agents/<agent-name>.md         # Agent definitions
+├── .claude-plugin/plugin.json               # Plugin manifest
+├── skills/<skill-name>/SKILL.md             # Skill definitions (auto-discovered)
+└── agents/<agent-name>.md                   # Agent definitions (auto-discovered)
 ```
 </repository_structure>
 
