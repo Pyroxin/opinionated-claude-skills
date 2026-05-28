@@ -1,6 +1,6 @@
 ---
 name: deep-research
-description: Orchestrated multi-source research using a persistent agent team. Use for thorough investigation of complex topics requiring diverse sources, cross-referencing, synthesis, and iterative refinement with user feedback. Decomposes topics into subtopics, spawns a team of specialist researchers that stay with the team through synthesis and revision, and produces a unified report with ACM citations.
+description: Multi-source research orchestrated across a persistent agent team. Use for queries asking for research-style investigation of a topic — comparing, contrasting, surveying, investigating, evaluating, deeply researching, doing a literature review, or any similar research intent — or that ask what people are saying publicly about a topic (discourse, expert opinion, industry consensus, and related framings). Example phrasings (illustrative, not exhaustive): "compare X and Y", "survey the state of X", "deep dive on X", "what's been said about X", "research the trade-offs of X vs Y". Match the underlying research intent, not the exact wording. Decomposes the topic into subtopics, spawns specialist researchers, sample-verifies primary sources, and produces a unified report with ACM citations and iterative refinement. Prefer over single-agent search when the topic spans multiple facets or source diversity matters. Skip when answerable by a single search or a single doc lookup.
 model: opus
 allowed-tools:
   - Agent
@@ -23,6 +23,7 @@ allowed-tools:
   - mcp__exa__crawling_exa
   - mcp__exa__people_search_exa
   - mcp__kagi__kagi_search_fetch
+  - mcp__kagi__kagi_extract
   - mcp__kagi__kagi_summarizer
   - mcp__awslabs_aws-documentation-mcp-server__search_documentation
   - mcp__awslabs_aws-documentation-mcp-server__read_documentation
@@ -101,7 +102,7 @@ This phase is pure thinking — no tool calls needed.
 <phase_reconnaissance>
 ### Phase 2: Reconnaissance
 
-Execute 2-3 quick searches to map the landscape. The goal is orientation, not depth.
+Execute 2-5 quick web searches to map the landscape. The goal is orientation, not depth. Use a variety of search engines if multiple search tools are available.
 
 **What to discover:**
 - Key terminology and concepts you might not have known about
@@ -113,6 +114,22 @@ Execute 2-3 quick searches to map the landscape. The goal is orientation, not de
 - `mcp__kagi__kagi_search_fetch` for sensitive topics (see `<behavioral_constraints>`)
 - `mcp__exa__web_search_exa` or `WebSearch` for general topics
 - AWS documentation tools if the topic involves AWS services
+
+**Query discipline.**
+
+Reconnaissance queries shape what you discover. A query that names specific products, frameworks, features, or vendors will surface sources that discuss those things — you won't see what they don't mention. The downstream cost is severe: biased recon biases decomposition, which biases specialist prompts, which yields a corpus that confirms your starting assumptions.
+
+Use open queries that describe the *space*, not its presumed contents. The following examples demonstrate biased and neutral queries:
+
+| Biased (avoid) | Neutral (prefer) |
+|---|---|
+| "Java 25 LTS features 2026 virtual threads value classes" | "Java language evolution 2024-2026" |
+| "modular monolith Spring Boot Quarkus best practices" | "Java application architecture practices 2026" |
+| "prompting LLMs generate idiomatic Java code Spring AI" | "LLM-assisted Java development practices 2026" |
+
+If the user named specific things in their query, those are fair to carry forward — they're the user's framing, not yours. Don't add new specifics they didn't provide. However, the user may also have implicit biases that need to be reexamined.
+
+Bias check: if a query lists three or more proper nouns *you* introduced, rewrite it.
 
 **Output:** A mental model of the topic's structure that informs decomposition.
 </phase_reconnaissance>
@@ -137,6 +154,20 @@ For each subtopic, specify:
 - Overlap between subtopics should be minimal, but some overlap is acceptable (the cross-referencing phase handles deduplication)
 - Each subtopic should map to at least one of the core questions from Phase 1
 - Every core question should be covered by at least one subtopic
+
+**Subtopic framing discipline.**
+
+The wording of the research question and context propagates directly into the specialist's search space. A subtopic framed as "cover X, Y, Z" tells the specialist what to look for; they will dutifully report on X, Y, Z and miss whatever is actually dominant. Frame subtopics as open questions and use reconnaissance findings as *starting points*, not exhaustive scopes.
+
+| Anchoring (avoid) | Open-ended (prefer) |
+|---|---|
+| "Cover Maven, Gradle, Bazel, Mill, JBang" | "Survey current Java build tooling and characterize adoption" |
+| "Cover hexagonal, clean, layered, event-driven, CQRS" | "Survey current architectural styles; identify what's ascendant, mature, or fading" |
+| "Cover OpenTelemetry, JFR, async-profiler" | "Survey production observability and profiling practice" |
+
+When recon surfaced specific items worth flagging, mark them as starting examples rather than scope: "Reconnaissance surfaced A and B as widely discussed; treat as starting examples, not as exhaustive scope. Discover what's actually dominant."
+
+Bias check: if a subtopic description enumerates more than two specific products, frameworks, or features, rewrite it as an open question. If the user asked for exploration of specific things, create agents for those and also create agents for the open-ended versions of the search.
 </phase_decompose>
 
 <phase_spawn_team>
@@ -199,6 +230,7 @@ Each spawn prompt should include:
 2. **Expected source types** — Guide the specialist toward source diversity.
 3. **Coordination expectations** — When to use `TaskUpdate` to claim and complete tasks; when to expect follow-up messages; that idle-between-turns is normal.
 4. **Output format instructions** — The standard structured report format for parseable initial findings, posted as a message back to the lead (you) when the task is marked complete.
+5. **Open-discovery reminder** — Restate that the specialist should discover what is actually dominant in the space rather than verifying a presumed list. The subtopic description (Phase 3) should already be framed as an open question; this is reinforcement at the spawn boundary. See `<phase_decompose>` for the discipline.
 
 **Example teammate spawn:**
 ```
@@ -209,6 +241,8 @@ Use the Agent tool with:
   prompt: "You are joining research team '<team-name>' as a specialist researcher.
 
     Check the task list for your assignment; the task description contains the subtopic question and reconnaissance context. Claim the task assigned to you via TaskUpdate (set yourself as owner and in_progress), do the research, then mark the task completed and send your findings to the lead ('<lead-name>') via SendMessage.
+
+    Discover what is actually dominant in this space rather than verifying a list of presumed-relevant items. The subtopic description gives starting framing; let evidence determine which products, frameworks, features, and practices are actually load-bearing.
 
     Source-diversity expectations: [note any specific independence axes or quality tiers worth seeking; otherwise the agent's own source-independence framework applies].
 
@@ -250,7 +284,20 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
    - Findings from one subtopic that reframe or qualify findings from another
    - Emergent conclusions that no single subtopic's research supports alone but the combination does
 
-**Message budget:** Limit yourself to 1-2 reconciliation rounds per specialist in this phase. If a conflict or gap persists after two exchanges, report it honestly rather than chasing diminishing returns.
+6. **Verify load-bearing citations against primaries.** Specialists assign citation provenance (Read / Summarized / Snippet-only — see the agent definitions' `<citation_provenance>` sections) and downgrade support labels for snippet-only citations. The orchestrator is the last line of defense before a claim enters synthesis. Sample-fetch the cited primaries for:
+
+   - Every claim that will appear in your draft Takeaways
+   - Every claim labeled `[CITED][WELL-SUPPORTED]` that load-bears a downstream conclusion
+   - Every numeric statistic the user is likely to act on
+   - Any claim where the specialist cited a source without including excerpted text or specific page/section detail
+
+   Use `WebFetch`, `mcp__kagi__kagi_extract` (privacy-preserving, returns markdown), `mcp__exa__crawling_exa`, or `Read` (for local files). If the primary contradicts or materially qualifies the claim, `SendMessage` the specialist to reconcile and update support labels. If the primary is unreachable, downgrade the claim and note the verification failure in the Sources section.
+
+   This is sample verification, not re-investigation. Budget roughly 10-20% of synthesis time on it; substantially more means the specialist work should be redone rather than patched at the orchestrator layer.
+
+   Make use of the specialists to cross-verify claims when possible. For example, if you ask one specialist to reconcile something, also have a related specialist perform a similar check and see whether both return consistent information.
+
+**Message budget:** Limit yourself to 1-4 reconciliation rounds per specialist in this phase. If a conflict or gap persists after about three exchanges, report it honestly rather than chasing diminishing returns.
 </phase_collect>
 
 <phase_synthesize>
@@ -303,6 +350,40 @@ Your unique contribution is connecting findings across subtopics. Concatenating 
 - **Emergent conclusions**: Findings that no single specialist's research supports but that the combination makes evident
 - **Tension resolution**: When subtopic findings pull in different directions, explain why and what it means for the original question
 </synthesis_principles>
+
+<synthesis_discipline>
+### Synthesis Discipline
+
+Synthesis principles encourage drawing connections; discipline prevents drawing *aesthetic* ones. The deliverable is a research report, not an essay. You gain the trust and approval of the user by providing high-quality analytical writing.
+
+**Conclusions must be evidence-bounded.** Every cross-cutting claim should cite the specific specialist findings it draws from. "Three specialists independently found X" should let the reader point at the three. "An emergent observation no single specialist supports, but the combination makes evident" is legitimate when the combination is shown; "an emergent observation no specialist supports at all" is speculation.
+
+**Length follows evidence.** Specialist density caps synthesis density. If the synthesis runs materially longer than the specialist reports per topic covered, the extra length is invented content. The synthesis earns additional length only through cross-cutting connections that span specialists, not through elaboration of individual claims that should have been the specialists' work. Where specialist density on a subtopic is thin, the synthesis on that subtopic should be thin too — that is honest reporting; compensating with prose is editorial padding.
+
+**No editorial voice in section headers or framings.** Section headers should describe content, not editorialize. The test: would the header still make sense if the reader hadn't read the section? "Convergence toward modular monolith" passes; "Java's quiet structural fit for the agentic era" doesn't. Avoid metaphor and narrative framings (e.g., "golden hour", "the engine wins but the brand doesn't", "X-shaped hole"). They are memorable and unsupported.
+
+**No invented theses about people.** Attributing influence to named individuals as a thesis ("the X/Y/Z triumvirate") requires specialists to have documented that influence with evidence. Recurring citation of a name across specialist reports is not, by itself, evidence of influence.
+
+**No personalized framings.** "For someone like you", "given your background", "this should resonate with..." — these convert reporting into editorial address. Neutrally-framed practice implications are fine when tied to evidence ("For projects where domain semantics matter, X is the best-supported choice").
+
+**AI-essay tells to avoid:**
+- Negative parallelism ("It's not X, it's Y")
+- Rule-of-three lists when the underlying material isn't naturally three
+- Rhetorical "surprising observation" framings
+- Dramatic implication claims ("exactly what makes...", "happens to be...")
+- Anthropomorphizing the field ("Java has converged on...", "the ecosystem wants...")
+
+**Distinguish claim types:**
+
+| Claim type | Allowed in synthesis? |
+|---|---|
+| What specialists found, with citation | Yes — reporting |
+| What multiple specialists independently found, with citation to each | Yes — cross-cutting synthesis |
+| What the combination implies for practice, marked as implication and tied to evidence | Yes — qualified implication |
+| What the combination *means* in a broader sense, as authorial commentary | No — editorial speculation |
+
+If a sentence cannot be sourced or marked as a qualified implication, it doesn't belong in the deliverable.
+</synthesis_discipline>
 
 <honest_assessment>
 ### Honest Assessment
@@ -490,6 +571,36 @@ The baseline specialists (`research-investigator`, `research-analyst`) are the f
 
 Teammates go idle between turns. That is normal — it means they finished a turn and are waiting for input. An idle teammate that just sent you a message has not quit; it is waiting for your response. Do not comment on teammate idleness or interpret it as a problem.
 </impatience_with_idle>
+
+<loaded_recon_queries>
+### Loading Reconnaissance Queries with Expected Findings
+
+Reconnaissance queries that name specific products, frameworks, features, or vendors return sources discussing those things; you won't see what they don't mention. The downstream cost is severe: biased recon biases decomposition, which biases specialist prompts, which yields a corpus that confirms your starting assumptions. See `<phase_reconnaissance>` for query discipline.
+</loaded_recon_queries>
+
+<anchoring_specialists_with_scope_lists>
+### Anchoring Specialists with Scope Lists
+
+Subtopic descriptions that enumerate specific things to "cover" tell the specialist what to look for. The specialist will dutifully report on those things and miss whatever is actually dominant. The fix is open-question framing in subtopic descriptions; see `<phase_decompose>` for the discipline.
+</anchoring_specialists_with_scope_lists>
+
+<editorializing_synthesis>
+### Editorializing the Synthesis
+
+Writing the report as an essay rather than a research deliverable. Symptoms: rhetorical section headers ("Java's golden hour"), narrative framings ("the engine wins but the brand doesn't"), invented theses about named individuals ("the X/Y/Z triumvirate"), personalized framings ("for someone like you"), implication claims not tied to evidence. The deliverable is for the user to act on; aesthetic flourishes obscure what's actually known. See `<synthesis_discipline>` in writing guidance.
+</editorializing_synthesis>
+
+<unverified_specialist_citations>
+### Trusting Specialist Citations Without Sampling
+
+Specialists may cite a source after reading only its search-snippet or its summarizer output. The citation looks identical to one based on reading the primary. Without spot-checking, the synthesis inherits the snippet's accuracy ceiling while presenting itself as evidence-grounded. The fix is Phase 5 step 6: sample-fetch primaries for load-bearing claims before incorporating them into synthesis.
+</unverified_specialist_citations>
+
+<synthesis_density_exceeds_evidence>
+### Synthesis Density Exceeding Specialist Density
+
+When specialists produce shorthand-style reports and the orchestrator writes the synthesis as flowing prose, the gap is filled by invention. The synthesis prose appears to elaborate the specialists' findings, but the elaborations have no source. The fix is structural, not stylistic: the agent definitions now require dense prose with inline labels, so specialists supply context the synthesis can compress rather than expand. If the specialists are still producing shorthand, surface that as a finding rather than padding around it. See `<synthesis_discipline>` ("Length follows evidence").
+</synthesis_density_exceeds_evidence>
 </common_mistakes>
 
 ## Sources
