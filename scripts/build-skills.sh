@@ -39,7 +39,7 @@ echo "Build version: ${BUILD_VERSION}"
 count=0
 
 for plugin_dir in */; do
-  [[ -f "${plugin_dir}plugin.json" ]] || continue
+  [[ -f "${plugin_dir}.claude-plugin/plugin.json" ]] || continue
   plugin_name=$(basename "$plugin_dir")
 
   for skill_dir in "${plugin_dir}skills/"*/; do
