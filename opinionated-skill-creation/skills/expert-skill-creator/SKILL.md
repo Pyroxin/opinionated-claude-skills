@@ -11,7 +11,7 @@ description: Expert-level guidance for creating high-quality Claude Code skills.
 - `opinionated-software-engineering:software-engineer` - Design principles that inform skill architecture
 - `opinionated-software-engineering:test-driven-development` - Validation methodology parallels
 
-**This skill complements Anthropic's `skill-creator:skill-creator` skill.** Load both when creating skills: `skill-creator:skill-creator` provides basic mechanics (directory structure, initialization scripts, packaging), while this skill provides expert-level guidance on content quality, structure, and validation.
+**This skill complements Anthropic's `skill-creator:skill-creator` skill.** Load both when creating skills: `skill-creator:skill-creator` provides basic mechanics (e.g., directory structure, initialization scripts, packaging), while this skill provides expert-level guidance on content quality, structure, and validation.
 
 Skills are modular packages that extend Claude's capabilities by providing specialized knowledge, workflows, and tool integrations. They function as **retrieval triggers** that activate and organize Claude's trained knowledge, not as teaching material that explains concepts from scratch.
 
@@ -46,8 +46,8 @@ Do not use this skill for:
 | Primitive | Task text from | Reach for it when |
 |-----------|----------------|-------------------|
 | Subagent | The caller (main agent's delegation message or user's `@mention`) | Task content varies arbitrarily per invocation; value is "handle anything in domain X"; multiple skills or workflows might want it as a worker |
-| Skill (inline) | The skill file itself; small parameterization via `$ARGUMENTS` | You have a repeatable procedure; steps are stable; you want `/slash-command` access; material benefits from the main context (conventions, reference, checklists) |
-| Skill with `context: fork` | The skill file, sent as the subagent's task prompt | Skill-shaped procedure *and* one of: it would pollute main context; it needs a specialized environment (read-only tools, different model, restricted permissions); you want to pin it to a specific subagent type |
+| Skill (inline) | The skill file itself; small parameterization via `$ARGUMENTS` | You have a repeatable procedure; steps are stable; you want `/slash-command` access; material benefits from the main context (e.g., conventions, reference, checklists) |
+| Skill with `context: fork` | The skill file, sent as the subagent's task prompt | Skill-shaped procedure *and* one of: it would pollute main context; it needs a specialized environment (e.g., read-only tools, different model, restricted permissions); you want to pin it to a specific subagent type |
 
 **Heuristics:**
 - If you describe the task afresh every time you invoke the capability, it's a subagent
@@ -84,7 +84,7 @@ skill-name/
 │   └── Markdown body with XML-tagged sections
 ├── scripts/          - Executable code (deterministic operations)
 ├── references/       - Documentation loaded on-demand
-└── assets/           - Files used in output (templates, icons)
+└── assets/           - Files used in output (e.g., templates, icons)
 ```
 
 ### Progressive Disclosure
@@ -141,7 +141,7 @@ These guidelines emerged from creating 15+ skills and observing their performanc
 - Nest tags for hierarchical content: `<platform_differences><macos_specifics>...</macos_specifics></platform_differences>`
 
 **Standard tags:**
-- `<skill_scope skill="skill-name">` — Use for the skill's introductory section (overview, purpose, related skills). The `skill` attribute prevents collision when multiple skills are loaded. Every skill should begin with this tag after the title.
+- `<skill_scope skill="skill-name">` — Use for the skill's introductory section (e.g., overview, purpose, related skills). The `skill` attribute prevents collision when multiple skills are loaded. Every skill should begin with this tag after the title.
 
 **Explicit tag references:**
 Reference tags by name when discussing their content. This reinforces connections between sections and helps readers navigate related guidance.
@@ -307,7 +307,7 @@ Structure mistakes by where practitioners are coming from:
 
 <from_python>
 - **Using None for missing values**: Use nil, but prefer explicit optionality
-- **Imperative loops**: Use sequence operations (map, filter, reduce)
+- **Imperative loops**: Use sequence operations (e.g., map, filter, reduce)
 </from_python>
 </common_mistakes>
 ```
@@ -348,10 +348,10 @@ This section covers language-specific practices...
 **Resources serve two purposes: pointing Claude to content it can read at runtime, and naming works that activate trained knowledge.** Both are valuable; distinguish them clearly.
 
 **Fetchable resources** — Claude can read these at runtime:
-- Written documentation (HTML, Markdown, PDF)
+- Written documentation (e.g., HTML, Markdown, PDF)
 - API references and generated docs
 - GitHub repositories (especially with .md files)
-- Local file paths (Xcode docs, language references)
+- Local file paths (e.g., Xcode docs, language references)
 - Style guides and written tutorials
 
 **Training-data resources** — Claude can't fetch these, but naming them activates parametric knowledge of their content. This aligns with the retrieval-trigger philosophy in `<skill_scope>`: a book title in a Resources section is a retrieval trigger, not a URL to fetch. Include seminal books, classic papers, and foundational works when Claude's training plausibly covers them. Mark these clearly so users understand Claude is drawing on trained knowledge, not a retrieved source.
@@ -506,7 +506,7 @@ After research, create a research summary in the skill directory:
 - Cases where the source work is widely known (e.g., SICP, "Simple Made Easy")
 
 **Formal ACM citations are warranted when:**
-- The source would be useful for Claude to look up (URLs, documentation)
+- The source would be useful for Claude to look up (e.g., URLs, documentation)
 - Fair-use concerns exist (substantial portions, not just short quotes)
 - Content substantially paraphrases a source (cite the source being paraphrased)
 - Statistics or empirical claims need verification
@@ -578,7 +578,7 @@ Memories from training are hypotheses, not facts. Before adding any citation:
 3. **Verify attributions** — Confirm who actually said something; community interpretations often get misattributed to authoritative sources (e.g., "Apple says..." when it's actually a blog post)
 4. **Verify content matches claim** — Read the source to confirm it supports what you're citing it for
 
-**When verification tools are available (WebFetch, WebSearch, Kagi, Exa), use them.** The cost of a few tool calls is trivial compared to publishing incorrect citations.
+**When verification tools are available (e.g., WebFetch, WebSearch, Kagi, Exa), use them.** The cost of a few tool calls is trivial compared to publishing incorrect citations.
 
 **Common verification failures:**
 - Attributing secondary interpretations to primary sources (e.g., a blogger's synthesis cited as official documentation)
@@ -683,7 +683,7 @@ After creating a skill:
 
 **Parallel agent validation:** Launch multiple agents simultaneously to check each skill file. Each agent should:
 1. Read the skill file
-2. Identify passages that sound copied (unusual phrasing, tone shifts)
+2. Identify passages that sound copied (e.g., unusual phrasing, tone shifts)
 3. Flag quotes or claims lacking citations
 4. Check for specific statistics or unique phrases without sources
 5. Report assessment: clean / needs-review / likely-plagiarized
@@ -898,7 +898,7 @@ touch skill-name/SKILL.md
 - System-level patterns (hexagonal architecture) → `opinionated-software-engineering:software-engineer`
 - Paradigm-specific patterns (FP composition) → paradigm skills
 - Language-specific syntax/tooling → language skills
-- Universal processes (TDD, Git) → process skills
+- Universal processes (e.g., TDD, Git) → process skills
 </skill_tiers>
 
 ## Anti-Patterns
