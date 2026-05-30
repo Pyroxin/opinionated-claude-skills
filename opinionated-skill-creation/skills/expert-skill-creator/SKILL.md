@@ -235,6 +235,28 @@ Write skill content the way you'd brief a senior colleague: clear, direct, witho
 This connects to the "retrieval trigger" philosophy in `<skill_scope>`: if skills activate existing knowledge, aggressive directives are counterproductive. They constrain behavior rather than activating capability. The right prompt intensity is the minimum needed to reliably activate the desired behavior.
 </directive_language>
 
+### Open-World Framing
+
+<open_world_framing>
+**Write skill instructions for an open world. The domains skills describe — tools, APIs, options, the model's own capabilities, among others — keep changing, and any one skill sees only part of them.**
+
+A list that reads as complete becomes wrong the moment the world adds a case it didn't enumerate, and it can suppress the model's trained knowledge of cases the list omits (the opposite of the retrieval-trigger goal in `<skill_scope>`). Default to phrasing that stays true as the world changes and as present unknowns surface.
+
+Practices:
+- Mark example lists as non-exhaustive: "e.g.,", "for example", "such as", "including but not limited to". Reserve "i.e.," for restating the same thing a different way, not for examples — the two carry different meanings.
+- Hedge claims that ride a moving target: "currently", "as of <date>", "tends to", "in most cases". Date-stamp facts that will age.
+- Prefer describing the condition over closing the set — "use a feature flag when shipping incomplete work" rather than "always use a feature flag" (this reinforces the positive framing in `<directive_language>`).
+- Lead parenthetical example lists with a marker like "e.g.," or "for example,". A bare parenthetical such as "(JSON, YAML, TOML)" reads as the complete set or an "i.e.," restatement; writing it as "(for example, JSON, YAML, TOML)" marks it as open.
+
+Closure is sometimes right, and over-hedging is its own failure mode. Assert plainly when the set is genuinely finite and the skill defines it (e.g., an enum the skill itself specifies), when an invariant truly holds, or for safety constraints, where closing *toward* safety is intentional (see `<content_depth>`). The skill is the discriminator: hedge where you describe an open domain, assert where you define a closed one.
+
+| Closed-world phrasing | Open-world rewrite |
+|-----------------------|--------------------|
+| "The three valid options are X, Y, Z." (when more may arise) | "Options such as X, Y, and Z." |
+| "This is the list of supported platforms." | "Supported platforms include …; check current docs for additions." |
+| "X always causes Y." | "X usually causes Y; the outcome can depend on <factors>." |
+</open_world_framing>
+
 ### Decision Frameworks
 
 <decision_frameworks>
@@ -608,6 +630,7 @@ Before completing a skill, verify:
 - [ ] Has common mistakes section organized by background
 - [ ] Safety constraints are explicitly stated
 - [ ] Directive language uses calm, direct framing (see `<directive_language>`)
+- [ ] Open-world framing: example lists marked non-exhaustive; closed-world claims only where closure is guaranteed (see `<open_world_framing>`)
 - [ ] Resources are machine-readable (no videos)
 
 **Attribution and Citations:**
@@ -696,7 +719,7 @@ Common leak vectors and how to tell signal from noise. The patterns below are ex
 
 Most hits are false positives, so judge each one: a placeholder email and a citation to a public author are clean; a stray `/Users/yourname` path or a real-looking token are not. When a match is genuinely a secret, rotate it — removing it from the working tree doesn't remove it from history.
 
-Run a pattern scan over tracked files (e.g., `git grep -nIE` for the vectors above). For secrets specifically, add an entropy-based scanner (gitleaks, trufflehog) to catch high-entropy strings the patterns miss. Wire the scan into the same validation gate that runs the other checks so it's enforced rather than remembered — a skipped manual step is the exact failure mode this guards against.
+Run a pattern scan over tracked files (e.g., `git grep -nIE` for the vectors above). For secrets specifically, add an entropy-based scanner (e.g., gitleaks, trufflehog) to catch high-entropy strings the patterns miss. Wire the scan into the same validation gate that runs the other checks so it's enforced rather than remembered — a skipped manual step is the exact failure mode this guards against.
 </pii_and_secret_scanning>
 
 ### Related Skill Consistency
