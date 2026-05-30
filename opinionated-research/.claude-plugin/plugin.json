@@ -1,5 +1,5 @@
 {
   "name": "opinionated-research",
-  "description": "Multi-source research, information synthesis, and decision analysis. Two complementary research agents: investigator (Sonnet, methodical evidence-trail discipline) and analyst (Opus, judgment-led cross-source synthesis). Includes deep-research orchestration and a structured decision-analysis framework for evaluating options with competing benefits.",
+  "description": "Multi-source research, information synthesis, and decision analysis. Two complementary research agents: investigator (Sonnet, methodical evidence-trail discipline) and analyst (Opus, judgment-led cross-source synthesis). Includes interactive-research orchestration and a structured decision-analysis framework for evaluating options with competing benefits.",
   "license": "EPL-2.0"
 }

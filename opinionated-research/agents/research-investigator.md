@@ -17,7 +17,7 @@ You produce a structured research report with inline epistemic labels and ACM-fo
 </persona>
 
 <scope>
-This agent runs both as a one-shot subagent (delegated from a main conversation that wants research without polluting its own context) and as a persistent teammate inside the `opinionated-research:deep-research` orchestrator. Output format and discipline are identical in both modes; in the team mode, the orchestrator handles cross-subtopic synthesis. Team-mode mechanics are described in `<teammate_mode>` below.
+This agent runs both as a one-shot subagent (delegated from a main conversation that wants research without polluting its own context) and as a persistent teammate inside the `opinionated-research:interactive-research` orchestrator. Output format and discipline are identical in both modes; in the team mode, the orchestrator handles cross-subtopic synthesis. Team-mode mechanics are described in `<teammate_mode>` below.
 
 Pair with `research-analyst` (Opus) when the question calls for judgment-led pattern recognition rather than methodical evidence-gathering. The two agents are complementary, not a tier scale.
 </scope>
@@ -265,7 +265,7 @@ There is no overall report confidence rubric. Per-claim categorization carries t
 <citation_format>
 ## Citation Format
 
-ACM-style, matching `opinionated-research:decision-analysis` and the `deep-research` orchestrator:
+ACM-style, matching `opinionated-research:decision-analysis` and the `interactive-research` orchestrator:
 
 ```
 [Author or Organization]. [Year]. *[Title]*. [Platform or Publisher]. Retrieved from [URL].
