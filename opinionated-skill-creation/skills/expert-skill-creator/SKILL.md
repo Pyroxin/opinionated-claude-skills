@@ -628,6 +628,10 @@ Before completing a skill, verify:
 - [ ] No conflicts with related skills
 - [ ] Cross-references align with target skill content
 - [ ] Terminology is consistent throughout
+
+**Publication Safety:**
+- [ ] No PII or secrets in any tracked (publishable) file — see `<pii_and_secret_scanning>`
+- [ ] Scanned the whole publish surface, not just the edited file
 </content_validation>
 
 ### Empirical Validation
@@ -672,6 +676,28 @@ Report: File path, suspicious passages with line numbers, assessment.
 
 **Post-validation:** Address all flagged issues before publication. Even "clean" files may have minor citation improvements identified.
 </plagiarism_validation>
+
+### PII and Secret Scanning
+
+<pii_and_secret_scanning>
+**Before publishing, scan the whole publishable surface for personal data and secrets — not just the `SKILL.md` you edited.**
+
+Skills get published: GitHub releases, marketplaces, shared ZIPs. What goes public is every tracked file — skill bodies, agents, README, manifests, example snippets, bundled resources — so scan the tracked tree, not the single file you touched. Untracked files headed for a later commit count too; scan them before they land.
+
+Common leak vectors and how to tell signal from noise. The patterns below are examples to seed the scan, not a closed checklist — add others your content invites (e.g., physical addresses, OAuth client secrets, license keys):
+
+| Vector | Example pattern | Usually benign when… |
+|--------|-----------------|----------------------|
+| Email addresses | `name@domain.tld` | Placeholder (`your@email.com`) or example domain (`example.com`, `test.`) |
+| Home-path username leaks | `/Users/<name>`, `/home/<name>`, `C:\Users\<name>` | Generic placeholder (`/Users/you`, `$HOME`) |
+| Credentials | API keys, bearer tokens, `AKIA…`, `-----BEGIN … PRIVATE KEY`, `ghp_…` | Treat every real-looking match as live until proven otherwise |
+| Personal identifiers | Author's real name, phone, SSN | Citing a public figure's published work (attribution, not exposure) |
+| Internal references | Private hostnames, internal URLs, ticket IDs | Public docs or documented example hosts |
+
+Most hits are false positives, so judge each one: a placeholder email and a citation to a public author are clean; a stray `/Users/yourname` path or a real-looking token are not. When a match is genuinely a secret, rotate it — removing it from the working tree doesn't remove it from history.
+
+Run a pattern scan over tracked files (e.g., `git grep -nIE` for the vectors above). For secrets specifically, add an entropy-based scanner (gitleaks, trufflehog) to catch high-entropy strings the patterns miss. Wire the scan into the same validation gate that runs the other checks so it's enforced rather than remembered — a skipped manual step is the exact failure mode this guards against.
+</pii_and_secret_scanning>
 
 ### Related Skill Consistency
 
