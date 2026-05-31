@@ -1,3 +1,6 @@
+# Claude keeps putting temporary notes here.
+docs/
+
 # Created by https://www.toptal.com/developers/gitignore/api/eclipse,emacs,intellij+iml,linux,macos,netbeans,vim,visualstudio,visualstudiocode,windows
 # Edit at https://www.toptal.com/developers/gitignore?templates=eclipse,emacs,intellij+iml,linux,macos,netbeans,vim,visualstudio,visualstudiocode,windows
 
@@ -226,7 +229,8 @@ modules.xml
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -714,5 +718,8 @@ FodyWeavers.xsd
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/eclipse,emacs,intellij+iml,linux,macos,netbeans,vim,visualstudio,visualstudiocode,windows
+
 ## Claude Code
-.claude/settings.local.json
+# Only .claude/settings.json is committable for this project; ignore everything else under .claude/.
+.claude/*
+!.claude/settings.json

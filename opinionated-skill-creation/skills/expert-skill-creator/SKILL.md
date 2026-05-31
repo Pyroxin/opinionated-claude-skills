@@ -67,6 +67,22 @@ A "fork skill" composes the two primitives rather than replacing either: the ski
 
 **Common confusion to avoid:** "This procedure is long, so let's make it a fork skill rather than a subagent." The procedure's length isn't the discriminator — who writes the task is. A long, fixed procedure is a fork skill. A long, variable task that the caller specifies each time is a subagent with a substantial system prompt.
 
+### Interface contracts between components used together
+
+<composition_contracts>
+**When skills and agents are designed to be used together, the interface between them is a contract. A consumer must be able to act on a producer's output without guessing.**
+
+Composition takes several shapes (e.g., a fork skill handing a task to a subagent, a skill that invokes another skill, or a family of skills that pass artifacts down a pipeline). In each, one component's output is another's input, so three things have to agree across the set:
+
+| Contract element | Keep aligned by |
+|------------------|-----------------|
+| Vocabulary | One term per concept across every component (a concept named two ways reads as two concepts) |
+| Locations | Shared file paths and output directories defined once and referenced, not retyped per component |
+| Artifact shape | A stated schema for what's handed off, so the consumer parses it deterministically rather than inferring it |
+
+Drift in any of these breaks the handoff the way a type mismatch breaks a function call, and it surfaces at runtime — a downstream component that silently misreads or ignores an upstream artifact — rather than at authoring time. Define the shared vocabulary, paths, and schema in one canonical place (e.g., a shared reference file or the most upstream component) and have the others point to it, consistent with `<cross_reference_guidelines>`. When you revise one side of a contract, revise the other side in the same change (see `<consistency_validation>`).
+</composition_contracts>
+
 Once you've decided a skill is the right primitive, see `<content_patterns>` for choosing between Reference (inline) and Task (fork) content.
 </skill_vs_subagent_decision>
 
@@ -217,7 +233,7 @@ Safety guardrails should be included even if Claude "knows" them. These constrai
 <directive_language>
 **Skills are prompts. Directive intensity directly affects model behavior.**
 
-Opus 4.5/4.6 overtriggers on aggressive language.[^3] Directives like "CRITICAL: You MUST use this tool" or "ALWAYS check before proceeding" cause excessive tool invocation, unnecessary exploration, and overengineering. Sonnet 4.6 follows instructions literally and precisely — aggressive language won't cause overtriggering, but it adds no value over calm, direct statements.
+Opus models tend to overtrigger on aggressive language.[^3] Directives like "CRITICAL: You MUST use this tool" or "ALWAYS check before proceeding" can cause excessive tool invocation, unnecessary exploration, and overengineering. Sonnet models tend to follow instructions literally and precisely — aggressive language won't cause overtriggering, but it adds no value over calm, direct statements.
 
 Write skill content the way you'd brief a senior colleague: clear, direct, without shouting.
 
@@ -234,6 +250,27 @@ Write skill content the way you'd brief a senior colleague: clear, direct, witho
 
 This connects to the "retrieval trigger" philosophy in `<skill_scope>`: if skills activate existing knowledge, aggressive directives are counterproductive. They constrain behavior rather than activating capability. The right prompt intensity is the minimum needed to reliably activate the desired behavior.
 </directive_language>
+
+### Guidance vs. Invariants
+
+<guidance_vs_invariants>
+**A directive is guidance the model can decline to follow. If a behavior must hold, route it to a mechanism, not a sentence.**
+
+Skill content shapes probability, not control flow. Phrasing a requirement more forcefully (e.g., "CRITICAL", "NEVER", "NO EXCEPTIONS") may raise the odds of compliance; it does not guarantee it, and on some tiers it backfires (see `<directive_language>`). So before writing a requirement, classify it:
+
+| Kind | Definition | How to encode it |
+|------|------------|------------------|
+| Guidance | The model should usually do X; an occasional miss is tolerable | A calm, positively-framed directive |
+| Invariant | X must hold for the skill to be correct or safe; a single miss is a defect | A deterministic gate the skill runs (e.g., a script, validator, test, or hook), with the directive as a backstop rather than the sole guard |
+
+**Treat escalating directive intensity as a design smell.** The urge to write "you MUST never mark this done unless tests pass" is a signal that the requirement is an invariant the prose cannot enforce; the fix is a gate (run the tests, read the result), not a louder sentence. A model can narrate that it followed an unenforceable rule while not having followed it — only a mechanism observes the actual state.
+
+This skill's own `<pii_and_secret_scanning>` models the move: it wires the scan "into the same validation gate ... enforced rather than remembered." Generalize it — when a skill defines work that must happen (e.g., a precondition, a format, a check), prefer wiring it into a gate the skill executes over trusting the model to remember.
+
+When the invariant is "the code does what the spec says," the gate is a test; see `opinionated-software-engineering:test-driven-development` (tests as contracts). For the broader principle of pushing correctness into mechanisms rather than convention, see `opinionated-software-engineering:software-engineer`.
+
+This section covers *when* to reach for a gate and *what kind* to reach for; it does not yet cover *how to build one*. Concrete implementation patterns — wiring a hook, structuring a validator script, embedding a test the skill runs — are an open area not yet developed here.
+</guidance_vs_invariants>
 
 ### Open-World Framing
 
@@ -277,6 +314,14 @@ Skills should help identify when to use patterns, not teach how to write basic s
 | Audit requirements | Merge | Full history trail |
 ```
 </decision_frameworks>
+
+### Proportional Engagement
+
+<proportional_engagement>
+**A high-quality skill recognizes when its own ceremony is disproportionate to the task and says so.**
+
+A skill that runs its full process on every invocation becomes friction on the small cases it never needed to touch. Where a skill carries real overhead (e.g., multi-step workflows, heavy upfront planning, multi-agent orchestration), give it an explicit off-ramp: name the conditions under which a lighter path — a simpler sibling skill, the model's native capabilities, or doing the task directly — is the better call. This extends `<when_to_use>`'s "do not use for" from a static boundary into in-flight judgment: not only *when not to start*, but *when to step aside partway*. Scope the effort to the task; the goal is the outcome, not the ritual.
+</proportional_engagement>
 
 ### Common Mistakes Sections
 
@@ -630,6 +675,8 @@ Before completing a skill, verify:
 - [ ] Has common mistakes section organized by background
 - [ ] Safety constraints are explicitly stated
 - [ ] Directive language uses calm, direct framing (see `<directive_language>`)
+- [ ] Invariants routed to a deterministic gate, not left as directives (see `<guidance_vs_invariants>`)
+- [ ] Skills with real overhead offer an off-ramp to lighter alternatives (see `<proportional_engagement>`)
 - [ ] Open-world framing: example lists marked non-exhaustive; closed-world claims only where closure is guaranteed (see `<open_world_framing>`)
 - [ ] Resources are machine-readable (no videos)
 
@@ -651,6 +698,7 @@ Before completing a skill, verify:
 - [ ] No conflicts with related skills
 - [ ] Cross-references align with target skill content
 - [ ] Terminology is consistent throughout
+- [ ] For skills used together: shared vocabulary, paths, and artifact schema agree (see `<composition_contracts>`)
 
 **Publication Safety:**
 - [ ] No PII or secrets in any tracked (publishable) file — see `<pii_and_secret_scanning>`
@@ -725,12 +773,12 @@ Run a pattern scan over tracked files (e.g., `git grep -nIE` for the vectors abo
 ### Related Skill Consistency
 
 <consistency_validation>
-When creating or updating a skill, check for conflicts with related skills:
+When creating or updating a skill, check for conflicts with related skills, and for contract drift among skills used together:
 
-1. **Identify related skills** that might contain similar guidance
+1. **Identify related skills** — those with similar guidance, and any used together with this one
 2. **Read full sections**, not just grep for keywords (conflicts may be conceptual)
-3. **Check for principle conflicts**, not just terminology differences
-4. **Update all related skills** when refining a principle
+3. **Check for principle conflicts** (conceptual contradictions); and, for skills used together, for interface-contract drift — divergent terminology, paths, or artifact shapes (see `<composition_contracts>`)
+4. **Update all affected skills** in the same change when refining a principle or revising either side of a shared contract
 </consistency_validation>
 </validation_phase>
 
