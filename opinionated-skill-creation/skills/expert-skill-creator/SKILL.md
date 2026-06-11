@@ -16,6 +16,8 @@ description: Expert-level guidance for creating high-quality Claude Code skills.
 Skills are modular packages that extend Claude's capabilities by providing specialized knowledge, workflows, and tool integrations. They function as **retrieval triggers** that activate and organize Claude's trained knowledge, not as teaching material that explains concepts from scratch.
 
 **Critical insight**: For LLMs, skills activate existing knowledge rather than teaching new content. The risk is that too much detail *constrains* behavior rather than enhancing it. Skills should provide high-level frameworks that trigger trained knowledge, with detailed content reserved for genuinely novel or problematic areas.
+
+**Model calibration:** This skill assumes Opus as the authoring model and targets created skills primarily at Opus and Fable. Fable 5 is new and capacity-limited as of June 2026; treat it as an upgrade path rather than a dependency (see `<model_targeting>`). For skills targeting Sonnet or Haiku tiers, see `references/prompting-sonnet.md` and `references/prompting-haiku.md`.
 </skill_scope>
 
 ## When to Use This Skill
@@ -23,7 +25,7 @@ Skills are modular packages that extend Claude's capabilities by providing speci
 <when_to_use>
 Use this skill when:
 - Creating a new skill from scratch
-- Improving or refactoring an existing skill
+- Improving or refactoring an existing skill (for the staged procedure, see `references/retrofitting-existing-skills.md`)
 - Evaluating skill quality against established guidelines
 - Needing guidance on skill architecture, structure, or content depth
 - Researching content for a skill using agents
@@ -173,7 +175,7 @@ Reference tags by name when discussing their content. This reinforces connection
 - Good uses: source attribution, example classification, conditional context markers
 
 **Position matters (primacy bias):**
-Content earlier in a tag receives more attention than content later. At the document level, placing long reference material at the top with instructions and queries at the bottom improves response quality by up to 30% on multi-document inputs.[^3] Within sections, structure accordingly:
+Content earlier in a tag receives more attention than content later. At the document level, placing long reference material at the top with instructions and queries at the bottom can improve response quality by up to 30% in tests on multi-document inputs.[^3] Within sections, structure accordingly:
 - Put the most important guidance first within each section
 - Lead with critical constraints, follow with elaboration
 - If ordering a list by priority, highest priority items should come first
@@ -187,7 +189,7 @@ Content earlier in a tag receives more attention than content later. At the docu
 
 **Combine XML with other techniques:**
 - Multishot prompting: `<examples><example>...</example><example>...</example></examples>`
-- Chain-of-thought: `<thinking>...</thinking><answer>...</answer>`
+- Chain-of-thought as a manual fallback when API thinking is off: `<thinking>...</thinking><answer>...</answer>`[^3] — avoid in skills that may run on Fable-class models, where instructing the model to reproduce its reasoning as response text can trigger a `reasoning_extraction` refusal (see `<model_targeting>`)
 - Conditional sections: `<if_typescript>...</if_typescript>`
 
 **Example structure:**
@@ -231,11 +233,18 @@ Safety guardrails should be included even if Claude "knows" them. These constrai
 ### Directive Language
 
 <directive_language>
-**Skills are prompts. Directive intensity directly affects model behavior.**
+**Skills are prompts. Directive intensity directly affects model behavior, and the effect is version-specific — calibrate against the models the skill targets.**
 
-Opus models tend to overtrigger on aggressive language.[^3] Directives like "CRITICAL: You MUST use this tool" or "ALWAYS check before proceeding" can cause excessive tool invocation, unnecessary exploration, and overengineering. Sonnet models tend to follow instructions literally and precisely — aggressive language won't cause overtriggering, but it adds no value over calm, direct statements.
+Current documented behavior by model class:
 
-Write skill content the way you'd brief a senior colleague: clear, direct, without shouting.
+| Class | Documented behavior | Implication for skill prose |
+|-------|---------------------|-----------------------------|
+| Opus (documented for Opus 4.8) | Takes instructions at face value and applies them only to their stated scope; leans on reasoning before reaching for tools[^4] | State scope and thresholds explicitly — a vague bar like "only report important issues" is followed faithfully, suppressing output you wanted |
+| Fable (documented for Fable 5) | A brief instruction steers most behaviors; heavy prescription carried over from older skills can hurt output[^5] | Prefer one condition-framed sentence over enumerating behaviors (see `<model_targeting>`) |
+
+Rows are class defaults. When targeting a newer release, check the model-specific prompting pages rather than trusting parametric recall — class behavior has reversed between adjacent versions before.
+
+Write skill content the way you'd brief a senior colleague: clear, direct, without shouting.[^3]
 
 | Instead of | Write |
 |------------|-------|
@@ -244,12 +253,29 @@ Write skill content the way you'd brief a senior colleague: clear, direct, witho
 | "NEVER do X" | Describe the desired behavior instead |
 | "If in doubt, use [tool]" | "Use [tool] when it would improve your understanding" |
 
-**Prefer positive framing.** Describe desired behavior rather than listing prohibitions. "Compose smoothly flowing prose paragraphs" outperforms "Do not use markdown" across all tiers.[^3] This applies at every level of skill content — from high-level behavioral guidance to specific output formatting instructions.
+**Prefer positive framing.** Tell the model what to do instead of what not to do: "Your response should be composed of smoothly flowing prose paragraphs" rather than "Do not use markdown in your response".[^3] Showing examples of the desired behavior tends to work better than prohibiting the undesired one.[^4] This applies at every level of skill content — from high-level behavioral guidance to specific output formatting instructions.
 
-**Include 3-5 few-shot examples** when a skill needs to demonstrate output format, tone, or reasoning patterns.[^3] Wrap them in `<examples><example>...</example></examples>` tags. Choose diverse examples that cover edge cases; quality and variety matter more than quantity. For skills targeting Haiku in multi-tier systems (e.g., sub-agent tasks), scaling to 10 examples can close the performance gap with higher tiers.
+**Include 3-5 few-shot examples** when a skill needs to demonstrate output format, tone, or reasoning patterns.[^3] Wrap them in `<examples><example>...</example></examples>` tags. Choose diverse examples that cover edge cases; quality and variety matter more than quantity. This recommendation currently applies across tiers, Haiku included (see `references/prompting-haiku.md`).
 
 This connects to the "retrieval trigger" philosophy in `<skill_scope>`: if skills activate existing knowledge, aggressive directives are counterproductive. They constrain behavior rather than activating capability. The right prompt intensity is the minimum needed to reliably activate the desired behavior.
 </directive_language>
+
+### Model Targeting
+
+<model_targeting>
+**Author for Opus as the baseline; treat Fable as an upgrade path, not a dependency.**
+
+This section synthesizes and paraphrases Anthropic's model-specific prompting pages.[^4][^5] Fable's safety classifiers can return a `refusal` stop reason with automatic fallback to Opus 4.8,[^5] and this skill assumes Fable access can't be banked on while it's new (an authoring assumption, not a documented limit). A skill that behaves well only on Fable therefore has no guaranteed runtime. Write skills that are correct on Opus; Fable's stronger instruction-following then needs less of the skill's prose, not different prose.
+
+Cautions for skills that may run on Fable-class models:
+- Ask for work products (e.g., findings, analysis, recommendations), not a transcript of reasoning. Instructions that have the model restate its internal reasoning as response text can trigger the `reasoning_extraction` refusal category and force fallback; applications needing reasoning visibility should read structured thinking output from the API instead.[^5]
+- Trim prescription. Skills inherited from earlier models tend to over-specify for Fable, which can hurt output quality; re-test with instructions removed before assuming they're needed.[^5]
+- For task skills that orchestrate agents (see `<content_patterns>`), state the conditions under which delegation is appropriate — Fable reaches for parallel subagents more readily than earlier models did.[^5]
+
+In skills you author, do the same: model classes in guidance, version numbers in evidence (citations, provenance notes, dated status facts).
+
+Skills targeting Sonnet or Haiku (e.g., as subagent workers in multi-tier systems) follow the same general principles; tier-specific calibration lives in `references/prompting-sonnet.md` and `references/prompting-haiku.md`. Anthropic currently publishes model-specific prompting pages only for its top tiers (currently, Fable 5 and Opus 4.8); Sonnet and Haiku guidance comes from the general best-practices page and migration guides, which those references synthesize.
+</model_targeting>
 
 ### Guidance vs. Invariants
 
@@ -452,7 +478,7 @@ description: Fish shell scripting judgment frameworks and critical idioms. Use w
 description: Fish shell scripting.
 ```
 
-**Max length:** 1024 characters per description. But there's also a collective budget: all skill descriptions share 2% of the context window (fallback: 16,000 characters). If total descriptions exceed this, some skills get excluded entirely. This means concise descriptions aren't just good practice — they're a shared resource. A verbose 900-character description crowds out other skills.
+**Max length:** 1024 characters per description; `name` is capped at 64.[^7] There's also a collective budget: in Claude Code, the listing text per skill (combined `description` and `when_to_use`) is truncated at 1,536 characters, and all listings share a budget defaulting to 1% of the model's context window (raisable via the `skillListingBudgetFraction` setting or the `SLASH_COMMAND_TOOL_CHAR_BUDGET` environment variable).[^6] On overflow, skill names stay listed but the descriptions of least-invoked skills are shortened or dropped first — stripping the keywords discovery depends on. Concise descriptions aren't just good practice — they're a shared resource. A verbose 900-character description crowds out other skills' discovery text.
 </description_optimization>
 
 ### Content Assessment
@@ -517,13 +543,6 @@ For skill research, the `opinionated-research:research-investigator` agent is th
 - **Tools available**: WebSearch, WebFetch, Exa (web + code), Kagi (private search + summarizer), AWS documentation MCP servers
 - **Privacy note**: Use Kagi for sensitive topics; Exa does not keep queries confidential for non-enterprise customers
 - **Output format**: Structured report with inline `[CITED]`/`[TRAINING DATA]`/etc. provenance labels and ACM-format citations per `[CITED]` claim
-
-### Documenting Research
-
-After research, create a research summary in the skill directory:
-- File: `references/research-notes.md` (or similar)
-- Include: Sources consulted, key findings, URLs for citation
-- Purpose: Enables future skill updates with source traceability
 </research_phase>
 
 ## Citation Requirements
@@ -675,6 +694,7 @@ Before completing a skill, verify:
 - [ ] Has common mistakes section organized by background
 - [ ] Safety constraints are explicitly stated
 - [ ] Directive language uses calm, direct framing (see `<directive_language>`)
+- [ ] No instructions to reproduce internal reasoning as response text (Fable-class refusal hazard; see `<model_targeting>`)
 - [ ] Invariants routed to a deterministic gate, not left as directives (see `<guidance_vs_invariants>`)
 - [ ] Skills with real overhead offer an off-ramp to lighter alternatives (see `<proportional_engagement>`)
 - [ ] Open-world framing: example lists marked non-exhaustive; closed-world claims only where closure is guaranteed (see `<open_world_framing>`)
@@ -721,7 +741,7 @@ After creating a skill:
 - Does Claude apply the guidance correctly?
 - Are there gaps where Claude lacks needed information?
 - Are there constraints that hurt more than help?
-- Does the skill behave consistently across Opus and Sonnet? A directive that works well on one tier may overtrigger or underperform on the other (see `<directive_language>`).
+- Does the skill behave consistently across the model versions it targets (primarily Opus and Fable; see `<model_targeting>`)? A directive calibrated for one version may overtrigger, be followed too literally, or underperform on another (see `<directive_language>`).
 </empirical_validation>
 
 ### Plagiarism and Citation Validation
@@ -957,7 +977,7 @@ touch skill-name/SKILL.md
 ### Content Anti-Patterns
 
 - **Teaching basics**: Explaining concepts (e.g., map/filter/reduce) when Claude knows them from training
-- **Aggressive directives**: Using "CRITICAL", "MUST", "ALWAYS" to force behaviors — causes overtriggering on Opus and adds no value on current Sonnet models (see `<directive_language>`)
+- **Aggressive directives**: Using "CRITICAL", "MUST", "ALWAYS" to force behaviors is counterproductive on Opus and Fable, which follow calm instructions precisely (see `<directive_language>`)
 - **Over-constraining**: So much detail that Claude can't apply judgment
 - **Duplicate content**: Same information in multiple skills
 - **Missing safety**: Not including critical guardrails because "Claude knows"
@@ -985,7 +1005,16 @@ touch skill-name/SKILL.md
 - Claude Code Skills: https://code.claude.com/docs/en/skills.md
 - Claude Code Subagents: https://code.claude.com/docs/en/sub-agents.md
 - Prompting Best Practices: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+- Prompting Claude Opus 4.8: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8
+- Prompting Claude Fable 5: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5
+- Agent Skills Overview: https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview
+- Model Migration Guide: https://platform.claude.com/docs/en/about-claude/models/migration-guide
 - XML Tagging Best Practices: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/use-xml-tags
+
+**Bundled references:**
+- `references/prompting-sonnet.md` - Sonnet-tier calibration for skill authors
+- `references/prompting-haiku.md` - Haiku-tier calibration for skill authors
+- `references/retrofitting-existing-skills.md` - Staged runbook for bringing existing skills up to these standards
 
 **Related skills:**
 - `opinionated-software-engineering:software-engineer` - Design principles informing skill architecture
@@ -998,5 +1027,13 @@ touch skill-name/SKILL.md
 
 [^2]: Anthropic. 2025. Skills Documentation. Claude Code. Retrieved November 24, 2025 from https://code.claude.com/docs/en/skills.md
 
-[^3]: Anthropic. 2026. Prompting best practices. Claude API Documentation. Retrieved March 1, 2026 from https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+[^3]: Anthropic. 2026. Prompting best practices. Claude API Documentation. Retrieved June 10, 2026 from https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+
+[^4]: Anthropic. 2026. Prompting Claude Opus 4.8. Claude API Documentation. Retrieved June 10, 2026 from https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8
+
+[^5]: Anthropic. 2026. Prompting Claude Fable 5. Claude API Documentation. Retrieved June 10, 2026 from https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5
+
+[^6]: Anthropic. 2026. Extend Claude with skills. Claude Code Documentation. Retrieved June 10, 2026 from https://code.claude.com/docs/en/skills.md
+
+[^7]: Anthropic. 2026. Agent Skills. Claude API Documentation. Retrieved June 10, 2026 from https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview
 </sources>

@@ -49,3 +49,5 @@ unzip -l dist/<skill>.zip      # Verify ZIP structure
 
 **Releases:** Pushes to `main` trigger GitHub Actions, which builds all skills and updates the rolling `latest` release. Version format is `YYYYMMDD-HHMMSS.SHA`.
 </build_system>
+
+@README.md
