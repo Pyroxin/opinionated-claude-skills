@@ -93,7 +93,7 @@ Parse the research query and establish framing before any searching:
 
 1. **Audience** — Who is this for? If the requestor specified an audience, use it. Otherwise, infer from the query's vocabulary and framing (e.g., a query using technical jargon implies a technical audience).
 2. **Intent** — What does the requestor want to *do* with this research? Categories: learn (i.e., understand a topic), decide (i.e., choose between options), compare (i.e., evaluate alternatives), build (i.e., implement something), or investigate (i.e., diagnose a problem).
-3. **Output format** — Did the requestor ask for a specific format? A "guide" differs from a "report" differs from an "analysis." Default to a structured research report if unspecified.
+3. **Output format** — Did the requestor ask for a specific format? A "guide" differs from a "report" differs from an "analysis." Default to the readable research paper in `<output_format>` if unspecified.
 4. **Core questions** — What questions, if answered, would satisfy this request? List 3-7.
 
 This phase is pure thinking — no tool calls needed.
@@ -266,7 +266,7 @@ After teammates are spawned, use `TaskUpdate` to set each task's `owner` to the 
 <phase_collect>
 ### Phase 5: Collect and Cross-Reference
 
-Once all subtopic tasks are marked complete in the task list and each specialist's report has been delivered via message, analyze their findings as a corpus. Because teammates persist across idle periods, this phase becomes active: when you spot overlap, conflicts, or gaps, create follow-up tasks and/or `SendMessage` the relevant specialist(s) rather than silently flagging issues for the final report.
+Specialist reports arrive as tasks complete. Per-report work — deduplication, direct reading of key primaries, fact-checker fan-out (step 6) — can begin as each report lands; the corpus-level analysis (conflicts, gaps, cross-cutting patterns) requires all tasks complete and all reports in hand. Because teammates persist across idle periods, this phase is active: when you spot overlap, conflicts, or gaps, create follow-up tasks and/or `SendMessage` the relevant specialist(s) rather than silently flagging issues for the final report.
 
 For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage`. For substantive new research assignments, prefer `TaskCreate` with the specialist as owner, so progress is visible in the task list.
 
@@ -284,28 +284,45 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
    - Findings from one subtopic that reframe or qualify findings from another
    - Emergent conclusions that no single subtopic's research supports alone but the combination does
 
-6. **Verify load-bearing citations against primaries.** Specialists assign citation provenance (Read / Summarized / Snippet-only — see the agent definitions' `<citation_provenance>` sections) and downgrade support labels for snippet-only citations. The orchestrator is the last line of defense before a claim enters synthesis. Sample-fetch the cited primaries for:
+6. **Verify load-bearing citations against primaries — through two channels with different jobs.** Specialists assign citation provenance (Read / Summarized / Snippet-only — see the agent definitions' `<citation_provenance>` sections) and downgrade support labels for snippet-only citations. The orchestrator is the last line of defense before a claim enters synthesis.
 
-   - Every claim that will appear in your draft Takeaways
+   **Read the most important sources yourself.** Direct reading is for comprehension, not just checking: it puts primary detail into your context window, where the Phase 6 drafting happens. A synthesis drafted only from specialist compressions is a compression of compressions, however accurate its citations. Select for synthesis weight:
+
+   - Sources behind the claims that will appear in your draft Takeaways
+   - Sources cited by multiple specialists or central to a cross-cutting pattern
+   - Sources you expect to quote, interpret, or use to adjudicate a conflict
+
+   Use `WebFetch`, `mcp__kagi__kagi_extract` (privacy-preserving, returns markdown), `mcp__exa__crawling_exa`, or `Read` (for local files).
+
+   **Fan the volume out to the fact-checker.** Spawn `opinionated-research:fact-checker` — one invocation per claim-citation pair; invocations are independent and parallelizable — for breadth across the remaining load-bearing pairs:
+
    - Every claim labeled `[CITED][WELL-SUPPORTED]` that load-bears a downstream conclusion
    - Every numeric statistic the user is likely to act on
    - Any claim where the specialist cited a source without including excerpted text or specific page/section detail
 
-   Use `WebFetch`, `mcp__kagi__kagi_extract` (privacy-preserving, returns markdown), `mcp__exa__crawling_exa`, or `Read` (for local files). If the primary contradicts or materially qualifies the claim, `SendMessage` the specialist to reconcile and update support labels. If the primary is unreachable, downgrade the claim and note the verification failure in the Sources section.
+   Each verdict costs you a short block rather than a fetched page, so check broadly. Act on verdicts mechanically: `CONTRADICTS` or `OFF-TOPIC` → `SendMessage` the specialist to reconcile and update support labels; `PARTIAL` or `UNCLEAR` → downgrade or reconcile; `SOURCE-UNREACHABLE` → downgrade the claim and note the verification failure in the Sources section.
+
+   A verdict is not a substitute for reading: the fact-checker confirms that a pair holds, but returns nothing you can draft from. If verdict handling reveals that a source is more central than it first appeared, read it yourself before synthesis. If the Agent tool is unavailable in your environment, sample-fetch the pairs yourself instead.
 
    This is sample verification, not re-investigation. Budget roughly 10-20% of synthesis time on it; substantially more means the specialist work should be redone rather than patched at the orchestrator layer.
 
    Make use of the specialists to cross-verify claims when possible. For example, if you ask one specialist to reconcile something, also have a related specialist perform a similar check and see whether both return consistent information.
 
-**Message budget:** Limit yourself to 1-4 reconciliation rounds per specialist in this phase. If a conflict or gap persists after about three exchanges, report it honestly rather than chasing diminishing returns.
+**Message budget:** Limit yourself to two reconciliation rounds per specialist in this phase. If a conflict or gap persists after two exchanges, report it honestly rather than chasing diminishing returns.
 </phase_collect>
 
 <phase_synthesize>
 ### Phase 6: Synthesize
 
-Write the initial deliverable. This is where you earn the orchestration overhead. See `<writing_guidance>` for detailed instructions.
+**Entry gate.** Phase 6 begins only when `TaskList` shows every specialist task completed and every report delivered. Run the check; do not rely on your sense of progress — a single pending or in-progress task means you are still in Phase 5. Waiting is not idleness: spend it on Phase 5 step 6's direct reading and fact-checker fan-out, which build drafting context without committing conclusions. Drafting early anchors the synthesis the same way writing Takeaways first anchors the body (see `<drafting_order>`): evidence that arrives afterward gets read against a thesis instead of weighed into one. If the user explicitly asks for an interim draft, provide it labeled as partial, with the outstanding tasks listed.
+
+Write the initial deliverable. This is where you earn the orchestration overhead. Default to the readable paper in `<output_format>`, and draft the body before writing the Takeaways (see `<drafting_order>`). See `<writing_guidance>` for detailed instructions.
 
 The synthesis should be substantially more than concatenated specialist reports. Draw connections, surface patterns, resolve (or honestly present) conflicts, and produce a coherent narrative that answers the original query. Specialists are still active in the team — if synthesis reveals a need for further specialist input, query them rather than writing around the gap.
+
+**Post-draft verification pass.** After drafting and before presenting, fan the draft's load-bearing claim-citation pairs to `opinionated-research:fact-checker` — as worded in the draft, not as worded in the specialist reports. This is the end-to-end check on the relay chain (source → specialist report → synthesis): drift introduced by your own compression is invisible to the Phase 5 checks, which ran before the draft existed. Handle verdicts as in Phase 5 step 6, correcting the draft or reconciling with the specialist before the report reaches the user.
+
+**Reports that arrive after drafting begins** — including legitimate late arrivals such as reconciliation responses and follow-up extensions — get a per-claim integration check, not a holistic glance. For each major claim in the late report, record whether the draft already reflects it, contradicts it, or omits it, and revise the draft accordingly. "Nothing needs revision" is a conclusion you may reach only claim by claim, never wholesale: an integration check that produces no dispositions is a check that did not happen.
 </phase_synthesize>
 
 <phase_iterate>
@@ -340,6 +357,12 @@ Write for the audience identified in Phase 1. A report for a CTO making a techno
 - Level of detail (i.e., summarize for decision-makers; be specific for implementers)
 </audience_awareness>
 
+<drafting_order>
+### Drafting Order
+
+Write the body before the Takeaways. Leading the *document* with conclusions serves the reader, but generating the conclusions *first* tends to anchor the analysis to them — the body then gets written to justify a thesis fixed before the evidence was weighed. Draft the synthesis body from the corpus and let the argument go where the evidence leads; then write the Takeaways from the finished draft, so they capture what actually surfaced, including conclusions that only became visible while drafting. Re-check Conflicts, Gaps, and the Confidence Assessment against the final body as well. Present the Takeaways first; produce them last.
+</drafting_order>
+
 <synthesis_principles>
 ### Synthesis, Not Concatenation
 
@@ -355,6 +378,8 @@ Your unique contribution is connecting findings across subtopics. Concatenating 
 ### Synthesis Discipline
 
 Synthesis principles encourage drawing connections; discipline prevents drawing *aesthetic* ones. The deliverable is a research report, not an essay. You gain the trust and approval of the user by providing high-quality analytical writing.
+
+**"Not an essay" bans flourish, not prose.** The target above is *editorial* and *aesthetic* excess — rhetorical headers, metaphor, invented theses, the AI-essay tells listed below. It is not license to retreat into terse, bulleted, label-scaffolded notes. High-quality analytical writing is flowing prose that develops an argument; a synthesis the reader must skim like field notes fails the brief as surely as a purple one. Aim for the register of a well-edited long-form analysis: plain, direct paragraphs, each making and supporting a point.
 
 **Conclusions must be evidence-bounded.** Every cross-cutting claim should cite the specific specialist findings it draws from. "Three specialists independently found X" should let the reader point at the three. "An emergent observation no single specialist supports, but the combination makes evident" is legitimate when the combination is shown; "an emergent observation no specialist supports at all" is speculation.
 
@@ -424,46 +449,50 @@ In Sources section: `[^1] — Type: official documentation`
 ## Output Format
 
 <format_selection>
-Match the output format to what the requestor asked for. The structured report below is the default when no format is specified. If the requestor asked for a "guide," write flowing prose with inline citations. For a "comparison," use a structured comparison format. The rigor requirements apply regardless of format.
+Match the output format to what the requestor asked for. The default when no format is specified is the readable paper below: a prose synthesis bookended by the standing sections (Takeaways, Conflicts, Gaps, Confidence Assessment, Sources). If the requestor asked for a "comparison," use a structured comparison format; for a step-by-step "guide," structure around the procedure. The rigor requirements apply regardless of format.
 </format_selection>
 
 <default_report_structure>
-### Default: Structured Research Report
+### Default: Readable Research Paper
+
+The default deliverable is a paper the reader reads start to finish — a prose synthesis bookended by the standing sections you keep (Takeaways, Conflicts, Gaps, Confidence Assessment, Sources). Those sections earn their place; the body between them is prose, not skimmable bullet notes.
 
 ```markdown
 # [Topic]
 
 ## Takeaways
-[Direct answers to the original query's core questions. Lead with conclusions.]
+[The key conclusions, stated plainly so the reader gets the answer first.
+Write these from the finished body (see `<drafting_order>`), not before it.]
 
-## Synthesized Findings
+## [A descriptive header naming the first thread of the argument]
+[Flowing prose that develops this part of the synthesis, weaving findings
+across subtopics with inline citations[^n]. Paragraphs that make and support
+a point — a paper to read, not notes to skim. Headers describe content, never
+editorialize (see `<synthesis_discipline>`). Reserve bullets and tables for
+genuinely enumerable or tabular content.]
 
-### [Theme or Dimension 1]
-[Findings woven across subtopics, not per-subtopic summaries.
-Cross-references and connections highlighted. Citations inline.]
-
-### [Theme or Dimension 2]
+## [The next thread of the argument]
 [...]
 
 ## Conflicts
-[Where sources or subtopics disagree. Your assessment of which position
-is better supported and why.]
-(Or: "No significant conflicts identified across sources.")
+[Where sources or subtopics disagree, and which position is better supported
+and why. Or: "No significant conflicts identified."]
 
 ## Gaps
-[What remains unclear. Which subtopics had insufficient coverage or
-limited source diversity. What follow-up research would address.]
-(Or: "No significant gaps.")
+[What remains unclear; which subtopics had thin coverage or limited source
+diversity; what follow-up research would address it. Or: "No significant gaps."]
 
 ## Confidence Assessment
-[Overall confidence level with reasoning tied to source diversity,
-cross-validation results, and gap severity.]
+[Overall confidence tied to source diversity, cross-validation results, and
+gap severity.]
 
 ## Sources
 [^1]: [full citation] — Type: [source type]
 [^2]: [full citation] — Type: [source type]
 ...
 ```
+
+The body above is the reader-facing *synthesis*. The dense apparatus — per-claim bracket labels (`[CITED]`/`[SYNTHESIS]`/…), Premise Check, and the like — belongs to the *evidence* layer: the specialist reports that back this synthesis. Keep those labels out of the deliverable; it carries provenance through inline citations and prose qualification ("three independent sources converge on…"), not brackets.
 </default_report_structure>
 
 <required_sections>
@@ -471,7 +500,7 @@ cross-validation results, and gap severity.]
 
 Regardless of output format, every deliverable must include:
 - **Takeaways/summary** answering the original query directly
-- **Synthesized findings** (not per-subtopic dumps)
+- **A prose synthesis body** that reads as a paper — findings woven across subtopics, not per-subtopic dumps and not skimmable bullet notes
 - **Conflicts** section, even if empty
 - **Gaps** section, even if empty
 - **Sources** with ACM footnotes, type classification, and available metadata
@@ -593,7 +622,7 @@ Writing the report as an essay rather than a research deliverable. Symptoms: rhe
 <unverified_specialist_citations>
 ### Trusting Specialist Citations Without Sampling
 
-Specialists may cite a source after reading only its search-snippet or its summarizer output. The citation looks identical to one based on reading the primary. Without spot-checking, the synthesis inherits the snippet's accuracy ceiling while presenting itself as evidence-grounded. The fix is Phase 5 step 6: sample-fetch primaries for load-bearing claims before incorporating them into synthesis.
+Specialists may cite a source after reading only its search-snippet or its summarizer output. The citation looks identical to one based on reading the primary. Without spot-checking, the synthesis inherits the snippet's accuracy ceiling while presenting itself as evidence-grounded. The fix is Phase 5 step 6: read the key primaries yourself and fan the remaining load-bearing pairs to the fact-checker before incorporating them into synthesis.
 </unverified_specialist_citations>
 
 <synthesis_density_exceeds_evidence>
