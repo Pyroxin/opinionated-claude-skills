@@ -1,5 +1,11 @@
 {
   "name": "opinionated-apple-development",
   "description": "Apple platform development: Swift language (Swift 6+ concurrency, protocol-oriented programming) and macOS platform patterns (SwiftUI/AppKit, sandboxing).",
+  "author": {
+    "name": "Pyroxin",
+    "email": "3385984+Pyroxin@users.noreply.github.com",
+    "url": "https://github.com/Pyroxin"
+  },
+  "repository": "https://github.com/Pyroxin/opinionated-claude-skills",
   "license": "EPL-2.0"
 }

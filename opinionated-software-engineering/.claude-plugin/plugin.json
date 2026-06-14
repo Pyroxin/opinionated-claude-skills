@@ -1,5 +1,11 @@
 {
   "name": "opinionated-software-engineering",
   "description": "Core opinionated software engineering skills: SICP-based software engineering, paradigm skills (functional, OOP, logic), and development process (TDD, git).",
+  "author": {
+    "name": "Pyroxin",
+    "email": "3385984+Pyroxin@users.noreply.github.com",
+    "url": "https://github.com/Pyroxin"
+  },
+  "repository": "https://github.com/Pyroxin/opinionated-claude-skills",
   "license": "EPL-2.0"
 }

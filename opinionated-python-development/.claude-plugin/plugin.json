@@ -1,5 +1,11 @@
 {
   "name": "opinionated-python-development",
   "description": "Python development: Pythonic idioms, testing ecosystem, type hints trade-offs, and modern Python features.",
+  "author": {
+    "name": "Pyroxin",
+    "email": "3385984+Pyroxin@users.noreply.github.com",
+    "url": "https://github.com/Pyroxin"
+  },
+  "repository": "https://github.com/Pyroxin/opinionated-claude-skills",
   "license": "EPL-2.0"
 }

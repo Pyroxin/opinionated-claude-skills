@@ -1,5 +1,11 @@
 {
   "name": "opinionated-java-ecosystem",
   "description": "Java ecosystem development: modern Java idioms, tooling, documentation standards, and testing practices.",
+  "author": {
+    "name": "Pyroxin",
+    "email": "3385984+Pyroxin@users.noreply.github.com",
+    "url": "https://github.com/Pyroxin"
+  },
+  "repository": "https://github.com/Pyroxin/opinionated-claude-skills",
   "license": "EPL-2.0"
 }

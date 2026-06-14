@@ -1,5 +1,11 @@
 {
   "name": "opinionated-tutoring",
   "description": "Pedagogical skills for LLM-based tutoring and instruction. Emphasizes Socratic method, productive struggle, and adaptive scaffolding.",
+  "author": {
+    "name": "Pyroxin",
+    "email": "3385984+Pyroxin@users.noreply.github.com",
+    "url": "https://github.com/Pyroxin"
+  },
+  "repository": "https://github.com/Pyroxin/opinionated-claude-skills",
   "license": "EPL-2.0"
 }

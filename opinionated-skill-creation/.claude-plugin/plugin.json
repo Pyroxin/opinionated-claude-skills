@@ -1,5 +1,11 @@
 {
   "name": "opinionated-skill-creation",
   "description": "Expert-level guidance for creating high-quality Claude Code skills. Use alongside Anthropic's skill-creator.",
+  "author": {
+    "name": "Pyroxin",
+    "email": "3385984+Pyroxin@users.noreply.github.com",
+    "url": "https://github.com/Pyroxin"
+  },
+  "repository": "https://github.com/Pyroxin/opinionated-claude-skills",
   "license": "EPL-2.0"
 }
