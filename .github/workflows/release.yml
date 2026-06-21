@@ -51,6 +51,9 @@ jobs:
         run: ls -la dist/
 
       - name: Update latest release
+        # Skip under `act` (local runs set ACT=true): this publishes to the real
+        # GitHub releases and pushes tag deletions, which must only happen on CI.
+        if: ${{ !env.ACT }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

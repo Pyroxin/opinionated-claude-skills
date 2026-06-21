@@ -1,0 +1,14 @@
+# act (https://github.com/nektos/act) configuration for this repository.
+# act appends the arguments from ~/.actrc, ~/.config/act/actrc, and this
+# ./.actrc; keeping these here scopes them to this repo rather than the machine.
+
+# Map GitHub's ubuntu-latest to catthehacker's "medium" image, which includes
+# sudo, apt, git, and node -- the tooling release.yml's run steps assume. act's
+# tiny default image (node:slim) lacks sudo/apt and cannot run them.
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+
+# release.yml targets GitHub's amd64 runners and downloads the linux.x86_64
+# ShellCheck binary, so force amd64 here. On an Apple Silicon host that runs the
+# container under the Podman VM's qemu emulation; on an amd64 host it is a no-op.
+# Native arm64 would fail those x86_64 steps for the wrong reason.
+--container-architecture linux/amd64
