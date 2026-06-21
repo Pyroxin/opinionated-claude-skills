@@ -85,10 +85,12 @@ fi
 
 # --- Git hooks ---
 # Configured last so hooks only activate after the environment is ready.
+# Delegate to ensure-git-hooks.sh -- the same script the SessionStart hook runs
+# -- so there is a single source of truth for wiring up the versioned hooks.
 
 echo ""
 echo "Configuring git hooks..."
-git -C "$PROJECT_DIR" config core.hooksPath scripts/git-hooks
+"$SCRIPT_DIR/ensure-git-hooks.sh"
 echo "  core.hooksPath set to 'scripts/git-hooks'"
 
 echo ""
