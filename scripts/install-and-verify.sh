@@ -117,6 +117,12 @@ if [[ "$VALIDATE_ONLY" == "false" ]]; then
   else
     info "Not found. Installing..."
     curl -fsSL https://claude.ai/install.sh | bash
+    # The installer places the launcher in ~/.local/bin, which is not guaranteed
+    # to be on PATH in minimal or non-interactive environments: GitHub's runners
+    # already include it, but a fresh container (e.g. a local `act` run) does not,
+    # so the check below would report a successful install as a failure. Add it
+    # explicitly before probing for the CLI.
+    export PATH="$HOME/.local/bin:$PATH"
     if ! command -v claude >/dev/null 2>&1; then
       echo "FATAL: Claude Code installation failed." >&2
       exit 1
