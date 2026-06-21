@@ -15,7 +15,20 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: sudo apt-get install -y shellcheck jq
+        run: sudo apt-get install -y jq
+
+      # Use koalaman's rolling "stable" channel rather than the apt shellcheck
+      # package, which lags the current release and drifts with the runner image
+      # (it shipped 0.9.0, the version skew behind the SC2317 incident). Running
+      # the newest stable analyzer keeps CI aligned with current developer tooling
+      # and lets new checks surface emergent issues early. Intentionally unpinned.
+      - name: Install latest stable ShellCheck
+        run: |
+          curl -fsSL -o shellcheck.tar.xz https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.x86_64.tar.xz
+          tar -xJf shellcheck.tar.xz
+          sudo install shellcheck-stable/shellcheck /usr/local/bin/shellcheck
+          rm -rf shellcheck-stable shellcheck.tar.xz
+          shellcheck --version
 
       - name: Install and verify plugins
         run: ./scripts/install-and-verify.sh
