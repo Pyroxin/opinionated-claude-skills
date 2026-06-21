@@ -57,16 +57,6 @@ info() {
   echo "  $1"
 }
 
-# Remove the isolated config dir, if one was created. Registered as the EXIT
-# trap in full mode (see Step 1); always returns success so it never perturbs
-# the script's own exit status.
-# shellcheck disable=SC2329  # invoked indirectly via trap, not by name
-cleanup_isolated_config() {
-  if [[ -n "${ISOLATED_CONFIG:-}" ]]; then
-    rm -rf "$ISOLATED_CONFIG"
-  fi
-}
-
 # --- Ensure required tools are available ---
 
 if ! command -v shellcheck >/dev/null 2>&1; then
@@ -106,10 +96,15 @@ fi
 # in the brief window between mktemp and the first trap. Both leave only an empty
 # directory under the system temp location -- never ~/.claude or the workspace --
 # so the isolation invariant for protected state holds regardless.
+#
+# The EXIT handler is an inline command, not a named function: a function reached
+# only through a trap looks dead to ShellCheck (SC2317 "appears unreachable"),
+# which the older analyzer versions on some CI images report as a failure. The
+# inline form sidesteps that across versions.
 
 if [[ "$VALIDATE_ONLY" == "false" ]]; then
   ISOLATED_CONFIG="$(mktemp -d)"
-  trap cleanup_isolated_config EXIT
+  trap '[[ -n "${ISOLATED_CONFIG:-}" ]] && rm -rf "$ISOLATED_CONFIG"' EXIT
   trap 'exit 130' INT
   trap 'exit 143' TERM
   export CLAUDE_CONFIG_DIR="$ISOLATED_CONFIG"
