@@ -47,6 +47,10 @@ Individual skills can be downloaded as ZIP files from the [Releases](https://git
 
 ZIP files are named `plugin.skill.TIMESTAMP.SHA.zip` (e.g., `opinionated-software-engineering.software-engineer.20251130-014305.c7223ee.zip`). The timestamp and commit SHA identify the exact build the ZIP was derived from.
 
+## Codex
+
+The skills in this marketplace are usable by Codex. I'm still evaluating whether I want to make this a hybrid marketplace or whether Codex will get its own marketplace. In the meantime, the skills are usable with Codex but the agents will not work.
+
 ## Plugins
 
 Each plugin tracks a need I hit while tinkering in my homelab so there's an emphasis on supporting continuous learning and experimentation. The software-engineering plugin is the base layer; several other plugins assume it's installed. The skills are internally structured using a semi-consistent XML schema to try and cause the skills to meld together in Claude's attention mechanism when they're composed.
