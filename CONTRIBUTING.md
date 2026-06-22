@@ -28,4 +28,7 @@ The commit and push quality gates live in `scripts/git-hooks` and are activated 
 
 ### Pre-Commit Validation
 
+See [TESTING.md](TESTING.md) for local validation procedures, including the
+isolated script regression checks and `act push` workflow smoke test.
+
 ### Submitting Changes
