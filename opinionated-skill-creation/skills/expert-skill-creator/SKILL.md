@@ -766,7 +766,8 @@ Before completing a skill, verify:
 
 **Publication Safety:**
 - [ ] No PII or secrets in any tracked (publishable) file — see `<pii_and_secret_scanning>`
-- [ ] Scanned the whole publish surface, not just the edited file
+- [ ] Read the whole publish surface in full, not just pattern-scanned it (see `<pii_and_secret_scanning>`)
+- [ ] Checked examples for real-scenario context leaks, not only data-value patterns
 </content_validation>
 
 ### Empirical Validation
@@ -815,9 +816,9 @@ Report: File path, suspicious passages with line numbers, assessment.
 ### PII and Secret Scanning
 
 <pii_and_secret_scanning>
-**Before publishing, scan the whole publishable surface for personal data and secrets — not just the `SKILL.md` you edited.**
+**Before publishing, review the whole publishable surface — every tracked file, not just the `SKILL.md` you edited — for personal data, secrets, and real-scenario context leaks. Read each file in full; a pattern scan alone is not enough.**
 
-Skills get published: GitHub releases, marketplaces, shared ZIPs. What goes public is every tracked file — skill bodies, agents, README, manifests, example snippets, bundled resources — so scan the tracked tree, not the single file you touched. Untracked files headed for a later commit count too; scan them before they land.
+Skills get published in places such as GitHub releases, marketplaces, and shared ZIPs. What goes public is every tracked file — for example, skill bodies, agents, README, manifests, example snippets, and bundled resources — so review the whole tracked tree, not the single file you touched. Untracked files headed for a later commit count too; review them before they land.
 
 Common leak vectors and how to tell signal from noise. The patterns below are examples to seed the scan, not a closed checklist — add others your content invites (e.g., physical addresses, OAuth client secrets, license keys):
 
@@ -828,10 +829,11 @@ Common leak vectors and how to tell signal from noise. The patterns below are ex
 | Credentials | API keys, bearer tokens, `AKIA…`, `-----BEGIN … PRIVATE KEY`, `ghp_…` | Treat every real-looking match as live until proven otherwise |
 | Personal identifiers | Author's real name, phone, SSN | Citing a public figure's published work (attribution, not exposure) |
 | Internal references | Private hostnames, internal URLs, ticket IDs | Public docs or documented example hosts |
+| Context leaks in examples | An example or passage carrying detail from a real scenario, such as a real client, employer, project, person, system, or incident | The example is generic or invented (for example, a placeholder, a public technology, or a hypothetical) |
 
 Most hits are false positives, so judge each one: a placeholder email and a citation to a public author are clean; a stray `/Users/yourname` path or a real-looking token are not. When a match is genuinely a secret, rotate it — removing it from the working tree doesn't remove it from history.
 
-Run a pattern scan over tracked files (e.g., `git grep -nIE` for the vectors above). For secrets specifically, add an entropy-based scanner (e.g., gitleaks, trufflehog) to catch high-entropy strings the patterns miss. Wire the scan into the same validation gate that runs the other checks so it's enforced rather than remembered — a skipped manual step is the exact failure mode this guards against.
+Read every tracked file end to end; pattern matching alone is not enough. A context leak — an example or passage carrying real-scenario detail without any flaggable token (the last vector above) — matches no pattern and surfaces only on a read. A pattern scan can also silently match nothing when a path or pathspec is wrong, so a clean scan is not evidence of a clean surface until you have read the files too. So run both: read each file in full, and run a pattern scan (e.g., `git grep -nIE` for the vectors above) plus, for secrets, an entropy-based scanner (e.g., gitleaks, trufflehog) for the high-entropy strings patterns miss. Wire the scanners into the same validation gate as the other automated checks so they run every time; the full read is a manual step the reviewer owns, and a clean scan does not excuse skipping it.
 </pii_and_secret_scanning>
 
 ### Related Skill Consistency
