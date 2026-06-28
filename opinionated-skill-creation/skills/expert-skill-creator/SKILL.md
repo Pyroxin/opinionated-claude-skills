@@ -260,6 +260,46 @@ Write skill content the way you'd brief a senior colleague: clear, direct, witho
 This connects to the "retrieval trigger" philosophy in `<skill_scope>`: if skills activate existing knowledge, aggressive directives are counterproductive. They constrain behavior rather than activating capability. The right prompt intensity is the minimum needed to reliably activate the desired behavior.
 </directive_language>
 
+### Literal Language
+
+<literal_language>
+**Write skill instructions so that interpreting them correctly does not require knowledge that may be unavailable when the skill is read. Avoid figurative language (for example, metaphor, idiom, or analogy used as instruction) and evaluative language (for example, "elegant", "powerful", or a vague quality term such as "important"), and state conditions, thresholds, and actions directly; on vague quality terms see `<directive_language>`.**
+
+Assume the context available while you author a skill will not be available when it is read (see `<skill_anatomy>` on progressive disclosure, and `<instructional_formulation>` on phrasing this as a directive). Figurative and evaluative language depends on that absent context: a metaphor needs the authoring discussion to interpret, and a term such as "the right approach" needs a shared standard the reader does not have. State conditions and actions literally so the text remains clear without that context.
+
+The rule targets a vague quality term that the reader must apply as a criterion to decide what to do; there, an undefined bar produces miscalibrated behavior (see `<directive_language>` on stating thresholds explicitly). It does not target a quality term that marks a default tendency for the reader to weigh in context, provided you hedge it and supply the concrete basis for the judgment. The hedge signals a default rather than a rule, and the concrete basis carries the decision, so the reader judges from the basis, not from the vague word. For example, "usually useful as a persistent teammate: it retains its context across idle periods, so it can handle follow-ups" is acceptable; "usually" marks the default and the reason after the colon does the work. "Use the most useful agent for the job" is not; "useful" is the criterion and nothing grounds it. Reach for a qualified quality term deliberately, to invite judgment — not as a substitute for a criterion you could state concretely.
+
+Terms of art are acceptable, and often useful, when the term is explained where it is first used or when its meaning matches the ordinary meaning of the word. A term that needs special knowledge to interpret, and that the skill does not supply, has the same defect as a metaphor; define it on first use or replace it. However, don't avoid introducing terms of art when knowing them is necessary for effective use of the knowledge in the skill.
+
+Mark every example and reformulation explicitly, including example tables and sets, so they are not read as a closed or complete specification (see `<open_world_framing>`). The following table gives examples of the substitution; it is not a complete list:
+
+| Figurative or evaluative (avoid) | Literal (prefer) |
+|----------------------------------|------------------|
+| "This step is a pre-flight check." | "This step verifies preconditions before proceeding." |
+| "Spin up an elegant, powerful research team." | "Spawn a research team when [stated condition] holds." |
+| "The task list is the team's coordination substrate." | "Teammates coordinate through the shared task list." |
+
+This rule governs the skill's instruction text, not user-facing output the skill produces (for example, a report for a human audience), where figurative or evaluative language may be appropriate.
+</literal_language>
+
+### Instructional Formulation
+
+<instructional_formulation>
+**When a statement's purpose is to drive behavior, cast it as an instruction the reader can act on. A fact stated as a bare description, with its intended action left implicit, may not produce that action; state the action, or the assumption to adopt, directly.**
+
+The reader of a skill is a model executing it. "A skill loads into a fresh context window" leaves implicit what to do about it; "Assume the context available while you write the skill will not be available when it is read" states the action. The following table gives more examples; it is not a complete list:
+
+| Bare description (action left implicit) | Instructional (prefer) |
+|------------------------------------|------------------------|
+| "A skill loads into a fresh context window without the context that produced it." | "Assume the context available while you write the skill will not be available when it is read." |
+| "Specialists go idle between turns." | "Expect specialists to be idle between turns; do not treat idleness as a failure." |
+| "The task list records ownership and status." | "Record ownership and status on the task list as work is claimed and completed." |
+
+This targets bare description, not the descriptive content a judgment framework needs. A decision table, a trade-off analysis, or a "when to use what" comparison is itself an instruction: it tells the model how to judge, and the model needs the stated criteria and context to do so. Keep that content (see `<decision_frameworks>` and `<content_depth>`); do not reduce it to imperatives. A principle is well cast as an assumption the model adopts rather than an imperative — for example, `decision-analysis`'s "treat stated option value as hypothetical until grounded in the situation" is descriptive in subject but instructional in effect, and the model reasons from it. State the criteria, invoke them with an action ("assign a value using this table"), and keep the rationale that lets the model generalize.
+
+This complements `<directive_language>` (how forcefully to phrase a directive) and `<literal_language>` (keeping the directive plain); this guideline is about whether a statement that should drive behavior is phrased to do so.
+</instructional_formulation>
+
 ### Model Targeting
 
 <model_targeting>
@@ -310,6 +350,8 @@ Practices:
 - Hedge claims that ride a moving target: "currently", "as of <date>", "tends to", "in most cases". Date-stamp facts that will age.
 - Prefer describing the condition over closing the set — "use a feature flag when shipping incomplete work" rather than "always use a feature flag" (this reinforces the positive framing in `<directive_language>`).
 - Lead parenthetical example lists with a marker like "e.g.," or "for example,". A bare parenthetical such as "(JSON, YAML, TOML)" reads as the complete set or an "i.e.," restatement; writing it as "(for example, JSON, YAML, TOML)" marks it as open.
+- Apply the same marking to example tables and multi-row example sets, not only inline lists. Introduce them with a phrase such as "The following are examples, not a complete list." An unmarked example table can be read as a closed specification of the only acceptable cases.
+- Mark reformulations as reformulations, with "that is", "i.e.,", or "in other words". An unmarked restatement can be read as a separate, independent claim rather than a different wording of the prior one.
 
 Closure is sometimes right, and over-hedging is its own failure mode. Assert plainly when the set is genuinely finite and the skill defines it (e.g., an enum the skill itself specifies), when an invariant truly holds, or for safety constraints, where closing *toward* safety is intentional (see `<content_depth>`). The skill is the discriminator: hedge where you describe an open domain, assert where you define a closed one.
 
@@ -694,6 +736,8 @@ Before completing a skill, verify:
 - [ ] Has common mistakes section organized by background
 - [ ] Safety constraints are explicitly stated
 - [ ] Directive language uses calm, direct framing (see `<directive_language>`)
+- [ ] Instruction prose is literal: figurative and evaluative language avoided; terms of art explained or self-evident (see `<literal_language>`)
+- [ ] Statements are cast as instructions or assumptions, not bare descriptions (see `<instructional_formulation>`)
 - [ ] No instructions to reproduce internal reasoning as response text (Fable-class refusal hazard; see `<model_targeting>`)
 - [ ] Invariants routed to a deterministic gate, not left as directives (see `<guidance_vs_invariants>`)
 - [ ] Skills with real overhead offer an off-ramp to lighter alternatives (see `<proportional_engagement>`)
