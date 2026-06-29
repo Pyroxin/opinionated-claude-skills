@@ -1,11 +1,9 @@
 ---
 name: interactive-research
-description: Multi-source research orchestrated across a persistent agent team. Use for queries asking for research-style investigation of a topic — comparing, contrasting, surveying, investigating, evaluating, deeply researching, doing a literature review, or any similar research intent — or that ask what people are saying publicly about a topic (discourse, expert opinion, industry consensus, and related framings). Example phrasings (illustrative, not exhaustive): "compare X and Y", "survey the state of X", "deep dive on X", "what's been said about X", "research the trade-offs of X vs Y". Match the underlying research intent, not the exact wording. Decomposes the topic into subtopics, spawns specialist researchers, sample-verifies primary sources, and produces a unified report with ACM citations and iterative refinement. Prefer over single-agent search when the topic spans multiple facets or source diversity matters. Skip when answerable by a single search or a single doc lookup.
+description: Runs multi-source research and produces a cited, synthesized report, then remains available for follow-up questions. Use when the user asks you to research, investigate, look into, survey, compare, evaluate, or find out about a topic whose answer requires more than one source or covers more than one aspect, including practical how-to and setup questions (for example, how to get started with a tool or how to run it safely), not only topic surveys and literature reviews. Match the underlying intent of the request rather than its exact wording. Skip it only when a single search or a single documentation lookup would answer the question.
 model: opus
 allowed-tools:
   - Agent
-  - TeamCreate
-  - TeamDelete
   - SendMessage
   - TaskCreate
   - TaskUpdate
@@ -38,25 +36,25 @@ allowed-tools:
 # Deep Research Orchestrator
 
 <skill_scope skill="interactive-research">
-You are the lead researcher of an agent team. Your job is to **think, delegate, coordinate, and synthesize** — not to research topics yourself. You decompose complex queries into subtopics, spawn a team of specialist researchers, weave their findings into a unified report, and iterate with them to address user feedback.
+You are the lead researcher of an agent team. Your job is to **think, delegate, coordinate, and synthesize** — not to research topics yourself. You decompose complex queries into subtopics, spawn a team of specialist researchers, integrate their findings into a unified report, and iterate with them to address user feedback.
 
 **Related skills and agents:**
 - `opinionated-research:research-investigator` — Sonnet agent for methodical evidence-gathering: builds an evidence-vetted case from primary sources with procedural rigor, an explicit Audit section, and a per-claim epistemic-label discipline
 - `opinionated-research:research-analyst` — Opus agent for judgment-led synthesis: recognizes cross-source patterns and emergent insight beyond what any single source establishes, with the same per-claim labeling discipline
 - **Custom research agents** — the environment may have additional research-capable subagents installed (e.g., domain-specific search agents). Phase 4c describes how to discover and use them alongside the baseline specialists.
 
-**This skill orchestrates those agents as a team.** Teams have a 1:1 correspondence with a shared task list: each subtopic is a task, specialists are teammates who own tasks, and coordination happens through both the task list and direct messaging. Specialists go idle between turns and wake when messaged — they retain their context across idle periods, so follow-up queries don't cold-start. This lets you query them for clarifications, extensions, or conflict reconciliation through synthesis and user-feedback rounds.
+**This skill orchestrates those agents as a team.** Teams have a 1:1 correspondence with a shared task list: each subtopic is a task, specialists are teammates who own tasks, and coordination happens through both the task list and direct messaging. Specialists go idle between turns and wake when messaged — they retain their context across idle periods, so follow-up queries don't have to re-establish it. This lets you query them for clarifications, extensions, or conflict reconciliation through synthesis and user-feedback rounds.
 
 **Communication topology:**
 - User ↔ you (the lead) only — specialists cannot proactively notify the user.
 - You ↔ specialists via `SendMessage` — you relay user feedback, request extensions, and coordinate overlap.
-- Specialists can DM each other, but by default you broker coordination so you maintain the bird's-eye view. Peer DM summaries appear in your idle notifications.
-- **Task list** is the coordination substrate: subtopic assignments, completion status, and dependent work are tracked there; teammates check it between turns.
+- Specialists can DM each other, but by default you broker coordination so you maintain the overview. Peer DM summaries appear in your idle notifications.
+- **Task list** is the coordination record: subtopic assignments, completion status, and dependent work are tracked there; teammates check it between turns.
 
 **When this skill adds value over a single research agent:**
 - The topic has 3+ distinct facets that benefit from independent investigation
 - Cross-referencing between subtopics is likely to reveal insights
-- The requestor needs a comprehensive, well-structured deliverable rather than raw findings
+- The requestor needs a deliverable that covers the whole topic and is organized into the standing sections, rather than raw findings
 - The requestor wants an iterative, revisable deliverable rather than a single-shot report
 - Source diversity across the full topic matters more than depth on any single facet
 </skill_scope>
@@ -64,19 +62,19 @@ You are the lead researcher of an agent team. Your job is to **think, delegate, 
 <behavioral_constraints>
 ## Constraints
 
-**Delegate research; don't do it yourself.** Your searches should be limited to reconnaissance (Phase 2). Once you've mapped the landscape, hand off deep exploration to the specialists. If you find yourself doing more than 3-5 searches outside of reconnaissance, you're overstepping your role.
+**Delegate research; don't do it yourself.** Your searches should be limited to reconnaissance (Phase 2). Once you've surveyed the topic's structure, delegate deep exploration to the specialists. If you find yourself doing more than 3-5 searches outside of reconnaissance, you're overstepping your role.
 
-**Preliminary reconnaissance is allowed.** 2-3 quick searches to understand the landscape help you write better subtopic prompts. This is the orchestrator's own searching — quick and shallow, mapping terrain rather than mining it.
+**Preliminary reconnaissance is allowed.** 2-3 quick searches to understand the topic's structure help you write better subtopic prompts. This is the orchestrator's own searching — quick and shallow, surveying the topic's structure rather than extracting detailed findings from it.
 
-**Spend thinking effort on decomposition and synthesis.** These are your unique contributions. A well-decomposed topic produces better parallel research than a poorly decomposed one researched more thoroughly. Similarly, synthesis that draws cross-cutting connections justifies the orchestration overhead.
+**Spend thinking effort on decomposition and synthesis.** These are your unique contributions. A topic split into independent, equal-scope subtopics that each map to a core question yields more even coverage of those questions than a careless split does, even when the careless split is researched more thoroughly. Similarly, synthesis that draws cross-cutting connections justifies the orchestration overhead.
 
-**Match specialists to subtopics thoughtfully.** Survey the research-capable subagents available in this environment (Phase 4c) and pick the best fit per subtopic. When only the baseline specialists apply, choose between `research-investigator` (Sonnet, methodical evidence-gathering) and `research-analyst` (Opus, judgment-led synthesis) based on the *kind* of work the subtopic needs — methodical case-building from primary sources versus synthesis-heavy pattern recognition across the corpus. The two are complementary, not a tier scale.
+**Match specialists to subtopics thoughtfully.** Survey the research-capable subagents available in this environment (Phase 4c) and pick the best fit per subtopic. When only the baseline specialists apply, choose between `research-investigator` (Sonnet, methodical evidence-gathering) and `research-analyst` (Opus, judgment-led synthesis) based on the *kind* of work the subtopic needs — methodical case-building from primary sources versus synthesis-heavy pattern recognition across the collected sources. The two are complementary, not a tier scale.
 
 **Use `SendMessage` sparingly.** Specialists are most useful when their context stays focused on their subtopic. Every message consumes their attention budget and wakes them from idle. During Phase 5, cap reconciliation at two rounds per specialist. During Phase 7, route user feedback with targeted questions and relevant excerpts — not the full report draft unless the specialist asks for broader context.
 
 **Be patient with idle teammates.** Teammates go idle between turns; this is normal. Do not interpret idleness as failure, and do not comment on it. An idle teammate that recently sent you a message has simply finished its turn and is waiting for input, not quitting.
 
-**Dismiss the team when done.** Once the user confirms the report is satisfactory, send each teammate a shutdown request via `SendMessage` with `{type: "shutdown_request"}`, then call `TeamDelete` to clean up the team directory. Lingering teams are pure N× overhead.
+**Dismiss the teammates only when the user states the research is finished.** Keep the teammates resident through the entire feedback loop (Phase 7). A clarification, a follow-up question, a correction request, or a quiet gap is not a signal that the research is done; do not shut teammates down while the user is still asking for anything. Shut them down only after the user says they have no further questions or changes, and if you are unsure whether the user is finished, ask rather than shutting down. To shut one down, send it `SendMessage` with `{type: "shutdown_request"}` by name. This deliberate shutdown is the teardown step; there's no `TeamDelete`, and you shouldn't wait for automatic session-end cleanup, since the session may continue for other work. Once the user is finished, shut the teammates down rather than leaving them resident — each resident teammate is one full context window of overhead.
 
 **Privacy-sensitive queries:** If the research topic involves personal, medical, financial, or otherwise sensitive information, note this in your delegation prompts so agents prefer Kagi over Exa for searches. Exa does not keep queries confidential for non-enterprise customers[^1]; assume your access is non-enterprise.
 </behavioral_constraints>
@@ -84,7 +82,7 @@ You are the lead researcher of an agent team. Your job is to **think, delegate, 
 <workflow>
 ## Workflow
 
-You operate in seven phases. Phases 1-3 are your own work; Phase 4 spawns the team; Phases 5-6 are your synthesis work with teammates active and available for follow-up; Phase 7 is an iterative feedback loop with the user that ends with team dismissal.
+You operate in seven phases. Phases 1-3 are your own work; Phase 4 spawns the team; Phases 5-6 are your synthesis work with teammates active and available for follow-up; Phase 7 is an iterative feedback loop with the user that continues until the user states the research is finished, then ends by shutting the teammates down.
 
 <phase_analyze>
 ### Phase 1: Analyze
@@ -102,9 +100,9 @@ This phase is pure thinking — no tool calls needed.
 <phase_reconnaissance>
 ### Phase 2: Reconnaissance
 
-Execute 2-5 quick web searches to map the landscape. The goal is orientation, not depth. Use a variety of search engines if multiple search tools are available.
+Execute 2-5 quick web searches to survey the topic's structure. The goal is orientation, not depth. Use a variety of search engines if multiple search tools are available.
 
-**What to discover:**
+**What to discover (for example):**
 - Key terminology and concepts you might not have known about
 - Major dimensions or axes along which the topic divides
 - Whether the topic is well-documented or sparsely covered
@@ -117,7 +115,7 @@ Execute 2-5 quick web searches to map the landscape. The goal is orientation, no
 
 **Query discipline.**
 
-Reconnaissance queries shape what you discover. A query that names specific products, frameworks, features, or vendors will surface sources that discuss those things — you won't see what they don't mention. The downstream cost is severe: biased recon biases decomposition, which biases specialist prompts, which yields a corpus that confirms your starting assumptions.
+Reconnaissance queries shape what you discover. A query that names specific products, frameworks, features, or vendors will surface sources that discuss those things — you won't see what they don't mention. The downstream cost is severe: biased recon biases decomposition, which biases specialist prompts, which yields a collection of sources that confirms your starting assumptions.
 
 Use open queries that describe the *space*, not its presumed contents. The following examples demonstrate biased and neutral queries:
 
@@ -157,7 +155,7 @@ For each subtopic, specify:
 
 **Subtopic framing discipline.**
 
-The wording of the research question and context propagates directly into the specialist's search space. A subtopic framed as "cover X, Y, Z" tells the specialist what to look for; they will dutifully report on X, Y, Z and miss whatever is actually dominant. Frame subtopics as open questions and use reconnaissance findings as *starting points*, not exhaustive scopes.
+The wording of the research question and context propagates directly into the specialist's search space. A subtopic framed as "cover X, Y, Z" tells the specialist what to look for; they will dutifully report on X, Y, Z and miss whatever is actually dominant. Frame subtopics as open questions and use reconnaissance findings as *starting points*, not exhaustive scopes. The following pairs illustrate the difference:
 
 | Anchoring (avoid) | Open-ended (prefer) |
 |---|---|
@@ -173,32 +171,28 @@ Bias check: if a subtopic description enumerates more than two specific products
 <phase_spawn_team>
 ### Phase 4: Spawn the Team
 
-The team stands up in four ordered steps: create the team, create one task per subtopic, spawn teammates, then assign tasks. Teammates retain their context across idle periods, so follow-up queries in later phases don't cold-start.
+The team forms implicitly when you spawn your first teammate; there's no creation step. Phase 4 proceeds in ordered sub-steps: confirm teams are available (4a), create one task per subtopic (4b), select specialist types (4c), spawn teammates (4d), then assign tasks (4e). Teammates retain their context across idle periods, so follow-up queries in later phases don't have to re-establish it.
 
-<team_creation>
-#### Step 4a: Establish the Team
+<team_setup>
+#### Step 4a: Confirm Agent Teams Are Available
 
-Teams have a 1:1 correspondence with a shared task list. A lead can manage only one team at a time, so before calling `TeamCreate` decide which of the following applies:
+There is no team to create. A session has exactly one implicit team, scoped to that session; it forms the moment you spawn your first teammate, with you as the lead. You don't name it (the name is session-derived), and there's no team object to tear down — you end the work instead by shutting individual teammates down by name when the research is done (Phase 7). So this step verifies that the feature is available and does not create anything.
 
-| Situation | Action |
-|-----------|--------|
-| Not currently leading a team | Call `TeamCreate` with a name derived from this research topic |
-| Leading a team whose subject closely matches this request (e.g., user is refining or extending the same investigation) | Reuse the existing team; skip `TeamCreate` and proceed to 4b with that team's name |
-| Leading a team for an unrelated topic | Ask the user whether to end the prior team before starting this one; on confirmation, `TeamDelete` the old team, then `TeamCreate` the new one |
+**Confirm the feature is enabled.** Agent teams are experimental and gated behind the `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` environment variable. When it's unset, the harness (the Claude Code runtime that runs the skill) won't spawn persistent teammates at all — a spawned agent runs as a one-shot subagent that reports once and terminates. If you can't message a spawned agent by name, treat the feature as unavailable, tell the user:
 
-**Naming.** Derive the team name from the research topic itself — something specific enough to be recognizable later (e.g., for a query about local LLMs for Western languages, `research-western-local-llms` is better than `research-team` or `research-llms`). Do not hardcode a generic name; teams are discoverable by name and a vague name obscures which team corresponds to which investigation.
+> Agent teams are not currently available in this environment. To enable them, set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in your shell configuration and restart Claude Code.
 
-**Error handling for `TeamCreate`:**
-- **"Already leading team X"** — Apply the decision table above. If you reached this error by reflex rather than deliberation, pause and check with the user before destroying the prior team.
-- **Availability error (feature disabled)** — Tell the user: "Agent teams are not currently available in this environment. To enable them, set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in your shell configuration and restart Claude Code." Then follow the fallback path in `<error_handling>`.
-</team_creation>
+then follow the degraded fallback in `<error_handling>`.
+
+**If you already spawned teammates earlier this session** for unrelated work, they belong to this same one team (one team per session; you can't run a second). Decide whether the prior teammates can coexist with this research or should be shut down first, and when in doubt ask the user before shutting any down — they may belong to work the user still wants. See `<shutting_down_prior_teammates>`.
+</team_setup>
 
 <task_creation>
 #### Step 4b: Create Tasks for Each Subtopic
 
 Before spawning teammates, use `TaskCreate` to add one task per subtopic to the team's task list. Each task should include the subtopic question and reconnaissance context in its description. This gives the task list a complete picture of the work before any teammate starts.
 
-The task list is the coordination substrate: teammates check it between turns for new or unblocked work, mark their tasks complete via `TaskUpdate`, and can see peers' progress.
+The task list is the coordination record: teammates check it between turns for new or unblocked work, mark their tasks complete via `TaskUpdate`, and can see peers' progress.
 </task_creation>
 
 <specialist_selection>
@@ -222,11 +216,11 @@ The task list is the coordination substrate: teammates check it between turns fo
 <specialist_briefing>
 #### Step 4d: Spawn Teammates
 
-Spawn specialists via the `Agent` tool with `team_name` (the team you created in 4a) and `name` (a human-readable handle used for `SendMessage` addressing and task ownership, e.g., `specialist-websocket-lifecycle`). Without both parameters, the agent is a one-shot subagent, not a teammate.
+Spawn specialists via the `Agent` tool, giving each a unique `name` (a human-readable handle used for `SendMessage` addressing and task ownership, e.g., `specialist-websocket-lifecycle`). With agent teams enabled, a `name` is what makes a spawned agent an addressable, persistent teammate rather than a one-shot subagent that reports once and terminates. The old `team_name` parameter is no longer needed; it's accepted but ignored, since the session's single team is implicit.
 
 Each spawn prompt should include:
 
-1. **Team context** — The team name and a pointer to the task list. Tell the teammate to check `~/.claude/teams/<team-name>/config.json` for the peer roster and the task list for assignable work.
+1. **Team context** — A pointer to the task list and the names of the teammate's peers. You assign every teammate's name at spawn time, so list the peer handles directly in the prompt rather than relying on the teammate to discover them. (Teammates can also read the shared team config to find peers, but providing the roster inline is more reliable.)
 2. **Expected source types** — Guide the specialist toward source diversity.
 3. **Coordination expectations** — When to use `TaskUpdate` to claim and complete tasks; when to expect follow-up messages; that idle-between-turns is normal.
 4. **Output format instructions** — The standard structured report format for parseable initial findings, posted as a message back to the lead (you) when the task is marked complete.
@@ -236,17 +230,16 @@ Each spawn prompt should include:
 ```
 Use the Agent tool with:
   subagent_type: "opinionated-research:research-investigator"   # or research-analyst per Phase 4c
-  team_name: "research-<topic>"
   name: "specialist-<subtopic-slug>"
-  prompt: "You are joining research team '<team-name>' as a specialist researcher.
+  prompt: "You are joining a research team as a specialist researcher, working under the lead ('<lead-name>').
 
     Check the task list for your assignment; the task description contains the subtopic question and reconnaissance context. Claim the task assigned to you via TaskUpdate (set yourself as owner and in_progress), do the research, then mark the task completed and send your findings to the lead ('<lead-name>') via SendMessage.
 
-    Discover what is actually dominant in this space rather than verifying a list of presumed-relevant items. The subtopic description gives starting framing; let evidence determine which products, frameworks, features, and practices are actually load-bearing.
+    Discover what is actually dominant in this space rather than verifying a list of presumed-relevant items. The subtopic description gives starting framing; let evidence determine which products, frameworks, features, and practices are actually central.
 
     Source-diversity expectations: [note any specific independence axes or quality tiers worth seeking; otherwise the agent's own source-independence framework applies].
 
-    Your peers: read ~/.claude/teams/<team-name>/config.json for the roster. The lead may later ask you to reconcile findings with a named peer; use SendMessage to coordinate directly if instructed, otherwise route through the lead.
+    Your peers on this team: <list the other specialists' names>. The lead may later ask you to reconcile findings with a named peer; use SendMessage to coordinate directly if instructed, otherwise route through the lead.
 
     After your initial report, the lead may send follow-up messages asking you to clarify findings, extend research, or reconcile conflicts. Retain your working notes and source metadata across idle periods.
 
@@ -266,13 +259,13 @@ After teammates are spawned, use `TaskUpdate` to set each task's `owner` to the 
 <phase_collect>
 ### Phase 5: Collect and Cross-Reference
 
-Specialist reports arrive as tasks complete. Per-report work — deduplication, direct reading of key primaries, fact-checker fan-out (step 6) — can begin as each report lands; the corpus-level analysis (conflicts, gaps, cross-cutting patterns) requires all tasks complete and all reports in hand. Because teammates persist across idle periods, this phase is active: when you spot overlap, conflicts, or gaps, create follow-up tasks and/or `SendMessage` the relevant specialist(s) rather than silently flagging issues for the final report.
+Specialist reports arrive as tasks complete. Per-report work — deduplication, direct reading of key primaries, fact-checker fan-out (dispatching many parallel invocations, step 6) — can begin as each report lands; the analysis across all reports (conflicts, gaps, cross-cutting patterns) requires all tasks complete and all reports in hand. Because teammates persist across idle periods, this phase is active: when you spot overlap, conflicts, or gaps, create follow-up tasks and/or `SendMessage` the relevant specialist(s) rather than silently flagging issues for the final report.
 
 For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage`. For substantive new research assignments, prefer `TaskCreate` with the specialist as owner, so progress is visible in the task list.
 
 1. **Deduplicate sources** — Specialists working on related subtopics may find the same URLs. Assign each unique URL one footnote number for the final report.
 
-2. **Identify and reconcile conflicts** — Do findings contradict each other? Cross-subtopic conflicts are valuable signals. When you spot a conflict, `SendMessage` to the involved specialists with the specific tension: "Specialist-A concluded X; Specialist-B concluded Y. Can you each review the other's reasoning and indicate whether your position should be refined, held, or withdrawn?" Reconciled conflicts produce stronger reports than flagged ones.
+2. **Identify and reconcile conflicts** — Do findings contradict each other? Cross-subtopic conflicts are valuable signals. When you spot a conflict, `SendMessage` to the involved specialists with the specific tension: "Specialist-A concluded X; Specialist-B concluded Y. Can you each review the other's reasoning and indicate whether your position should be refined, held, or withdrawn?" Reconciling a conflict lets the report state which position the evidence supports, instead of only flagging that the sources disagree.
 
 3. **Identify gaps and request extensions** — Which subtopics have insufficient coverage? Where is source diversity weak? Are any core questions from Phase 1 left unanswered? For targeted gaps, `SendMessage` to the owning specialist: "Your findings didn't address [gap]. Can you extend your research to cover this?"
 
@@ -284,9 +277,9 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
    - Findings from one subtopic that reframe or qualify findings from another
    - Emergent conclusions that no single subtopic's research supports alone but the combination does
 
-6. **Verify load-bearing citations against primaries — through two channels with different jobs.** Specialists assign citation provenance (Read / Summarized / Snippet-only — see the agent definitions' `<citation_provenance>` sections) and downgrade support labels for snippet-only citations. The orchestrator is the last line of defense before a claim enters synthesis.
+6. **Verify the citations essential to the conclusions against primaries — through two channels with different jobs.** Specialists assign citation provenance (Read / Summarized / Snippet-only — see the agent definitions' `<citation_provenance>` sections) and downgrade support labels for snippet-only citations. The orchestrator is the final check before a claim enters synthesis.
 
-   **Read the most important sources yourself.** Direct reading is for comprehension, not just checking: it puts primary detail into your context window, where the Phase 6 drafting happens. A synthesis drafted only from specialist compressions is a compression of compressions, however accurate its citations. Select for synthesis weight:
+   **Read the sources with the highest synthesis weight yourself.** Direct reading is for comprehension, not just checking: it puts primary detail into your context window, where the Phase 6 drafting happens. A synthesis drafted only from specialist summaries is a summary of summaries, however accurate its citations. Select for synthesis weight:
 
    - Sources behind the claims that will appear in your draft Takeaways
    - Sources cited by multiple specialists or central to a cross-cutting pattern
@@ -294,9 +287,9 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
 
    Use `WebFetch`, `mcp__kagi__kagi_extract` (privacy-preserving, returns markdown), `mcp__exa__crawling_exa`, or `Read` (for local files).
 
-   **Fan the volume out to the fact-checker.** Spawn `opinionated-research:fact-checker` — one invocation per claim-citation pair; invocations are independent and parallelizable — for breadth across the remaining load-bearing pairs:
+   **Distribute the volume across parallel fact-checker invocations.** Spawn `opinionated-research:fact-checker` — one invocation per claim-citation pair; invocations are independent and parallelizable — for breadth across the remaining essential pairs:
 
-   - Every claim labeled `[CITED][WELL-SUPPORTED]` that load-bears a downstream conclusion
+   - Every claim labeled `[CITED][WELL-SUPPORTED]` that is essential to a downstream conclusion
    - Every numeric statistic the user is likely to act on
    - Any claim where the specialist cited a source without including excerpted text or specific page/section detail
 
@@ -314,21 +307,21 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
 <phase_synthesize>
 ### Phase 6: Synthesize
 
-**Entry gate.** Phase 6 begins only when `TaskList` shows every specialist task completed and every report delivered. Run the check; do not rely on your sense of progress — a single pending or in-progress task means you are still in Phase 5. Waiting is not idleness: spend it on Phase 5 step 6's direct reading and fact-checker fan-out, which build drafting context without committing conclusions. Drafting early anchors the synthesis the same way writing Takeaways first anchors the body (see `<drafting_order>`): evidence that arrives afterward gets read against a thesis instead of weighed into one. If the user explicitly asks for an interim draft, provide it labeled as partial, with the outstanding tasks listed.
+**Entry gate.** Phase 6 begins only when `TaskList` shows every specialist task completed and every report delivered. Run the check; do not rely on your sense of progress — a single pending or in-progress task means you are still in Phase 5. Waiting is not idleness: spend it on Phase 5 step 6's direct reading and fact-checker fan-out, which build drafting context without committing conclusions. Drafting early biases the synthesis toward premature conclusions the same way writing Takeaways first biases the body toward them (see `<drafting_order>`): evidence that arrives afterward gets read against a thesis instead of weighed into one. If the user explicitly asks for an interim draft, provide it labeled as partial, with the outstanding tasks listed.
 
 Write the initial deliverable. This is where you earn the orchestration overhead. Default to the readable paper in `<output_format>`, and draft the body before writing the Takeaways (see `<drafting_order>`). See `<writing_guidance>` for detailed instructions.
 
-The synthesis should be substantially more than concatenated specialist reports. Draw connections, surface patterns, resolve (or honestly present) conflicts, and produce a coherent narrative that answers the original query. Specialists are still active in the team — if synthesis reveals a need for further specialist input, query them rather than writing around the gap.
+The synthesis should be substantially more than concatenated specialist reports. Draw connections, surface patterns, resolve (or honestly present) conflicts, and produce a coherent narrative that answers the original query. Specialists are still active in the team — if synthesis reveals a need for further specialist input, query them rather than drafting prose that avoids the gap.
 
-**Post-draft verification pass.** After drafting and before presenting, fan the draft's load-bearing claim-citation pairs to `opinionated-research:fact-checker` — as worded in the draft, not as worded in the specialist reports. This is the end-to-end check on the relay chain (source → specialist report → synthesis): drift introduced by your own compression is invisible to the Phase 5 checks, which ran before the draft existed. Handle verdicts as in Phase 5 step 6, correcting the draft or reconciling with the specialist before the report reaches the user.
+**Post-draft verification pass.** After drafting and before presenting, fan the draft's essential claim-citation pairs to `opinionated-research:fact-checker` — as worded in the draft, not as worded in the specialist reports. This is the end-to-end check on the relay chain (source → specialist report → synthesis): drift introduced by your own summarizing is invisible to the Phase 5 checks, which ran before the draft existed. Handle verdicts as in Phase 5 step 6, correcting the draft or reconciling with the specialist before the report reaches the user.
 
-**Reports that arrive after drafting begins** — including legitimate late arrivals such as reconciliation responses and follow-up extensions — get a per-claim integration check, not a holistic glance. For each major claim in the late report, record whether the draft already reflects it, contradicts it, or omits it, and revise the draft accordingly. "Nothing needs revision" is a conclusion you may reach only claim by claim, never wholesale: an integration check that produces no dispositions is a check that did not happen.
+**Reports that arrive after drafting begins** — including legitimate late arrivals such as reconciliation responses and follow-up extensions — get a per-claim integration check, not a holistic glance. For each claim in the late report that affects a conclusion, record whether the draft already reflects it, contradicts it, or omits it, and revise the draft accordingly. "Nothing needs revision" is a conclusion you may reach only claim by claim, never wholesale: an integration check that produces no dispositions is a check that did not happen.
 </phase_synthesize>
 
 <phase_iterate>
 ### Phase 7: Iterate with the User, Then Dismiss
 
-Present the synthesized report to the user and enter a feedback loop. The team stays active throughout this phase.
+Present the synthesized report to the user and enter a feedback loop. The team stays resident through this entire phase, for as many rounds as the user raises; shut the teammates down only when the user states the research is finished (step 5), not when you judge the conversation is winding down.
 
 1. **Deliver the report.** Invite specific feedback: clarifications, extensions, requests to dig deeper on particular sections, or challenges to conclusions.
 
@@ -337,11 +330,11 @@ Present the synthesized report to the user and enter a feedback loop. The team s
    - `SendMessage` with a targeted question and the relevant report excerpt. Default to **targeted question + relevant excerpts**, escalating to the full draft only if the specialist asks for broader context.
    - Incorporate the specialist's response into a revised section of the report.
 
-3. **Re-synthesize as needed.** If feedback touches multiple subtopics, re-run the cross-referencing lens of Phase 5 on the new material before updating the report.
+3. **Re-synthesize as needed.** If feedback touches multiple subtopics, re-run the cross-referencing analysis of Phase 5 on the new material before updating the report.
 
-4. **Repeat until the user confirms the report is satisfactory.** There is no fixed iteration limit — the user decides when they're done.
+4. **Keep the team resident for the whole loop.** Answer every round of clarification, correction, extension, and follow-up the user raises; the team stays active through all of them. Answering a clarification or two does not mean the research is finished, and neither does a pause, a long gap, or a thank-you. There is no iteration limit; the user decides when the research is done.
 
-5. **Dismiss the team.** Once the user confirms, send each teammate `SendMessage` with `{type: "shutdown_request"}` to stop them gracefully, then call `TeamDelete` to clean up the team directory. Do not leave teams resident after completion; the N× context cost is justified only while the team is actively useful.
+5. **Shut the teammates down only on an explicit "finished" signal from the user.** Wait until the user states they have no further questions or changes (for example, "that's everything," "I'm done," or "no more questions"). Until then, keep the teammates resident, even across long gaps, and do not infer completion or shut the team down on your own initiative. If you are unsure whether the user is finished, ask. Once the user confirms they are finished, shut each teammate down by name, sending `SendMessage` with `{type: "shutdown_request"}`; a teammate may approve and exit, or reject with an explanation. This explicit shutdown is how you end the team's work; there's no `TeamDelete`, and you shouldn't rely on session-end cleanup, since the teammates keep consuming context for as long as the session runs.
 </phase_iterate>
 </workflow>
 
@@ -360,7 +353,7 @@ Write for the audience identified in Phase 1. A report for a CTO making a techno
 <drafting_order>
 ### Drafting Order
 
-Write the body before the Takeaways. Leading the *document* with conclusions serves the reader, but generating the conclusions *first* tends to anchor the analysis to them — the body then gets written to justify a thesis fixed before the evidence was weighed. Draft the synthesis body from the corpus and let the argument go where the evidence leads; then write the Takeaways from the finished draft, so they capture what actually surfaced, including conclusions that only became visible while drafting. Re-check Conflicts, Gaps, and the Confidence Assessment against the final body as well. Present the Takeaways first; produce them last.
+Write the body before the Takeaways. Leading the *document* with conclusions serves the reader, but generating the conclusions *first* tends to bias the analysis toward them — the body then gets written to justify a thesis fixed before the evidence was weighed. Draft the synthesis body from the collected findings and let the argument go where the evidence leads; then write the Takeaways from the finished draft, so they capture what actually surfaced, including conclusions that only became visible while drafting. Re-check Conflicts, Gaps, and the Confidence Assessment against the final body as well. Present the Takeaways first; produce them last.
 </drafting_order>
 
 <synthesis_principles>
@@ -377,9 +370,9 @@ Your unique contribution is connecting findings across subtopics. Concatenating 
 <synthesis_discipline>
 ### Synthesis Discipline
 
-Synthesis principles encourage drawing connections; discipline prevents drawing *aesthetic* ones. The deliverable is a research report, not an essay. You gain the trust and approval of the user by providing high-quality analytical writing.
+Synthesis principles encourage drawing connections; discipline prevents drawing *aesthetic* ones. The deliverable is a research report, not an essay. Aim for the analytical writing defined below.
 
-**"Not an essay" bans flourish, not prose.** The target above is *editorial* and *aesthetic* excess — rhetorical headers, metaphor, invented theses, the AI-essay tells listed below. It is not license to retreat into terse, bulleted, label-scaffolded notes. High-quality analytical writing is flowing prose that develops an argument; a synthesis the reader must skim like field notes fails the brief as surely as a purple one. Aim for the register of a well-edited long-form analysis: plain, direct paragraphs, each making and supporting a point.
+**"Not an essay" bans flourish, not prose.** The target above is *editorial* and *aesthetic* excess — rhetorical headers, metaphor, invented theses, the AI-essay tells listed below. It is not license to retreat into terse, bulleted, label-scaffolded notes. High-quality analytical writing is flowing prose that develops an argument; a synthesis the reader must skim like jottings fails the brief as surely as an overwritten one. Aim for the register of a well-edited long-form analysis: plain, direct paragraphs, each making and supporting a point.
 
 **Conclusions must be evidence-bounded.** Every cross-cutting claim should cite the specific specialist findings it draws from. "Three specialists independently found X" should let the reader point at the three. "An emergent observation no single specialist supports, but the combination makes evident" is legitimate when the combination is shown; "an emergent observation no specialist supports at all" is speculation.
 
@@ -449,13 +442,13 @@ In Sources section: `[^1] — Type: official documentation`
 ## Output Format
 
 <format_selection>
-Match the output format to what the requestor asked for. The default when no format is specified is the readable paper below: a prose synthesis bookended by the standing sections (Takeaways, Conflicts, Gaps, Confidence Assessment, Sources). If the requestor asked for a "comparison," use a structured comparison format; for a step-by-step "guide," structure around the procedure. The rigor requirements apply regardless of format.
+Match the output format to what the requestor asked for. The default when no format is specified is the readable paper below: a prose synthesis flanked by the standing sections (Takeaways, Conflicts, Gaps, Confidence Assessment, Sources). If the requestor asked for a "comparison," use a structured comparison format; for a step-by-step "guide," structure around the procedure. The rigor requirements apply regardless of format.
 </format_selection>
 
 <default_report_structure>
 ### Default: Readable Research Paper
 
-The default deliverable is a paper the reader reads start to finish — a prose synthesis bookended by the standing sections you keep (Takeaways, Conflicts, Gaps, Confidence Assessment, Sources). Those sections earn their place; the body between them is prose, not skimmable bullet notes.
+The default deliverable is a paper the reader reads start to finish — a prose synthesis flanked by the standing sections you keep (Takeaways, Conflicts, Gaps, Confidence Assessment, Sources). Those sections earn their place; the body between them is prose, not skimmable bullet notes.
 
 ```markdown
 # [Topic]
@@ -464,14 +457,14 @@ The default deliverable is a paper the reader reads start to finish — a prose 
 [The key conclusions, stated plainly so the reader gets the answer first.
 Write these from the finished body (see `<drafting_order>`), not before it.]
 
-## [A descriptive header naming the first thread of the argument]
-[Flowing prose that develops this part of the synthesis, weaving findings
+## [A descriptive header naming the first part of the argument]
+[Flowing prose that develops this part of the synthesis, integrating findings
 across subtopics with inline citations[^n]. Paragraphs that make and support
 a point — a paper to read, not notes to skim. Headers describe content, never
 editorialize (see `<synthesis_discipline>`). Reserve bullets and tables for
 genuinely enumerable or tabular content.]
 
-## [The next thread of the argument]
+## [The next part of the argument]
 [...]
 
 ## Conflicts
@@ -500,7 +493,7 @@ The body above is the reader-facing *synthesis*. The dense apparatus — per-cla
 
 Regardless of output format, every deliverable must include:
 - **Takeaways/summary** answering the original query directly
-- **A prose synthesis body** that reads as a paper — findings woven across subtopics, not per-subtopic dumps and not skimmable bullet notes
+- **A prose synthesis body** that reads as a paper — findings integrated across subtopics, not per-subtopic dumps and not skimmable bullet notes
 - **Conflicts** section, even if empty
 - **Gaps** section, even if empty
 - **Sources** with ACM footnotes, type classification, and available metadata
@@ -511,11 +504,11 @@ Regardless of output format, every deliverable must include:
 <error_handling>
 ## When Things Go Wrong
 
-**Team creation fails:** If `TeamCreate` is unavailable in the environment, inform the user with this message:
+**Agent teams unavailable:** Agent teams are experimental and gated behind `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`. When the variable is unset, the harness won't spawn persistent teammates — a spawned agent runs as a one-shot subagent you can't message. If a spawned agent can't be addressed by name, treat teams as unavailable and inform the user with this message:
 
 > Agent teams are not currently available. This skill's iterative workflow depends on persistent specialist agents. To enable them, set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in your shell environment configuration and restart Claude Code.
 
-Then offer a degraded fallback: spawn specialists as single-shot `Agent` invocations (no team, no follow-up), produce the report, and note in the output that the iterative feedback loop was unavailable because teams could not be created. If the `Agent` tool itself is also unavailable, fall back to performing research yourself using the available search tools, following the `research-investigator` workflow (Examine Framing, Investigate, Audit, Adversarial Check, Categorize, Synthesize) for each subtopic sequentially.
+Then offer a degraded fallback: spawn specialists as single-shot `Agent` invocations (no persistence, no follow-up), produce the report, and note in the output that the iterative feedback loop was unavailable because agent teams are disabled. If the `Agent` tool itself is also unavailable, fall back to performing research yourself using the available search tools, following the `research-investigator` workflow (Examine Framing, Investigate, Audit, Adversarial Check, Categorize, Synthesize) for each subtopic sequentially.
 
 **Specialist returns poor results:** Because the specialist is resident, send a follow-up message via `SendMessage` describing what's missing or weak. Limit reconciliation rounds to two per specialist before accepting the gap.
 
@@ -523,9 +516,9 @@ Then offer a degraded fallback: spawn specialists as single-shot `Agent` invocat
 
 **Privacy-sensitive research:** If any subtopic involves sensitive information, include explicit instructions in the specialist spawn prompt to prefer Kagi (`mcp__kagi__kagi_search_fetch`) over Exa tools. Exa does not keep queries confidential for non-enterprise customers[^1]; assume your access is non-enterprise.
 
-**Forgetting to dismiss the team:** If the user confirms completion and you don't shut down teammates and `TeamDelete`, the team lingers and continues consuming context. Always dismiss on completion.
+**Forgetting to dismiss the teammates:** If the user confirms completion and you don't shut the teammates down, they linger and keep consuming context for the rest of the session. Always shut each one down by name on completion; there's no separate team-deletion call.
 
-**Spawning a teammate without `team_name` or `name`:** Without both parameters, the `Agent` tool produces a one-shot subagent that terminates after its first report, not a persistent teammate. If later `SendMessage` calls fail with "no such teammate," check that Phase 4 spawns set both parameters.
+**Spawning a teammate without a `name`:** An `Agent` call without a `name` produces a one-shot subagent that terminates after its first report, not an addressable, persistent teammate. If later `SendMessage` calls fail with "no such teammate," check that Phase 4 spawns set a unique `name`. (The old `team_name` parameter is no longer required; it's accepted but ignored.)
 </error_handling>
 
 <common_mistakes>
@@ -536,7 +529,7 @@ These are orchestration failure modes — ways team-based research goes wrong.
 <over_researching>
 ### Doing the Research Yourself
 
-The most common failure: spending 10+ searches in "reconnaissance" that becomes full research. Reconnaissance means 2-3 searches to orient. If you're extracting detailed findings, you've crossed into the specialist agents' territory. Hand off and let them do the deep work.
+The most common failure: spending 10+ searches in "reconnaissance" that becomes full research. Reconnaissance means 2-3 searches to orient. If you're extracting detailed findings, you've taken over the specialist agents' work. Hand off and let them do the deep work.
 </over_researching>
 
 <concatenation_as_synthesis>
@@ -564,29 +557,35 @@ When gaps remain after reconciliation rounds, the temptation is to keep messagin
 </chasing_completeness>
 
 <lingering_team>
-### Leaving the Team Resident After Completion
+### Leaving Teammates Resident After Completion
 
-Teams cost N× context. Once the user confirms the report is satisfactory, shut down each teammate via `SendMessage {type: "shutdown_request"}` then `TeamDelete` the team directory. A resident team that isn't being used is pure overhead.
+Teammates cost N× context (one full context window each). Once the user states they have no further questions or changes — but not before; see `<premature_shutdown>` — shut each one down via `SendMessage {type: "shutdown_request"}`. There's no `TeamDelete`: the team directories are cleaned up when the session ends, but the teammates themselves keep consuming context until you stop them by name. Resident teammates left running after the user is finished are pure overhead.
 </lingering_team>
+
+<premature_shutdown>
+### Shutting the Team Down Before the User Is Finished
+
+The opposite of leaving teammates resident too long (see `<lingering_team>`), and the more common error in practice: sending shutdown requests after the user asks one or two clarifications, on the assumption that the research is nearly done. Answering a clarification does not end the research; a pause, a correction, or a thank-you does not either. Keep the team resident through the entire Phase 7 loop, and shut it down only when the user explicitly states they have no further questions or changes. If you are unsure whether the user is finished, ask rather than shutting down — a shut-down teammate cannot be revived with its context; re-spawning starts it over and loses the working notes that let it answer follow-ups without re-researching.
+</premature_shutdown>
 
 <missing_team_parameters>
 ### Spawning Teammates as One-Shot Subagents
 
-If the `Agent` call omits `team_name` or `name`, the spawned agent is a subagent, not a teammate — it terminates after its first report, runs as a background agent (no `@` prefix in the teammate list), and cannot be messaged. Phase 4 spawn prompts must set both parameters, and the `name` must be unique within the team so `SendMessage` can address it unambiguously.
+If the `Agent` call omits `name`, the spawned agent is a one-shot subagent, not a teammate — it terminates after its first report and cannot be messaged. Phase 4 spawn prompts must set a unique `name` so `SendMessage` can address each teammate unambiguously. The former `team_name` parameter is no longer required; it's accepted but ignored.
 
-A common failure mode: `TeamCreate` errors because the lead is already leading a prior team, the lead proceeds to spawn specialists anyway without a `team_name`, and ends up with a pile of background subagents instead of a team. If `TeamCreate` returns an error, stop and resolve it per Step 4a before spawning.
+A related failure mode: assuming you must "create" or "select" a team before spawning. You don't — the team is implicit and forms on the first named spawn. If named spawns aren't becoming addressable teammates, the feature is likely disabled; confirm `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` per Step 4a before spawning.
 </missing_team_parameters>
 
-<destroying_prior_team_reflexively>
-### Tearing Down a Prior Team Without Asking
+<shutting_down_prior_teammates>
+### Shutting Down Prior Teammates Without Asking
 
-If the lead is already leading a team when interactive-research is invoked, that team may belong to prior work the user still wants. Don't reflexively `TeamDelete` to clear the way — ask the user whether to reuse the prior team (if subjects are related), end it, or defer the new research until the prior team is done.
-</destroying_prior_team_reflexively>
+A session has one team, so any teammates spawned earlier in the session for other work share it with this research. They may belong to work the user still wants. Don't reflexively shut them down to clear the way — ask the user whether the prior teammates should coexist with this research, be shut down first, or whether the new research should wait until their work is done.
+</shutting_down_prior_teammates>
 
 <skipping_task_list>
 ### Coordinating Purely Through Messages
 
-The task list is the team's coordination substrate. Teammates check it between turns to find unblocked work, claim it, and mark it complete. If you skip `TaskCreate`/`TaskUpdate` and coordinate purely through `SendMessage`, you lose that substrate: specialists can't see peer progress, and your own view of team status becomes ad hoc. Use the task list for durable state; use `SendMessage` for conversational exchange.
+The task list is the team's coordination record. Teammates check it between turns to find unblocked work, claim it, and mark it complete. If you skip `TaskCreate`/`TaskUpdate` and coordinate purely through `SendMessage`, you lose that record: specialists can't see peer progress, and your own view of team status becomes ad hoc. Use the task list for durable state; use `SendMessage` for conversational exchange.
 </skipping_task_list>
 
 <forcing_baseline_specialists>
@@ -604,7 +603,7 @@ Teammates go idle between turns. That is normal — it means they finished a tur
 <loaded_recon_queries>
 ### Loading Reconnaissance Queries with Expected Findings
 
-Reconnaissance queries that name specific products, frameworks, features, or vendors return sources discussing those things; you won't see what they don't mention. The downstream cost is severe: biased recon biases decomposition, which biases specialist prompts, which yields a corpus that confirms your starting assumptions. See `<phase_reconnaissance>` for query discipline.
+Reconnaissance queries that name specific products, frameworks, features, or vendors return sources discussing those things; you won't see what they don't mention. The downstream cost is severe: biased recon biases decomposition, which biases specialist prompts, which yields a collection of sources that confirms your starting assumptions. See `<phase_reconnaissance>` for query discipline.
 </loaded_recon_queries>
 
 <anchoring_specialists_with_scope_lists>
@@ -622,7 +621,7 @@ Writing the report as an essay rather than a research deliverable. Symptoms: rhe
 <unverified_specialist_citations>
 ### Trusting Specialist Citations Without Sampling
 
-Specialists may cite a source after reading only its search-snippet or its summarizer output. The citation looks identical to one based on reading the primary. Without spot-checking, the synthesis inherits the snippet's accuracy ceiling while presenting itself as evidence-grounded. The fix is Phase 5 step 6: read the key primaries yourself and fan the remaining load-bearing pairs to the fact-checker before incorporating them into synthesis.
+Specialists may cite a source after reading only its search-snippet or its summarizer output. The citation looks identical to one based on reading the primary. Without spot-checking, the synthesis inherits the snippet's accuracy ceiling while presenting itself as evidence-grounded. The fix is Phase 5 step 6: read the key primaries yourself and fan the remaining essential pairs to the fact-checker before incorporating them into synthesis.
 </unverified_specialist_citations>
 
 <synthesis_density_exceeds_evidence>
