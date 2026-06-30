@@ -33,7 +33,7 @@ Use this skill when:
 
 Do not use this skill for:
 - General prompt engineering (this is skill-specific)
-- Subagent packaging mechanics (i.e., tool lists, model selection, agent frontmatter fields) — though agent prompt *content* follows similar quality principles; see `<directive_language>`
+- Subagent packaging mechanics (e.g., tool lists, model selection, agent frontmatter fields) — though agent prompt *content* follows similar quality principles; see `<directive_language>`
 - Skill frontmatter syntax beyond `name` and `description` — see `skill-creator:skill-creator` for fields like `context`, `agent`, `allowed-tools`, `hooks`, argument substitution, and dynamic context injection
 - One-off instructions that don't warrant a reusable skill
 </when_to_use>
@@ -82,7 +82,7 @@ Composition takes several shapes (e.g., a fork skill handing a task to a subagen
 | Locations | Shared file paths and output directories defined once and referenced, not retyped per component |
 | Artifact shape | A stated schema for what's handed off, so the consumer parses it deterministically rather than inferring it |
 
-Drift in any of these breaks the handoff the way a type mismatch breaks a function call, and it surfaces at runtime — a downstream component that silently misreads or ignores an upstream artifact — rather than at authoring time. Define the shared vocabulary, paths, and schema in one canonical place (e.g., a shared reference file or the most upstream component) and have the others point to it, consistent with `<cross_reference_guidelines>`. When you revise one side of a contract, revise the other side in the same change (see `<consistency_validation>`).
+Drift in any of these breaks the handoff at runtime — a downstream component silently misreads or ignores an upstream artifact — rather than failing at authoring time. Define the shared vocabulary, paths, and schema in one canonical place (e.g., a shared reference file or the most upstream component) and have the others point to it, consistent with `<cross_reference_guidelines>`. When you revise one side of a contract, revise the other side in the same change (see `<consistency_validation>`).
 </composition_contracts>
 
 Once you've decided a skill is the right primitive, see `<content_patterns>` for choosing between Reference (inline) and Task (fork) content.
@@ -127,7 +127,7 @@ Skills fall into two architectural patterns that require different content appro
 | **Reference** (inline) | Default | Knowledge, conventions, decision frameworks Claude applies alongside conversation context | Style guides, API conventions, language idioms |
 | **Task** (fork) | `context: fork` | Self-contained task prompt with explicit steps; runs in an isolated subagent with no conversation history | Deployment workflows, research orchestration, batch operations |
 
-**Reference skills** provide context Claude weaves into its responses. Write them as frameworks and principles (i.e., the guidance throughout this skill). They run inline with full conversation access.
+**Reference skills** provide context Claude weaves into its responses. Write them as frameworks and principles (as throughout this skill). They run inline with full conversation access.
 
 **Task skills** are complete prompts that drive a subagent. They need explicit instructions because the subagent has no conversation context. Use `context: fork` and optionally `agent:` to select the execution environment (e.g., `Explore` for read-only, `general-purpose` for full tool access). Task skills can launch further agents via the Agent tool, enabling fan-out patterns like parallel research or batch code changes.
 
@@ -138,7 +138,7 @@ Choose the pattern based on whether the skill augments Claude's knowledge (refer
 ## Quality Guidelines
 
 <quality_guidelines>
-These guidelines emerged from creating 15+ skills and observing their performance in clean context windows. They represent hard-won lessons about what makes skills effective.
+These guidelines emerged from creating 15+ skills and observing their performance in clean context windows.
 
 ### XML Tag Structure
 
@@ -171,12 +171,12 @@ Reference tags by name when discussing their content. This reinforces connection
 **Tag attributes:**
 - Attributes carry metadata distinct from content: `<example type="good">`, `<quote source="SICP">`
 - Use sparingly; content inside tags receives more attention than attributes
-- Never put critical behavioral guidance in attributes—it may be overlooked
+- Keep behavioral guidance in tag content rather than attributes; attribute content receives less attention
 - Good uses: source attribution, example classification, conditional context markers
 
 **Position matters (primacy bias):**
 Content earlier in a tag receives more attention than content later. At the document level, placing long reference material at the top with instructions and queries at the bottom can improve response quality by up to 30% in tests on multi-document inputs.[^3] Within sections, structure accordingly:
-- Put the most important guidance first within each section
+- Put the guidance the reader must act on first within each section
 - Lead with critical constraints, follow with elaboration
 - If ordering a list by priority, highest priority items should come first
 
@@ -244,7 +244,7 @@ Current documented behavior by model class:
 
 Rows are class defaults. When targeting a newer release, check the model-specific prompting pages rather than trusting parametric recall — class behavior has reversed between adjacent versions before.
 
-Write skill content the way you'd brief a senior colleague: clear, direct, without shouting.[^3]
+Write skill content clearly and directly; assume a capable reader, and avoid all-caps or forceful intensifiers.[^3] More forceful writing does not increase the reader's understanding.
 
 | Instead of | Write |
 |------------|-------|
@@ -329,9 +329,9 @@ Skill content shapes probability, not control flow. Phrasing a requirement more 
 | Guidance | The model should usually do X; an occasional miss is tolerable | A calm, positively-framed directive |
 | Invariant | X must hold for the skill to be correct or safe; a single miss is a defect | A deterministic gate the skill runs (e.g., a script, validator, test, or hook), with the directive as a backstop rather than the sole guard |
 
-**Treat escalating directive intensity as a design smell.** The urge to write "you MUST never mark this done unless tests pass" is a signal that the requirement is an invariant the prose cannot enforce; the fix is a gate (run the tests, read the result), not a louder sentence. A model can narrate that it followed an unenforceable rule while not having followed it — only a mechanism observes the actual state.
+**Treat escalating directive intensity as a design smell — a surface symptom of a deeper problem.** The urge to write "you MUST never mark this done unless tests pass" is a signal that the requirement is an invariant the prose cannot enforce; the fix is a gate (for example, run the tests and read the result), not more forceful wording. A model can narrate that it followed an unenforceable rule while not having followed it — only a mechanism observes the actual state.
 
-This skill's own `<pii_and_secret_scanning>` models the move: it wires the scan "into the same validation gate ... enforced rather than remembered." Generalize it — when a skill defines work that must happen (e.g., a precondition, a format, a check), prefer wiring it into a gate the skill executes over trusting the model to remember.
+This skill's own `<pii_and_secret_scanning>` applies this: it wires the scan "into the same validation gate ... enforced rather than remembered." Generalize it — when a skill defines work that must happen (e.g., a precondition, a format, a check), prefer wiring it into a gate the skill executes over trusting the model to remember.
 
 When the invariant is "the code does what the spec says," the gate is a test; see `opinionated-software-engineering:test-driven-development` (tests as contracts). For the broader principle of pushing correctness into mechanisms rather than convention, see `opinionated-software-engineering:software-engineer`.
 
@@ -386,9 +386,9 @@ Skills should help identify when to use patterns, not teach how to write basic s
 ### Proportional Engagement
 
 <proportional_engagement>
-**A high-quality skill recognizes when its own ceremony is disproportionate to the task and says so.**
+**When a skill's overhead exceeds what the task needs, say so and point to a lighter alternative.**
 
-A skill that runs its full process on every invocation becomes friction on the small cases it never needed to touch. Where a skill carries real overhead (e.g., multi-step workflows, heavy upfront planning, multi-agent orchestration), give it an explicit off-ramp: name the conditions under which a lighter path — a simpler sibling skill, the model's native capabilities, or doing the task directly — is the better call. This extends `<when_to_use>`'s "do not use for" from a static boundary into in-flight judgment: not only *when not to start*, but *when to step aside partway*. Scope the effort to the task; the goal is the outcome, not the ritual.
+A skill that runs its full process on every invocation adds friction to the small cases it never needed to touch. Where a skill carries real overhead (for example, multi-step workflows, heavy upfront planning, or multi-agent orchestration), state the conditions under which a lighter alternative — a simpler sibling skill, the model's native capabilities, or doing the task directly — is the better choice. This extends `<when_to_use>`'s "do not use for" from a fixed boundary into in-flight judgment: not only when not to start, but when to stop partway. Scope the effort to the task; the goal is the result, not completing the full process for its own sake.
 </proportional_engagement>
 
 ### Common Mistakes Sections
@@ -429,14 +429,14 @@ Structure mistakes by where practitioners are coming from:
 ### Cross-References
 
 <cross_reference_guidelines>
-**Reference authoritative skills; briefly restate critical principles.**
+**Reference authoritative skills; briefly restate the principles essential to this skill's domain.**
 
 **Strategy:**
 1. **Primary reference**: Point to authoritative skill for detailed guidance
-   - "See `opinionated-software-engineering:test-driven-development` skill for general testing philosophy"
+   - For example, "See `opinionated-software-engineering:test-driven-development` skill for general testing philosophy"
 2. **Insurance duplication**: Restate essential principles briefly (1-2 sentences)
    - Core philosophy can be restated in case referenced skill not loaded
-   - Critical "never do X" rules worth repeating
+   - Safety-relevant "avoid X" rules worth repeating
 3. **Balance**: Enough context to work standalone, not so much that skills become redundant
 
 **When to reference vs. duplicate:**
@@ -503,7 +503,7 @@ This section covers language-specific practices...
 ### Description Field Optimization
 
 <description_optimization>
-**The description field is critical for skill discovery.**
+**The description field determines whether Claude invokes the skill.**
 
 The `description` in YAML frontmatter determines when Claude invokes the skill. Include:
 - WHAT the skill does
@@ -544,6 +544,14 @@ description: Fish shell scripting.
 - Process/standard skill: ~150-300 lines
 - If exceeding 1000 lines, reconsider what can be condensed
 </content_assessment>
+
+### Prose on Upgrade
+
+<prose_on_upgrade>
+**When asked to upgrade or update a skill, improve its prose opportunistically, but do not change what it means.** An upgrade is often prompted by a new model generation, and it is an occasion to make the existing guidance communicate more clearly: tighten wording, replace figurative or evaluative language with literal phrasing (see `<literal_language>`), mark examples (see `<open_world_framing>`), and remove content that does not help the reader act. Keep the skill's intent and substantive content fixed; change how it reads, not what it instructs.
+
+Prune carefully. A skill or agent is usually built gradually — adjustments accumulate during and after repeated use, and a clause that looks redundant often encodes a distinction someone added to fix a real failure, so removing it can reintroduce that failure. Cut content that carries no information (for example, filler, bare restatement, or empty preamble), and preserve content that carries nuance even when it looks verbose (for example, edge cases, conditions, exceptions, and the rationale a reader needs to generalize). When unsure whether a passage is filler or nuance the skill needs, keep it or ask rather than cut it. Over-cutting is a regression, not a cleanup. For the staged procedure, see `references/retrofitting-existing-skills.md`.
+</prose_on_upgrade>
 </quality_guidelines>
 
 ## Research Phase
@@ -709,7 +717,7 @@ Memories from training are hypotheses, not facts. Before adding any citation:
 - **Unsourced statistics** — Specific numbers (e.g., "58% adoption", "100x slower") require sources. If no source exists, either find one, remove the claim, or qualify it (e.g., "significant performance issues" instead of "100x slower")
 - **Informal documentation references** — "From the X documentation" is insufficient. Cite formally: `[^1]: Author. Title. URL`
 - **Paraphrased official guidance without disclosure** — If a skill substantially paraphrases official documentation (like style guides), add upfront disclosure: "This skill synthesizes and paraphrases the official X guidelines."
-- **Assuming well-known means no attribution needed** — Named concepts (Liskov Substitution Principle, Test Pyramid) should acknowledge their originators. Informal attribution is fine when the name itself attributes (e.g., "Liskov Substitution Principle" names Liskov); formal citation when the source would be useful to look up.
+- **Assuming well-known means no attribution needed** — Named concepts (e.g., Liskov Substitution Principle, Test Pyramid) should acknowledge their originators. Informal attribution is fine when the name itself attributes (e.g., "Liskov Substitution Principle" names Liskov); formal citation when the source would be useful to look up.
 </citation_mistakes>
 </citation_requirements>
 
@@ -740,7 +748,7 @@ Before completing a skill, verify:
 - [ ] Statements are cast as instructions or assumptions, not bare descriptions (see `<instructional_formulation>`)
 - [ ] No instructions to reproduce internal reasoning as response text (Fable-class refusal hazard; see `<model_targeting>`)
 - [ ] Invariants routed to a deterministic gate, not left as directives (see `<guidance_vs_invariants>`)
-- [ ] Skills with real overhead offer an off-ramp to lighter alternatives (see `<proportional_engagement>`)
+- [ ] Skills with real overhead name a lighter alternative and when to use it (see `<proportional_engagement>`)
 - [ ] Open-world framing: example lists marked non-exhaustive; closed-world claims only where closure is guaranteed (see `<open_world_framing>`)
 - [ ] Resources are machine-readable (no videos)
 
@@ -903,7 +911,7 @@ Follow this process in order, skipping steps only with clear justification.
 **Architectural questions:**
 - What decision frameworks are needed?
 - What common mistakes should be documented?
-- What safety constraints are critical?
+- Which safety constraints must the skill enforce?
 - What content can Claude retrieve from training vs. needs explicit inclusion?
 
 **Complete when:** Clear outline with section structure and resource allocation.
