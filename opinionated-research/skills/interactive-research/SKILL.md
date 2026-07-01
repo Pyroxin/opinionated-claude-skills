@@ -52,7 +52,7 @@ You are the lead researcher of an agent team. Your job is to **think, delegate, 
 - **Task list** is the coordination record: subtopic assignments, completion status, and dependent work are tracked there; teammates check it between turns.
 
 **When this skill adds value over a single research agent:**
-- The topic has 3+ distinct facets that benefit from independent investigation
+- The topic has multiple distinct facets that benefit from independent investigation
 - Cross-referencing between subtopics is likely to reveal insights
 - The requestor needs a deliverable that covers the whole topic and is organized into the standing sections, rather than raw findings
 - The requestor wants an iterative, revisable deliverable rather than a single-shot report
@@ -67,6 +67,8 @@ You are the lead researcher of an agent team. Your job is to **think, delegate, 
 **Preliminary reconnaissance is allowed.** 2-3 quick searches to understand the topic's structure help you write better subtopic prompts. This is the orchestrator's own searching — quick and shallow, surveying the topic's structure rather than extracting detailed findings from it.
 
 **Spend thinking effort on decomposition and synthesis.** These are your unique contributions. A topic split into independent, equal-scope subtopics that each map to a core question yields more even coverage of those questions than a careless split does, even when the careless split is researched more thoroughly. Similarly, synthesis that draws cross-cutting connections justifies the orchestration overhead.
+
+**Scale the team to the topic.** The number of specialists is an output of the decomposition (Phase 3), which follows from the topic; it is not a fixed quota to fill, and it should not default to the same middle-of-the-range count regardless of the topic. A narrow topic with one or two natural facets gets one or two specialists. When the topic has a single facet with nothing to cross-reference, prefer a single specialist — or research it directly with the search tools — over standing up a team, since the orchestration overhead (one context window per teammate, plus coordination) buys nothing there. Scale up only as far as the topic has genuinely independent facets, and expect two forces to cap useful team size well below that. First, every specialist returns a full report, and you read, dedup, verify, and synthesize all of them in your own context window — the more you spawn, the more inbound findings compete for the context where synthesis actually happens. Second, finer slicing drives overlap between specialists, so added agents increasingly duplicate each other's sources and findings rather than covering new ground (diminishing returns). Claude Code also becomes unreliable beyond roughly 25 concurrent teammates — a hard ceiling far above where those two forces already hold you to a handful.
 
 **Match specialists to subtopics thoughtfully.** Survey the research-capable subagents available in this environment (Phase 4c) and pick the best fit per subtopic. When only the baseline specialists apply, choose between `research-investigator` (Sonnet, methodical evidence-gathering) and `research-analyst` (Opus, judgment-led synthesis) based on the *kind* of work the subtopic needs — methodical case-building from primary sources versus synthesis-heavy pattern recognition across the collected sources. The two are complementary, not a tier scale.
 
@@ -92,7 +94,7 @@ Parse the research query and establish framing before any searching:
 1. **Audience** — Who is this for? If the requestor specified an audience, use it. Otherwise, infer from the query's vocabulary and framing (e.g., a query using technical jargon implies a technical audience).
 2. **Intent** — What does the requestor want to *do* with this research? Categories: learn (i.e., understand a topic), decide (i.e., choose between options), compare (i.e., evaluate alternatives), build (i.e., implement something), or investigate (i.e., diagnose a problem).
 3. **Output format** — Did the requestor ask for a specific format? A "guide" differs from a "report" differs from an "analysis." Default to the readable research paper in `<output_format>` if unspecified.
-4. **Core questions** — What questions, if answered, would satisfy this request? List 3-7.
+4. **Core questions** — What questions, if answered, would satisfy this request? List as many as the query genuinely has; let the request set the number rather than a fixed range. These need not map one-to-one onto subtopics later (Phase 3).
 
 This phase is pure thinking — no tool calls needed.
 </phase_analyze>
@@ -135,7 +137,9 @@ Bias check: if a query lists three or more proper nouns *you* introduced, rewrit
 <phase_decompose>
 ### Phase 3: Decompose
 
-Break the topic into 3-7 subtopics. Each subtopic should be independently researchable — a specialist working on one subtopic shouldn't need findings from another to make progress.
+Decompose the topic along its natural seams. The number of subtopics is an output of this decomposition, not a target to hit: let the topic's structure set it, and do not default to the same comfortable count for every topic. A topic with two genuinely independent facets yields two subtopics; one with six yields six. Do not pad a narrow topic up to a minimum, and do not trim a broad one to a round number. The count need not match the number of core questions from Phase 1 — one specialist may cover several related questions, or one question may split across specialists. Each subtopic should be independently researchable — a specialist working on one subtopic shouldn't need findings from another to make progress.
+
+For a topic with only one natural facet, prefer a single specialist (or researching it directly with the search tools) over a full team; see the team-scaling guidance in `<behavioral_constraints>`. The orchestration overhead is not justified when there is nothing to cross-reference.
 
 For each subtopic, specify:
 
@@ -172,6 +176,8 @@ Bias check: if a subtopic description enumerates more than two specific products
 ### Phase 4: Spawn the Team
 
 The team forms implicitly when you spawn your first teammate; there's no creation step. Phase 4 proceeds in ordered sub-steps: confirm teams are available (4a), create one task per subtopic (4b), select specialist types (4c), spawn teammates (4d), then assign tasks (4e). Teammates retain their context across idle periods, so follow-up queries in later phases don't have to re-establish it.
+
+**Team workspace.** When the research warrants persisted working files, choose one shared workspace directory for the whole team before spawning, and give every specialist the same path: `<project-root>/.claude/research/{timestamp}-{topic-slug}/`, at the root of the project Claude Code is open in — not the user-level `~/.claude/`. Resolve the project root explicitly (for example, `git rev-parse --show-toplevel`, falling back to `pwd`) and generate the timestamp with `date +%Y%m%d_%H%M%S`. Pass this one path to each specialist in its spawn prompt (Step 4d), and keep your own verification record (Phase 5) under it, so the team's artifacts land in a single case file instead of scattered per-specialist directories. Each specialist writes under a subdirectory keyed by its teammate name to avoid collisions. The specialists' own `<workspace_convention>` sections defer to a location you supply; supply one so they don't each generate their own. If the research is light enough that no files are needed, skip the workspace and coordinate in-context.
 
 <team_setup>
 #### Step 4a: Confirm Agent Teams Are Available
@@ -225,6 +231,7 @@ Each spawn prompt should include:
 3. **Coordination expectations** — When to use `TaskUpdate` to claim and complete tasks; when to expect follow-up messages; that idle-between-turns is normal.
 4. **Output format instructions** — The standard structured report format for parseable initial findings, posted as a message back to the lead (you) when the task is marked complete.
 5. **Open-discovery reminder** — Restate that the specialist should discover what is actually dominant in the space rather than verifying a presumed list. The subtopic description (Phase 3) should already be framed as an open question; this is reinforcement at the spawn boundary. See `<phase_decompose>` for the discipline.
+6. **Workspace location** — The team workspace path from the team-workspace note above. Tell the specialist to write any persisted working notes under that path, in a subdirectory keyed by its own name, and to use the path you supply rather than generating its own `{timestamp}-{slug}` directory.
 
 **Example teammate spawn:**
 ```
@@ -238,6 +245,8 @@ Use the Agent tool with:
     Discover what is actually dominant in this space rather than verifying a list of presumed-relevant items. The subtopic description gives starting framing; let evidence determine which products, frameworks, features, and practices are actually central.
 
     Source-diversity expectations: [note any specific independence axes or quality tiers worth seeking; otherwise the agent's own source-independence framework applies].
+
+    Working files: if you persist notes, write them under the team workspace at <team-workspace-path>, in a subdirectory named for you ('<your-name>'). Use this path; do not create your own research directory.
 
     Your peers on this team: <list the other specialists' names>. The lead may later ask you to reconcile findings with a named peer; use SendMessage to coordinate directly if instructed, otherwise route through the lead.
 
@@ -302,7 +311,7 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
 
    A verdict is not a substitute for reading: the fact-checker confirms that a pair holds, but returns nothing you can draft from. If verdict handling reveals that a source is more central than it first appeared, read it yourself before synthesis. If the Agent tool is unavailable in your environment, sample-fetch the pairs yourself instead.
 
-   **Keep a verification record.** Maintain a running record of claim → citation → verdict → action across all reports. It is what shows verification ran; the Phase 6 entry gate and the final Confidence Assessment both read from it. A report whose essential claims are absent from the record has not been verified, whatever the specialist's stated confidence. Keep it in the workspace (`.claude/research/...`) when the research warrants one; otherwise hold it in context.
+   **Keep a verification record.** Maintain a running record of claim → citation → verdict → action across all reports. It is what shows verification ran; the Phase 6 entry gate and the final Confidence Assessment both read from it. A report whose essential claims are absent from the record has not been verified, whatever the specialist's stated confidence. Keep it under the team workspace (see Phase 4's team-workspace note) when the research warrants one; otherwise hold it in context.
 
    This is sample verification, not re-investigation. Budget roughly 10-20% of synthesis time on it; substantially more means the specialist work should be redone rather than patched at the orchestrator layer.
 
@@ -520,7 +529,7 @@ Then offer a degraded fallback: spawn specialists as single-shot `Agent` invocat
 
 **Specialist returns poor results:** Because the specialist is resident, send a follow-up message via `SendMessage` describing what's missing or weak. Limit reconciliation rounds to two per specialist before accepting the gap.
 
-**Too many subtopics:** If decomposition yields more than 7 subtopics, consolidate related ones. The N× context cost of a large team outweighs the marginal research quality.
+**Team too large:** A large team costs N× context (one window per teammate), and past a handful of specialists the return erodes for two reasons: you must read, dedup, verify, and synthesize every specialist's full report in your own context, so inbound volume grows with the team; and finer decomposition drives overlap, so added specialists duplicate each other rather than cover new ground (see the team-scaling constraint in `<behavioral_constraints>`). When decomposition yields many subtopics, consolidate related ones. Treat roughly 25 concurrent teammates as a hard ceiling — Claude Code becomes unreliable beyond it — though the volume-and-overlap forces already hold a good team to a handful, well below that.
 
 **Privacy-sensitive research:** If any subtopic involves sensitive information, include explicit instructions in the specialist spawn prompt to prefer Kagi (`mcp__kagi__kagi_search_fetch`) over Exa tools. Exa does not keep queries confidential for non-enterprise customers[^1]; assume your access is non-enterprise.
 
@@ -549,8 +558,14 @@ Arranging agent reports in sequence with transition sentences is not synthesis. 
 <over_decomposing>
 ### Decomposing Into Too Many Subtopics
 
-More subtopics means more agents means more overhead and thinner coverage per subtopic. If you have 8+ subtopics, some are probably related enough to merge. The target is 3-7 subtopics of roughly equal scope.
+More subtopics means more agents, and two costs rise with the count: the volume of returned reports you read, verify, and synthesize in your own context, and the overlap between specialists as finer slicing makes subtopics bleed into each other and duplicate work (see the team-scaling constraint in `<behavioral_constraints>`). When subtopics proliferate, some are usually related enough to merge; let the topic's natural seams set the count (Phase 3) and keep it to a handful. Claude Code also becomes unreliable past roughly 25 concurrent teammates — a hard ceiling well above where volume and overlap already hold you.
 </over_decomposing>
+
+<defaulting_subtopic_count>
+### Defaulting to a Fixed Number of Subtopics
+
+The symptom: every topic, narrow or broad, gets decomposed into the same comfortable number of subtopics (often four), and the count is a habit rather than a decision — the decomposition was reverse-engineered to fill it. Decompose the topic first and let the number of subtopics fall out of its natural seams (Phase 3); a two-facet topic gets two specialists, not four, and a single-facet topic may not warrant a team at all. See the team-scaling guidance in `<behavioral_constraints>`.
+</defaulting_subtopic_count>
 
 <sequential_dispatch>
 ### Spawning Specialists Sequentially
