@@ -259,7 +259,7 @@ After teammates are spawned, use `TaskUpdate` to set each task's `owner` to the 
 <phase_collect>
 ### Phase 5: Collect and Cross-Reference
 
-Specialist reports arrive as tasks complete. Per-report work — deduplication, direct reading of key primaries, fact-checker fan-out (dispatching many parallel invocations, step 6) — can begin as each report lands; the analysis across all reports (conflicts, gaps, cross-cutting patterns) requires all tasks complete and all reports in hand. Because teammates persist across idle periods, this phase is active: when you spot overlap, conflicts, or gaps, create follow-up tasks and/or `SendMessage` the relevant specialist(s) rather than silently flagging issues for the final report.
+Specialist reports arrive as tasks complete. Per-report work begins as each report lands — deduplication, direct reading of the sources with the highest synthesis weight, and verification of that report's essential claims. Verify each report when it arrives rather than deferring verification to one end-of-phase pass (see step 6, `<per_report_verification>`). The analysis across all reports (conflicts, gaps, cross-cutting patterns) requires all tasks complete and all reports in hand. Because teammates persist across idle periods, this phase is active: when you spot overlap, conflicts, or gaps, create follow-up tasks and/or `SendMessage` the relevant specialist(s) rather than silently flagging issues for the final report.
 
 For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage`. For substantive new research assignments, prefer `TaskCreate` with the specialist as owner, so progress is visible in the task list.
 
@@ -277,7 +277,12 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
    - Findings from one subtopic that reframe or qualify findings from another
    - Emergent conclusions that no single subtopic's research supports alone but the combination does
 
-6. **Verify the citations essential to the conclusions against primaries — through two channels with different jobs.** Specialists assign citation provenance (Read / Summarized / Snippet-only — see the agent definitions' `<citation_provenance>` sections) and downgrade support labels for snippet-only citations. The orchestrator is the final check before a claim enters synthesis.
+6. **Verify each report's essential claims when the report arrives, not in a single end-of-phase pass.**
+
+   <per_report_verification>
+   Treat a report's arrival as the trigger to verify it, before you move on to the next report or to drafting. A report arrives by any channel (for example, a teammate marking its task complete, a `SendMessage`, a file the specialist wrote, or a summary you retrieved), so trigger verification on the report reaching your context, not on a particular delivery mechanism. Because each report's checks dispatch in parallel, the checks for an early report run while later specialists are still working, so verification runs alongside the research rather than only after every report is in.
+
+   Verify through two channels with different jobs. Specialists assign citation provenance (Read / Summarized / Snippet-only — see the agent definitions' `<citation_provenance>` sections) and downgrade support labels for snippet-only citations; you are the final check before a claim enters synthesis.
 
    **Read the sources with the highest synthesis weight yourself.** Direct reading is for comprehension, not just checking: it puts primary detail into your context window, where the Phase 6 drafting happens. A synthesis drafted only from specialist summaries is a summary of summaries, however accurate its citations. Select for synthesis weight:
 
@@ -287,7 +292,7 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
 
    Use `WebFetch`, `mcp__kagi__kagi_extract` (privacy-preserving, returns markdown), `mcp__exa__crawling_exa`, or `Read` (for local files).
 
-   **Distribute the volume across parallel fact-checker invocations.** Spawn `opinionated-research:fact-checker` — one invocation per claim-citation pair; invocations are independent and parallelizable — for breadth across the remaining essential pairs:
+   **Distribute the report's essential claim-citation pairs across parallel fact-checker invocations.** A claim is essential when, if true, it would support a Takeaway, a recommendation, a numeric figure the user may act on, or the resolution of a conflict; cap at roughly the 5-15 most essential per report and do not check every sentence. Spawn `opinionated-research:fact-checker` once per claim-citation pair, in parallel, as one-shot subagents without a `name` so they verify in isolation and do not join the team (see the fact-checker's `<scope>`); invocations are independent and parallelizable. Prioritize:
 
    - Every claim labeled `[CITED][WELL-SUPPORTED]` that is essential to a downstream conclusion
    - Every numeric statistic the user is likely to act on
@@ -297,9 +302,12 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
 
    A verdict is not a substitute for reading: the fact-checker confirms that a pair holds, but returns nothing you can draft from. If verdict handling reveals that a source is more central than it first appeared, read it yourself before synthesis. If the Agent tool is unavailable in your environment, sample-fetch the pairs yourself instead.
 
+   **Keep a verification record.** Maintain a running record of claim → citation → verdict → action across all reports. It is what shows verification ran; the Phase 6 entry gate and the final Confidence Assessment both read from it. A report whose essential claims are absent from the record has not been verified, whatever the specialist's stated confidence. Keep it in the workspace (`.claude/research/...`) when the research warrants one; otherwise hold it in context.
+
    This is sample verification, not re-investigation. Budget roughly 10-20% of synthesis time on it; substantially more means the specialist work should be redone rather than patched at the orchestrator layer.
 
    Make use of the specialists to cross-verify claims when possible. For example, if you ask one specialist to reconcile something, also have a related specialist perform a similar check and see whether both return consistent information.
+   </per_report_verification>
 
 **Message budget:** Limit yourself to two reconciliation rounds per specialist in this phase. If a conflict or gap persists after two exchanges, report it honestly rather than chasing diminishing returns.
 </phase_collect>
@@ -307,13 +315,13 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
 <phase_synthesize>
 ### Phase 6: Synthesize
 
-**Entry gate.** Phase 6 begins only when `TaskList` shows every specialist task completed and every report delivered. Run the check; do not rely on your sense of progress — a single pending or in-progress task means you are still in Phase 5. Waiting is not idleness: spend it on Phase 5 step 6's direct reading and fact-checker fan-out, which build drafting context without committing conclusions. Drafting early biases the synthesis toward premature conclusions the same way writing Takeaways first biases the body toward them (see `<drafting_order>`): evidence that arrives afterward gets read against a thesis instead of weighed into one. If the user explicitly asks for an interim draft, provide it labeled as partial, with the outstanding tasks listed.
+**Entry gate.** Phase 6 begins only when both hold: `TaskList` shows every specialist task completed and every report delivered, and every delivered report has cleared per-report verification — its essential claims are in the verification record with verdicts, and every `CONTRADICTS`/`PARTIAL`/`UNCLEAR` is reconciled or downgraded (see `<per_report_verification>`). Run the check; do not rely on your sense of progress — a single pending task, or a delivered-but-unverified report, means you are still in Phase 5. Waiting is not idleness: spend it on Phase 5 step 6's direct reading and per-report verification, which build drafting context without committing conclusions. Drafting early biases the synthesis toward premature conclusions the same way writing Takeaways first biases the body toward them (see `<drafting_order>`): evidence that arrives afterward gets read against a thesis instead of weighed into one. If the user explicitly asks for an interim draft, provide it labeled as partial, with the outstanding tasks listed.
 
 Write the initial deliverable. This is where you earn the orchestration overhead. Default to the readable paper in `<output_format>`, and draft the body before writing the Takeaways (see `<drafting_order>`). See `<writing_guidance>` for detailed instructions.
 
 The synthesis should be substantially more than concatenated specialist reports. Draw connections, surface patterns, resolve (or honestly present) conflicts, and produce a coherent narrative that answers the original query. Specialists are still active in the team — if synthesis reveals a need for further specialist input, query them rather than drafting prose that avoids the gap.
 
-**Post-draft verification pass.** After drafting and before presenting, fan the draft's essential claim-citation pairs to `opinionated-research:fact-checker` — as worded in the draft, not as worded in the specialist reports. This is the end-to-end check on the relay chain (source → specialist report → synthesis): drift introduced by your own summarizing is invisible to the Phase 5 checks, which ran before the draft existed. Handle verdicts as in Phase 5 step 6, correcting the draft or reconciling with the specialist before the report reaches the user.
+**Post-draft verification pass.** After drafting and before presenting, send the draft's essential claim-citation pairs to `opinionated-research:fact-checker` — as worded in the draft, not as worded in the specialist reports. This is the end-to-end check on the relay chain (source → specialist report → synthesis): drift introduced by your own summarizing is invisible to the Phase 5 checks, which ran before the draft existed. Handle verdicts as in Phase 5 step 6, recording them and correcting the draft or reconciling with the specialist before the report reaches the user. Do not present the report until this pass has run and its verdicts are handled.
 
 **Reports that arrive after drafting begins** — including legitimate late arrivals such as reconciliation responses and follow-up extensions — get a per-claim integration check, not a holistic glance. For each claim in the late report that affects a conclusion, record whether the draft already reflects it, contradicts it, or omits it, and revise the draft accordingly. "Nothing needs revision" is a conclusion you may reach only claim by claim, never wholesale: an integration check that produces no dispositions is a check that did not happen.
 </phase_synthesize>
@@ -508,7 +516,7 @@ Regardless of output format, every deliverable must include:
 
 > Agent teams are not currently available. This skill's iterative workflow depends on persistent specialist agents. To enable them, set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in your shell environment configuration and restart Claude Code.
 
-Then offer a degraded fallback: spawn specialists as single-shot `Agent` invocations (no persistence, no follow-up), produce the report, and note in the output that the iterative feedback loop was unavailable because agent teams are disabled. If the `Agent` tool itself is also unavailable, fall back to performing research yourself using the available search tools, following the `research-investigator` workflow (Examine Framing, Investigate, Audit, Adversarial Check, Categorize, Synthesize) for each subtopic sequentially.
+Then offer a degraded fallback: spawn specialists as single-shot `Agent` invocations (no persistence, no follow-up), produce the report, and note in the output that the iterative feedback loop was unavailable because agent teams are disabled. If the `Agent` tool itself is also unavailable, fall back to performing research yourself using the available search tools, following the `research-investigator` workflow (Examine Framing, Investigate, Audit, Adversarial Check, Categorize, Synthesize) for each subtopic sequentially. Per-report verification still applies in both degraded modes: with single-shot specialists, verify each returned report's essential claims as in step 6; if you research yourself without the `Agent` tool, verify your own draft's essential claims by reading the high-synthesis-weight sources and sample-fetching each essential claim's cited source, recording the verdicts.
 
 **Specialist returns poor results:** Because the specialist is resident, send a follow-up message via `SendMessage` describing what's missing or weak. Limit reconciliation rounds to two per specialist before accepting the gap.
 
@@ -623,6 +631,12 @@ Writing the report as an essay rather than a research deliverable. Symptoms: rhe
 
 Specialists may cite a source after reading only its search-snippet or its summarizer output. The citation looks identical to one based on reading the primary. Without spot-checking, the synthesis inherits the snippet's accuracy ceiling while presenting itself as evidence-grounded. The fix is Phase 5 step 6: read the key primaries yourself and fan the remaining essential pairs to the fact-checker before incorporating them into synthesis.
 </unverified_specialist_citations>
+
+<deferring_or_skipping_verification>
+### Deferring Verification to an End-Pass, or Skipping It
+
+Verification fires when each report arrives (see `<per_report_verification>`), not as one pass at the end or only on request. Two failures share this root: batching all checks until after the draft, which lets unverified claims shape the synthesis; and dropping verification when the run is unusual, for example when the messaging channel fails, reports arrive as files, or you fall back to researching yourself. The obligation is the same in every case: each report's essential claims go through the checks and into the verification record before that report informs the draft. If you researched in degraded mode yourself, verify your own draft's claims the same way.
+</deferring_or_skipping_verification>
 
 <synthesis_density_exceeds_evidence>
 ### Synthesis Density Exceeding Specialist Density
