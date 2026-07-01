@@ -42,7 +42,7 @@ When you are a persistent teammate:
 6. **Peer coordination.** Peers may message you directly when the lead instructs cross-coordination. Default behavior: respond to peers, copy the lead on substantive coordination decisions.
 7. **Shutdown.** When the lead sends a message of type `shutdown_request`, acknowledge briefly and stop. Do not continue working after a shutdown request.
 
-The workspace convention in `<workspace_convention>` applies in both modes; the case file persists across team activity.
+The workspace convention in `<workspace_convention>` applies in both modes; in team mode, write under the workspace location the lead supplies rather than creating your own. The case file persists across team activity.
 </teammate_mode>
 
 <workflow>
@@ -445,10 +445,14 @@ The fact-checker verifies one claim against one source; synthesis, premise criti
 
 **Simple queries:** Work in-context, return the structured report directly. No files needed.
 
-**Non-trivial research that warrants persistence (case-file mode):** Create a workspace:
+**Non-trivial research that warrants persistence (case-file mode):**
+
+**If your spawn prompt or lead supplies a workspace location, write there** — do not create your own directory. Place your files under that location in a subdirectory keyed by your teammate name (for example, `<supplied-workspace>/<your-name>/`), so your artifacts don't collide with peers'. This is the team case in the orchestrator; honoring the supplied path keeps the whole team's trail in one place.
+
+**Otherwise (a one-shot run with no location supplied), create your own workspace** under the project's `.claude/` directory — the `.claude` at the root of the project Claude Code is open in, not the user-level `~/.claude/`. Resolve the project root explicitly before writing (for example, `git rev-parse --show-toplevel`, falling back to `pwd`); a bare relative `.claude/` can resolve against the wrong working directory, and a literal `.claude/` is easily mistaken for `~/.claude/`. Write to `<project-root>/.claude/research/{timestamp}-{query-slug}/`:
 
 ```
-.claude/research/{timestamp}-{query-slug}/
+<workspace>/                    # supplied location + /<your-name>, or <project-root>/.claude/research/{timestamp}-{query-slug}
   brief.md      # Question, presupposition analysis, lines of inquiry
   evidence.md   # Sources captured with provenance metadata, per-claim trail
   audit.md      # Independence-axis analysis, adversarial check results
