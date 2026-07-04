@@ -233,6 +233,10 @@ Each spawn prompt should include:
 5. **Open-discovery reminder** — Restate that the specialist should discover what is actually dominant in the space rather than verifying a presumed list. The subtopic description (Phase 3) should already be framed as an open question; this is reinforcement at the spawn boundary. See `<phase_decompose>` for the discipline.
 6. **Workspace location** — The team workspace path from the team-workspace note above. Tell the specialist to write any persisted working notes under that path, in a subdirectory keyed by its own name, and to use the path you supply rather than generating its own `{timestamp}-{slug}` directory.
 
+<specialist_self_review_note>
+**Codex self-review is intrinsic to the specialists; do not add it to the spawn prompt.** When the `codex:codex-rescue` subagent type is installed, `research-investigator` and `research-analyst` run a read-only Codex review of their own reports before sending them (see their `<cross_model_self_review>` sections and this skill's `<cross_model_review>`). You neither inject this instruction nor supply a script path — the specialists reach Codex through the rescue subagent, which resolves its own runtime. In Phase 5, fold the Codex verdicts a specialist reports into your verification record.
+</specialist_self_review_note>
+
 **Example teammate spawn:**
 ```
 Use the Agent tool with:
@@ -311,7 +315,7 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
 
    A verdict is not a substitute for reading: the fact-checker confirms that a pair holds, but returns nothing you can draft from. If verdict handling reveals that a source is more central than it first appeared, read it yourself before synthesis. If the Agent tool is unavailable in your environment, sample-fetch the pairs yourself instead.
 
-   **Keep a verification record.** Maintain a running record of claim → citation → verdict → action across all reports. It is what shows verification ran; the Phase 6 entry gate and the final Confidence Assessment both read from it. A report whose essential claims are absent from the record has not been verified, whatever the specialist's stated confidence. Keep it under the team workspace (see Phase 4's team-workspace note) when the research warrants one; otherwise hold it in context.
+   **Keep a verification record.** Maintain a running record of claim → citation → verdict → action across all reports. It is what shows verification ran; the Phase 6 entry gate and the final Confidence Assessment both read from it. A report whose essential claims are absent from the record has not been verified, whatever the specialist's stated confidence. Keep it under the team workspace (see Phase 4's team-workspace note) when the research warrants one; otherwise hold it in context. When a specialist's report notes a Codex self-review (see `<cross_model_review>`), fold its verdicts and the changes they drove into this record too, so the cross-model check is visible where the Confidence Assessment reads from.
 
    This is sample verification, not re-investigation. Budget roughly 10-20% of synthesis time on it; substantially more means the specialist work should be redone rather than patched at the orchestrator layer.
 
@@ -331,6 +335,8 @@ Write the initial deliverable. This is where you earn the orchestration overhead
 The synthesis should be substantially more than concatenated specialist reports. Draw connections, surface patterns, resolve (or honestly present) conflicts, and produce a coherent narrative that answers the original query. Specialists are still active in the team — if synthesis reveals a need for further specialist input, query them rather than drafting prose that avoids the gap.
 
 **Post-draft verification pass.** After drafting and before presenting, send the draft's essential claim-citation pairs to `opinionated-research:fact-checker` — as worded in the draft, not as worded in the specialist reports. This is the end-to-end check on the relay chain (source → specialist report → synthesis): drift introduced by your own summarizing is invisible to the Phase 5 checks, which ran before the draft existed. Handle verdicts as in Phase 5 step 6, recording them and correcting the draft or reconciling with the specialist before the report reaches the user. Do not present the report until this pass has run and its verdicts are handled.
+
+**Post-draft cross-model review (when Codex is available).** Also run one Codex review of the synthesized draft per `<cross_model_review>`: write the draft to a file and spawn `codex:codex-rescue` with a read-only review request pointed at it. Codex reviews the synthesis as written — a different model family reading your own summarizing — so it checks the relay chain for the same-family blind spots the Claude passes share. Reconcile disputed verdicts against primary sources, revise the draft, record the verdicts in the verification record, and note in the Confidence Assessment that a cross-model pass ran and what it changed. When Codex is unavailable, note that instead and present the Claude-verified draft.
 
 **Reports that arrive after drafting begins** — including legitimate late arrivals such as reconciliation responses and follow-up extensions — get a per-claim integration check, not a holistic glance. For each claim in the late report that affects a conclusion, record whether the draft already reflects it, contradicts it, or omits it, and revise the draft accordingly. "Nothing needs revision" is a conclusion you may reach only claim by claim, never wholesale: an integration check that produces no dispositions is a check that did not happen.
 </phase_synthesize>
@@ -354,6 +360,41 @@ Present the synthesized report to the user and enter a feedback loop. The team s
 5. **Shut the teammates down only on an explicit "finished" signal from the user.** Wait until the user states they have no further questions or changes (for example, "that's everything," "I'm done," or "no more questions"). Until then, keep the teammates resident, even across long gaps, and do not infer completion or shut the team down on your own initiative. If you are unsure whether the user is finished, ask. Once the user confirms they are finished, shut each teammate down by name, sending `SendMessage` with `{type: "shutdown_request"}`; a teammate may approve and exit, or reject with an explanation. This explicit shutdown is how you end the team's work; there's no `TeamDelete`, and you shouldn't rely on session-end cleanup, since the teammates keep consuming context for as long as the session runs.
 </phase_iterate>
 </workflow>
+
+<cross_model_review>
+## Cross-Model Review with Codex
+
+When the Codex plugin (`openai-codex`) is installed, a cross-model review with Codex (GPT) runs before each report is submitted. Two roles run it: each specialist reviews its own report before sending it to you — that behavior lives in the specialist agent definitions (`research-investigator`, `research-analyst`), so you neither inject it through spawn prompts nor supply a script path — and you review the synthesized draft before presenting it to the user (Phase 6). Codex is a different model family, so it surfaces errors that same-family Claude checks share rather than detect; this pass complements the Claude fact-checker fan-out (Phase 5) and the post-draft pass (Phase 6) and does not replace either.
+
+This pass is availability-gated, not required. It runs only when the `codex:codex-rescue` subagent type is installed — scan the Agent tool's `subagent_type` list, the same survey Phase 4c runs for research agents. When it is absent, skip the pass and note in the Confidence Assessment that cross-model review was unavailable; do not install or configure Codex to satisfy this step. This is the single definition of the mechanism; Phase 6 (your post-draft review) and `<error_handling>` refer here rather than restating it.
+
+<codex_invocation>
+### Invoking Codex
+
+Reach Codex by spawning the `codex:codex-rescue` subagent through the Agent tool. Do not invoke the `codex:rescue` skill (calling `Skill(codex:rescue)` from inside this skill re-enters that command and stalls the session) and do not call a companion script directly. The rescue subagent forwards the request to Codex and resolves its own plugin runtime, so nothing outside the Codex plugin hardcodes a path.
+
+Run one read-only review of the assembled report:
+
+1. Write the report to a file inside the project tree — the team workspace from Phase 4 when one exists — because a read-only Codex run reads files within the project.
+2. Spawn `codex:codex-rescue` (subagent_type `codex:codex-rescue`) with a read-only review request, for example:
+
+   > Review the research report at `<report-file-path>` for factual errors, unsupported or overstated claims, miscalibrated confidence, and outdated information. Do not edit any files. For each load-bearing claim, return a verdict — AGREE, DISAGREE, UNCERTAIN, or OUTDATED — with a one-line reason, and a source where you dispute a claim.
+
+Framing the request as read-only review keeps Codex from editing files (the rescue subagent adds a write-capable flag only when the request is not review, diagnosis, or read-only). A bounded request keeps the run in the foreground, so the subagent returns the review directly rather than a background job id. Budget several minutes.
+
+If the `codex:codex-rescue` subagent type is absent, or the subagent reports that Codex setup or authentication is required, treat Codex as unavailable: skip the pass, record that it was skipped, and do not retry or improvise an alternate flow. Point the user to `/codex:setup` if they ask to enable it.
+</codex_invocation>
+
+<codex_consumption>
+### Using Codex's Verdicts
+
+**Review the whole report once, not each claim separately.** One review of the assembled report is the unit; per-claim Codex calls add latency without added coverage.
+
+**Treat Codex as a second opinion, not ground truth.** When Codex disagrees with a Claude verdict or with the report, read the primary source yourself before changing anything, and adopt the correction only when the primary supports Codex. Codex can be wrong or work from a stale source; its value is independence from the Claude model family, not authority.
+
+**Codex output is an input to verification, not the deliverable.** The `codex:rescue` plugin returns Codex output verbatim to the user; here it does not. Capture the verdicts, reconcile disputed ones against primary sources, revise the report, and carry only the reconciled result forward. Record Codex's verdicts in the verification record (Phase 5) alongside the Claude verdicts, and state in the Confidence Assessment that a cross-model pass ran and what it changed.
+</codex_consumption>
+</cross_model_review>
 
 <writing_guidance>
 ## Writing Guidance
@@ -429,6 +470,8 @@ State confidence levels tied to evidence quality:
 - **Low confidence**: Few sources; significant conflicts; key subtopics have insufficient coverage
 
 Acknowledge gaps rather than papering over them. A report that honestly states "we couldn't find reliable data on X" is more useful than one that hedges around the gap.
+
+State whether a cross-model Codex pass ran (see `<cross_model_review>`) and what it changed. When Codex was unavailable, say so plainly — the report was verified by the Claude passes alone, which share a model family and so share blind spots a cross-model pass would catch.
 </honest_assessment>
 </writing_guidance>
 
@@ -532,6 +575,8 @@ Then offer a degraded fallback: spawn specialists as single-shot `Agent` invocat
 **Team too large:** A large team costs N× context (one window per teammate), and past a handful of specialists the return erodes for two reasons: you must read, dedup, verify, and synthesize every specialist's full report in your own context, so inbound volume grows with the team; and finer decomposition drives overlap, so added specialists duplicate each other rather than cover new ground (see the team-scaling constraint in `<behavioral_constraints>`). When decomposition yields many subtopics, consolidate related ones. Treat roughly 25 concurrent teammates as a hard ceiling — Claude Code becomes unreliable beyond it — though the volume-and-overlap forces already hold a good team to a handful, well below that.
 
 **Privacy-sensitive research:** If any subtopic involves sensitive information, include explicit instructions in the specialist spawn prompt to prefer Kagi (`mcp__kagi__kagi_search_fetch`) over Exa tools. Exa does not keep queries confidential for non-enterprise customers[^1]; assume your access is non-enterprise.
+
+**Codex unavailable:** The cross-model review (see `<cross_model_review>`) is availability-gated. When the `codex:codex-rescue` subagent type is not installed, or the subagent reports that Codex setup or authentication is required, skip the pass, note in the Confidence Assessment that cross-model review was unavailable, and proceed with the Claude verification already done. Do not install or configure Codex, and do not retry or improvise; point the user to `/codex:setup` if they ask to enable it. A privacy-sensitive topic is itself a reason to weigh whether to route the report through Codex at all, since the review sends report text to an external model; when in doubt, skip it and say so.
 
 **Forgetting to dismiss the teammates:** If the user confirms completion and you don't shut the teammates down, they linger and keep consuming context for the rest of the session. Always shut each one down by name on completion; there's no separate team-deletion call.
 
@@ -664,6 +709,24 @@ Verification fires when each report arrives (see `<per_report_verification>`), n
 
 When specialists produce shorthand-style reports and the orchestrator writes the synthesis as flowing prose, the gap is filled by invention. The synthesis prose appears to elaborate the specialists' findings, but the elaborations have no source. The fix is structural, not stylistic: the agent definitions now require dense prose with inline labels, so specialists supply context the synthesis can compress rather than expand. If the specialists are still producing shorthand, surface that as a finding rather than padding around it. See `<synthesis_discipline>` ("Length follows evidence").
 </synthesis_density_exceeds_evidence>
+
+<treating_codex_as_oracle>
+### Treating Codex's Verdict as Ground Truth
+
+The cross-model Codex pass (see `<cross_model_review>`) is a second opinion, not an oracle; it can be wrong or work from a stale source. When it disagrees with a Claude fact-checker or with the report, read the primary source before editing, and adopt the change only when the primary supports it. The value is independence from the Claude model family, not authority.
+</treating_codex_as_oracle>
+
+<dumping_codex_output>
+### Relaying Codex Output as the Deliverable
+
+The `codex:rescue` plugin returns Codex's output verbatim to the user. Inside this skill, Codex output is an input to verification, not the deliverable: capture the verdicts, reconcile disputed ones against primary sources, revise the report, and carry only the reconciled result into the deliverable. Presenting Codex's raw verdict list and stopping skips the reconciliation the pass exists to drive. See `<codex_consumption>`.
+</dumping_codex_output>
+
+<wrong_codex_entry_point>
+### Reaching Codex the Wrong Way
+
+Two entry points fail. Invoking `Skill(codex:rescue)` from inside this skill re-enters that command and stalls the session. Injecting the specialist self-review into spawn prompts, or handing specialists a companion script path, duplicates behavior the agent definitions already own and hardcodes plugin internals. Reach Codex by spawning the `codex:codex-rescue` subagent with a read-only review request; let each specialist's own definition run its self-review. See `<codex_invocation>`.
+</wrong_codex_entry_point>
 </common_mistakes>
 
 ## Sources
