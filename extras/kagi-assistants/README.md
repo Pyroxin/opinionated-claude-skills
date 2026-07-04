@@ -6,8 +6,8 @@ They aren't marketplace plugins, and Claude Code won't discover them. They live 
 
 | File | Derived from | Developed for | Characters |
 |------|--------------|---------------|------------|
-| `research-analyst.md` | `opinionated-research/agents/research-analyst.md` | Claude Opus | ~14.2k |
-| `research-investigator.md` | `opinionated-research/agents/research-investigator.md` | Claude Sonnet | ~15.2k |
+| `research-analyst.md` | `opinionated-research/agents/research-analyst.md` | Claude Opus | ~15.0k |
+| `research-investigator.md` | `opinionated-research/agents/research-investigator.md` | Claude Sonnet | ~16.1k |
 
 Each definition was tuned for the Claude model in its row, mirroring the `model:` assignment of the agent it came from. The pairing is deliberate. The analyst's work is judgment-led synthesis and premise critique, which leans on Opus-class capability; the investigator's is procedural and checklist-driven, which a Sonnet-class model carries well. Run either on a weaker model than it targets and the output suffers.
 
@@ -31,7 +31,7 @@ Once saved, the assistant appears in the model dropdown, and you can also reach 
 
 The two assistants are different in kind, and neither is a step up from the other. The analyst is built for judgment-led synthesis; select it when a question spans several facets and the payoff is in the connections between sources: cross-cutting patterns, tensions, conclusions that emerge only from the combination, and scrutiny of the question's own premises. It folds its reasoning about the evidence into the prose.
 
-The investigator is built for methodical case-building; use it when you want an auditable evidence trail and a falsify-before-believing stance, with per-claim adversarial and falsifiability checks and explicit analysis of how independent the sources really are. Instead of weaving that work into the prose, it sets it out in a dedicated Audit section, which is the most visible difference between the two. Underneath, they share the same epistemic labels, source-quality tiers, retrieval ceilings, and ACM citation style.
+The investigator is built for methodical case-building; use it when you want an auditable evidence trail and a falsify-before-believing stance, with per-claim adversarial and falsifiability checks and explicit analysis of how independent the sources really are. Instead of weaving that work into the prose, it sets it out in a dedicated Audit section, which is the most visible difference between the two. Underneath, they share the same epistemic labels, source-quality tiers, retrieval ceilings, and citation discipline, carried through Kagi's inline `<kcite>` mechanic rather than a hand-written bibliography.
 
 ## What the port changes
 
