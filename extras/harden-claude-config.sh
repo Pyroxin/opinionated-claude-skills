@@ -82,6 +82,10 @@ _resolve_symlink_target() {
   esac
 }
 
+_file_mode() {
+  stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1" 2>/dev/null
+}
+
 # --- The hardening base. Edit here to evolve the shared posture. --------------
 CORE_ENV='{
   "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
@@ -212,6 +216,8 @@ fi
 
 # --- Load and validate the target --------------------------------------------
 if [ -e "$target" ]; then
+  [ ! -d "$target" ] || _die "$target is a directory, not a JSON file; refusing to touch it"
+  [ -r "$target" ] || _die "$target is not readable; refusing to touch it"
   jq empty "$target" >/dev/null 2>&1 || _die "$target exists but is not valid JSON; refusing to touch it"
   current="$(cat "$target")"
 else
@@ -277,12 +283,15 @@ fi
 # --- Atomic write, with optional backup ---------------------------------------
 # Follow a symlinked target so the atomic mv updates the file it points at,
 # rather than replacing the symlink itself with a regular file.
-if [ -L "$target" ]; then
+symlink_depth=0
+while [ -L "$target" ]; do
+  symlink_depth=$((symlink_depth + 1))
+  [ "$symlink_depth" -le 40 ] || _die "too many symlink levels while resolving target"
   real_target="$(_resolve_symlink_target "$target")"
   [ -n "$real_target" ] || _die "could not resolve symlink: $target"
   _info "note: $target is a symlink -> writing through to $real_target (link preserved)"
   target="$real_target"
-fi
+done
 
 mkdir -p "$(dirname "$target")"
 
@@ -296,6 +305,10 @@ tmp="$(mktemp "$target.tmp.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
 printf '%s\n' "$merged" > "$tmp"
 jq empty "$tmp" >/dev/null 2>&1 || _die "merged result was not valid JSON; target left unchanged"
+if [ -e "$target" ]; then
+  mode="$(_file_mode "$target")" || _die "could not read file mode for $target"
+  chmod "$mode" "$tmp"
+fi
 mv "$tmp" "$target"
 trap - EXIT
 

@@ -84,10 +84,14 @@ Cover these regression cases when changing the script:
 - A top-level non-object JSON value, e.g., `[]`, is rejected with a clear error.
 - A non-object `.env` value is rejected with a clear error.
 - A symlinked settings path updates the target file and preserves the symlink.
+- A symlink chain updates the final target file and preserves every symlink in
+  the chain.
 - A dangling symlinked settings path creates the missing target file and
   preserves the symlink.
 - A second write against an already-hardened file is a semantic no-op and does
   not create a backup.
+- Existing file mode is preserved on a changing write.
+- Directory and unreadable-file targets are rejected with a clear error.
 
 Useful focused probes:
 
@@ -187,3 +191,52 @@ cfg="$tmpdir/settings.json"
 
 jq -e 'has("attribution") | not' "$cfg"
 ```
+
+### `extras/harden-codex-config.sh`
+
+The script edits Codex TOML configuration files. Test it only against temporary
+files:
+
+```bash
+tmpdir="$(mktemp -d)"
+cfg="$tmpdir/config.toml"
+
+printf 'model = "gpt-5.5"\n\n[analytics]\nenabled = true\n' > "$cfg"
+./extras/harden-codex-config.sh --write --no-backup "$cfg"
+./extras/harden-codex-config.sh --write --no-backup "$cfg"
+```
+
+Cover these regression cases when changing the script:
+
+- Normal merge preserves unrelated keys, including MCP server configuration and
+  plugin settings.
+- Empty arrays are preserved, including `args = []` under an MCP server.
+- Written files semantically round-trip: parse the written TOML and compare it
+  with the intended merged data.
+- Base hardening writes `sandbox_mode="read-only"`,
+  `approval_policy="on-request"`, `web_search="disabled"`,
+  `analytics.enabled=false`, `feedback.enabled=false`, OTel exporters set to
+  `"none"`, and `otel.log_user_prompt=false`.
+- Base hardening writes `shell_environment_policy.inherit="core"` and keeps
+  `shell_environment_policy.ignore_default_excludes=false` so spawned command
+  environments remain filtered for likely secrets.
+- Base hardening writes `features.apps=false`,
+  `features.codex_git_commit=false`, and `features.memories=false`.
+- `--allow-workspace-write`, `--allow-network`, `--allow-web-search`,
+  `--allow-live-web-search`, `--allow-login-shell`, `--allow-updates`,
+  `--allow-feedback`, `--allow-analytics`, `--allow-otel-metrics`,
+  `--allow-apps`, `--allow-codex-git-commit`, and `--allow-memories` write
+  explicit relaxed values.
+- A managed path that collides with a non-table value, e.g.,
+  `analytics = true`, is rejected with a clear error.
+- Invalid TOML is rejected with a clear error.
+- Directory and unreadable-file targets are rejected with a clear error rather
+  than a traceback.
+- A symlinked config path updates the target file and preserves the symlink.
+- A dangling symlinked config path creates the missing target file and
+  preserves the symlink.
+- A second write against an already-hardened file is a semantic no-op and does
+  not create a backup.
+- The default target respects `CODEX_HOME`.
+- TOML date, time, datetime, and empty-list values remain valid after a write.
+- Comments and formatting are not preserved on a write that changes values.
