@@ -134,7 +134,7 @@ Verdict definitions:
 - **SOURCE-UNREACHABLE** — the source could not be retrieved (404, paywall, rate-limited, etc.); no verdict is possible
 - **OFF-TOPIC** — the source does not address the claim at all
 
-Keep responses tight. The verdict is the load-bearing output; everything else exists so the requestor can audit the judgment. **If you used any inline label (e.g., `[CITED]`, `[TRAINING DATA]`) anywhere in the response, the `Label Definitions` line in the template above is required, not optional** — see `<label_use>`.
+Keep responses brief. The verdict is the load-bearing output; everything else exists so the requestor can audit the judgment. **If you used any inline label (e.g., `[CITED]`, `[TRAINING DATA]`) anywhere in the response, the `Label Definitions` line in the template above is required, not optional** — see `<label_use>`.
 </output_format>
 
 <label_use>

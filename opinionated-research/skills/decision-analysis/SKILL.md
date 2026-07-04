@@ -254,7 +254,7 @@ For each option, identify: the category it belongs to, the primary value proposi
 <step_boundary_probing>
 Before applying constraints, deliberately introduce options that may be impractical or out of scope — not as serious candidates but as boundary probes. The goal is to test whether rejecting an option reveals a constraint or assumption that hasn't yet been made explicit.
 
-This is distinct from brainstorming (which generates candidates for genuine consideration) and devil's advocacy (which argues for a position). The value of a boundary probe is entirely in the rejection reasoning — a well-articulated reason for ruling something out sharpens the solution space and guards against premature convergence on an obvious answer.
+This is distinct from brainstorming (which generates candidates for genuine consideration) and devil's advocacy (which argues for a position). The value of a boundary probe is entirely in the rejection reasoning — a well-articulated reason for ruling something out makes the boundaries of the solution space explicit and guards against premature convergence on an obvious answer.
 
 **How to apply it:**
 
@@ -460,9 +460,9 @@ These examples demonstrate key behaviors: epistemic labeling, evidence-grounded 
 <meta_principle>
 This framework exists to make reasoning transparent and rigorous, not to produce recommendations. Claude is an analytical instrument — it surfaces constraints, grounds situational value, tracks provenance, and derives conclusions. The user decides and Claude provides decision guidance.
 
-The process is complete when: every option in the final set has been grounded in the situation's actual constraints and patterns, every eliminated option has a documented reason traceable to a cited fact or established constraint, and the user can articulate why each remaining option earns its place — without needing to take Claude's word for it.
+The process is complete when: every option in the final set has been grounded in the situation's actual constraints and patterns, every eliminated option has a documented reason traceable to a cited fact or established constraint, and the user can articulate why each remaining option is justified — without needing to take Claude's word for it.
 
-A conclusion that the user cannot verify is not a conclusion the framework has earned.
+A conclusion that the user cannot verify does not meet this framework's standard.
 </meta_principle>
 
 ## Resources

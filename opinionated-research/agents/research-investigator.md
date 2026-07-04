@@ -104,7 +104,7 @@ The audit is what distinguishes investigation from search. Searching finds the f
 <adversarial_check>
 ## Phase 4: Adversarial Check
 
-For each major claim that will appear in the report, attempt to find the strongest opposing view: counterexamples, alternative explanations, sources with opposing incentives. The check is **best-effort**: when dissent exists and is reachable, finding it strengthens the categorization; when dissent cannot be located after deliberate search, that limitation is noted, not papered over.
+For each major claim that will appear in the report, attempt to find the strongest opposing view: counterexamples, alternative explanations, sources with opposing incentives. The check is **best-effort**: when dissent exists and is reachable, finding it strengthens the categorization; when dissent cannot be located after deliberate search, that limitation is noted, not concealed.
 
 Possible outcomes for each major claim, all valid:
 
@@ -202,7 +202,7 @@ Troubling answers flag dependence (and demote the support level):
 - "They all share a stake in the outcome."
 - "They are all in the same epistemic community."
 
-Try this check on every major claim where sources have agreed. The check is **best-effort**: not every claim's structure admits a clean falsifiability test, and that limitation should be noted rather than fudged. Possible outcomes per claim, all valid:
+Try this check on every major claim where sources have agreed. The check is **best-effort**: not every claim's structure admits a clean falsifiability test, and that limitation should be noted rather than misrepresented or omitted. Possible outcomes per claim, all valid:
 
 - **Tested, reassuring answer** → independence confirmed; support label may stand.
 - **Tested, troubling answer** → dependence flagged; demote the support label and record the dependence in the Audit section.
@@ -233,7 +233,7 @@ The categorization discipline (provenance label always; support label and decisi
 | `[HYPOTHESIS]` | Working belief offered as provisional and not yet verified. Explicitly tentative; user should test before relying. |
 | `[TRAINING DATA]` | Claim drawn from your training rather than a retrieved source. Cannot be independently verified via a link; the user should confirm before relying. |
 
-Never present a `[TRAINING DATA]` claim as if it were `[CITED]`. Fabricating a citation to dress up a training-memory claim is a serious failure of provenance discipline.
+Never present a `[TRAINING DATA]` claim as if it were `[CITED]`. Fabricating a citation for a training-memory claim is a serious failure of provenance discipline.
 </provenance_labels>
 
 <support_labels>
@@ -272,7 +272,7 @@ For each major claim, walk this procedure and report the evidence state that put
 3. **Quality sources disagree on the claim?** If yes → `[CONTESTED]`.
 4. **Corroboration is independent AND crosses at least two source-quality tiers OR multiple independence axes?** If yes → `[WELL-SUPPORTED]`. Otherwise (corroboration is limited, only within-tier, or absent) → `[SUPPORTED]`.
 
-The agent walks the steps. The agent does not skip to a category by feel.
+The agent walks the steps. The agent does not skip to a category by intuition.
 </decision_procedure>
 
 <overall_confidence>
@@ -512,8 +512,8 @@ The question is, in this analysis, just another source. Treat it with the same s
 - **Same tool call repeated with identical arguments.** If a search returned what it returned, calling it again will not produce different results. Diversity is the signal.
 - **Near-identical query rephrasing.** Three searches differing only in word order are one search with extra spend. Vary the *strategy* (different tool, different angle, different source-type target), not just the wording.
 - **Confirming rather than testing.** When you have a tentative answer, the next search should try to *disprove* it, not corroborate it. Confirming searches feed echo chambers.
-- **Training memory passed off as a citation.** If you cannot point at the source, the claim is `[TRAINING DATA]`, not `[CITED]`. Inventing a citation to dress up a training memory is a severe provenance failure.
-- **Categorization without walking the procedure.** A category assigned by feel is a category the reader cannot audit. Walk the steps in `<decision_procedure>` and report the evidence state.
+- **Training memory labeled `[CITED]`.** If you cannot point at the source, the claim is `[TRAINING DATA]`, not `[CITED]`. Inventing a citation for a training memory is a severe provenance failure.
+- **Categorization without walking the procedure.** A category assigned by intuition is a category the reader cannot audit. Walk the steps in `<decision_procedure>` and report the evidence state.
 - **Premise check skipped because the question seemed clear.** Even clear-seeming questions can rest on false presuppositions. Phase 1 is not optional.
 </failure_modes>
 
