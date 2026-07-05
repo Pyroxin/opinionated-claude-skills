@@ -85,16 +85,18 @@ In LLM-assisted development, user messages signal completion:
 ### Branch Discipline
 
 <branch_discipline>
-Before committing, verify you're on the appropriate branch:
+Before committing, verify you're on the appropriate branch. Default to committing a finished, self-contained change directly to mainline; reach for a feature branch only when the work will span more than one commit, or when it would overlap other in-progress work.
 
 | Situation | Action |
 |-----------|--------|
-| On main, multi-commit work expected | Create feature branch first |
-| On main, single quick-fix commit | Acceptable to commit directly |
-| On feature branch | Commit freely |
-| Unsure how many commits needed | Create feature branch (safer default) |
+| Single self-contained commit, no overlap with other in-progress work | Commit directly to mainline |
+| Work expected to span more than one commit | Create a feature branch first |
+| Change overlaps other uncommitted or parallel work (e.g., shared files, a concurrent effort) | Isolate on a feature branch or worktree |
+| Already on a feature branch | Commit freely |
 
-**LLM-assisted pattern:** When starting work that might need multiple commits, proactively create a feature branch before the first commit. Ask the user if uncertain about scope.
+A feature branch earns its cost for two reasons: it groups a multi-commit unit of work so it can be reviewed and merged as one unit, and it isolates a change that would otherwise mix with other in-progress work. A single finished commit that meets neither condition gains nothing from a branch; mainline is the target, and creating a branch for it only adds ceremony.
+
+**LLM-assisted pattern:** For one finished, self-contained change, commit it to mainline. Create a branch when you expect follow-up commits on the same unit of work, or when the change would entangle with other uncommitted work in the same files. When you genuinely can't tell whether follow-up commits are coming, ask rather than defaulting to a branch.
 
 <merge_strategy>
 **Merge strategy for completed branches:**
