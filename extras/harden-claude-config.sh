@@ -3,7 +3,7 @@
 ###
 #   harden-claude-config.sh
 #
-#   Merge Claude Code privacy hardening into a settings.json. MERGES, never
+#   Merge Claude Code privacy and sandbox hardening into a settings.json. MERGES, never
 #   overwrites: existing settings and unrelated env vars are preserved; only the
 #   keys this tool manages are touched.
 #
@@ -23,12 +23,22 @@
 #     env:
 #       CLAUDE_CODE_ENABLE_TELEMETRY=0, DISABLE_TELEMETRY=1, DISABLE_ERROR_REPORTING=1,
 #       DISABLE_FEEDBACK_COMMAND=1, CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY=1,
-#       DISABLE_AUTOUPDATER=1, DO_NOT_TRACK=1, and the OTel SDK/exporters off with the
-#       content + identifier gates pinned disabled.
+#       DISABLE_AUTOUPDATER=1, DO_NOT_TRACK=1, CLAUDE_CODE_ENABLE_AUTO_MODE=0, and the
+#       OTel SDK/exporters off with the content + identifier gates pinned disabled.
 #     settings (top-level):
 #       skipWebFetchPreflight=true            don't send each fetched hostname to api.anthropic.com
 #       attribution={"commit":"","pr":"","sessionUrl":false}
 #                                               strip commit/PR/session attribution
+#     sandbox (managed one level deep, like env: sibling subkeys you add by hand,
+#     e.g. excludedCommands or network, survive re-runs; "credentials" is written
+#     as one unit and needs Claude Code >= 2.1.187):
+#       enabled=true                          OS-enforced Bash sandbox (macOS: Seatbelt;
+#                                             Linux/WSL2: bubblewrap + socat)
+#       autoAllowBashIfSandboxed=false        sandboxed commands still use the regular
+#                                             permission flow in every permission mode
+#       credentials.files                     read-deny ~/.ssh, ~/.aws, ~/.gnupg, ~/.netrc
+#                                             inside the sandbox; tools that need them fall
+#                                             back to an unsandboxed retry behind a prompt
 #
 #   RELAX flags:
 #     --allow-updates              env DISABLE_AUTOUPDATER=0. CLI + plugins auto-update.
@@ -41,6 +51,19 @@
 #                                  attribution.sessionUrl=false.
 #     --allow-session-attribution  Allow session URL attribution. Combine with
 #                                  --allow-model-attribution to use Claude Code's full default.
+#     --allow-auto-mode            env CLAUDE_CODE_ENABLE_AUTO_MODE=1: let the user cycle into
+#                                  the "auto" permission mode. The variable gates availability
+#                                  on Bedrock/Vertex/Foundry/gateway providers; on the Anthropic
+#                                  API auto mode is available regardless of it, and only managed
+#                                  settings (permissions.disableAutoMode) can forbid it there.
+#     --allow-sandbox-auto-allow   sandbox autoAllowBashIfSandboxed=true: sandboxed Bash runs
+#                                  without permission prompts in every permission mode (the
+#                                  sandbox's own auto-allow, independent of the "auto"
+#                                  permission mode). The base pins this false on every run, so
+#                                  use this flag rather than hand-editing to keep it true.
+#     --disable-sandbox            Pin sandbox.enabled=false. Other sandbox keys are left in
+#                                  place (inert while disabled). Overrides
+#                                  --allow-sandbox-auto-allow.
 #
 #     The "0" off-value relies on Claude Code's value parser — documented for sibling vars
 #     (CLAUDE_CODE_DISABLE_AUTO_MEMORY, CLAUDE_CODE_ENABLE_AWAY_SUMMARY), inferred for these.
@@ -95,6 +118,7 @@ CORE_ENV='{
   "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
   "DISABLE_AUTOUPDATER": "1",
   "DO_NOT_TRACK": "1",
+  "CLAUDE_CODE_ENABLE_AUTO_MODE": "0",
   "OTEL_SDK_DISABLED": "true",
   "OTEL_PROPAGATORS": "none",
   "OTEL_TRACES_EXPORTER": "none",
@@ -119,6 +143,24 @@ CORE_TOP='{
   "attribution": { "commit": "", "pr": "", "sessionUrl": false }
 }'
 
+# The Bash sandbox posture: OS-enforced boundaries with prompts still governed by
+# the permission mode (autoAllowBashIfSandboxed=false), and credential paths made
+# unreadable inside the sandbox — tools that need them fall back to an unsandboxed
+# retry behind a permission prompt. Merged one level deep (like env) so hand-added
+# sibling subkeys survive re-runs; "credentials" is replaced as one unit.
+CORE_SANDBOX='{
+  "enabled": true,
+  "autoAllowBashIfSandboxed": false,
+  "credentials": {
+    "files": [
+      { "path": "~/.ssh", "mode": "deny" },
+      { "path": "~/.aws", "mode": "deny" },
+      { "path": "~/.gnupg", "mode": "deny" },
+      { "path": "~/.netrc", "mode": "deny" }
+    ]
+  }
+}'
+
 # --- Parse arguments ----------------------------------------------------------
 do_write=0
 dry_run_explicit=0
@@ -128,6 +170,9 @@ allow_feedback=0
 allow_webfetch_preflight=0
 allow_model_attribution=0
 allow_session_attribution=0
+allow_auto_mode=0
+allow_sandbox_auto_allow=0
+disable_sandbox=0
 allow_only_plugin=0
 disable_nonessential=0
 enable_1h=0
@@ -143,6 +188,9 @@ while [ "$#" -gt 0 ]; do
     --allow-webfetch-preflight)     allow_webfetch_preflight=1 ;;
     --allow-model-attribution)      allow_model_attribution=1 ;;
     --allow-session-attribution)    allow_session_attribution=1 ;;
+    --allow-auto-mode)              allow_auto_mode=1 ;;
+    --allow-sandbox-auto-allow)     allow_sandbox_auto_allow=1 ;;
+    --disable-sandbox)              disable_sandbox=1 ;;
     --allow-only-plugin-updates)    allow_only_plugin=1 ;;
     --disable-nonessential-traffic) disable_nonessential=1 ;;
     --enable-1h-cache)              enable_1h=1 ;;
@@ -178,10 +226,12 @@ command -v jq >/dev/null 2>&1 || _die "jq is required but not found (macOS: brew
 # Everything else is additive; later values win, so re-runs are idempotent.
 ENV_SET="$CORE_ENV"
 TOP_SET="$CORE_TOP"
+SANDBOX_SET="$CORE_SANDBOX"
 TOP_UNSET='[]'
 
 _env() { ENV_SET="$(jq -n --argjson a "$ENV_SET" --argjson b "$1" '$a + $b')"; }
 _top() { TOP_SET="$(jq -n --argjson a "$TOP_SET" --argjson b "$1" '$a + $b')"; }
+_sandbox() { SANDBOX_SET="$(jq -n --argjson a "$SANDBOX_SET" --argjson b "$1" '$a + $b')"; }
 _top_del() {
   TOP_SET="$(jq --arg k "$1" 'del(.[$k])' <<<"$TOP_SET")"
   TOP_UNSET="$(jq -n --argjson a "$TOP_UNSET" --arg k "$1" '($a + [$k]) | unique')"
@@ -192,6 +242,11 @@ _top_del() {
 [ "$allow_only_plugin" -eq 1 ]        && _env '{"DISABLE_AUTOUPDATER": "1", "FORCE_AUTOUPDATE_PLUGINS": "1"}'
 [ "$enable_1h" -eq 1 ]                && _env '{"ENABLE_PROMPT_CACHING_1H": "1"}'
 [ "$allow_webfetch_preflight" -eq 1 ] && _top '{"skipWebFetchPreflight": false}'
+[ "$allow_auto_mode" -eq 1 ]          && _env '{"CLAUDE_CODE_ENABLE_AUTO_MODE": "1"}'
+[ "$allow_sandbox_auto_allow" -eq 1 ] && _sandbox '{"autoAllowBashIfSandboxed": true}'
+# Disabling the sandbox resets the managed subkeys to the pinned "off" alone, so it
+# overrides --allow-sandbox-auto-allow; hand-added sandbox subkeys still merge through.
+[ "$disable_sandbox" -eq 1 ]          && SANDBOX_SET='{"enabled": false}'
 
 if [ "$allow_model_attribution" -eq 1 ] && [ "$allow_session_attribution" -eq 1 ]; then
   _top_del 'attribution'
@@ -237,7 +292,12 @@ env_type="$(printf '%s' "$current" | jq -r '.env | type')"
 [ "$env_type" = "object" ] || [ "$env_type" = "null" ] \
   || _die "existing .env is a $env_type, not an object; refusing to merge"
 
+sandbox_type="$(printf '%s' "$current" | jq -r '.sandbox | type')"
+[ "$sandbox_type" = "object" ] || [ "$sandbox_type" = "null" ] \
+  || _die "existing .sandbox is a $sandbox_type, not an object; refusing to merge"
+
 current_env="$(printf '%s' "$current" | jq -c '.env // {}')"
+current_sandbox="$(printf '%s' "$current" | jq -c '.sandbox // {}')"
 
 # --- Report the diff ----------------------------------------------------------
 # Emits "+ added", "~ changed: old -> new", "= unchanged", "- removed" per key.
@@ -253,6 +313,8 @@ _diff_set() {  # $1 = current object, $2 = desired SET object, $3 = indent
 _info "Hardening changes for $target:"
 _info "  env:"
 _diff_set "$current_env" "$ENV_SET" "    "
+_info "  sandbox:"
+_diff_set "$current_sandbox" "$SANDBOX_SET" "    "
 _info "  settings:"
 _diff_set "$current" "$TOP_SET" "    "
 jq -nr --argjson cur "$current" --argjson unset "$TOP_UNSET" '
@@ -260,8 +322,9 @@ jq -nr --argjson cur "$current" --argjson unset "$TOP_UNSET" '
 
 # --- Merge (set env + top-level keys, delete relaxed top-level keys) ----------
 merged="$(printf '%s' "$current" | jq \
-  --argjson env "$ENV_SET" --argjson top "$TOP_SET" --argjson unset "$TOP_UNSET" '
+  --argjson env "$ENV_SET" --argjson top "$TOP_SET" --argjson sandbox "$SANDBOX_SET" --argjson unset "$TOP_UNSET" '
   .env = ((.env // {}) + $env)
+  | .sandbox = ((.sandbox // {}) + $sandbox)
   | . += $top
   | reduce $unset[] as $k (.; del(.[$k]))
 ')"
