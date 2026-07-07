@@ -3,7 +3,7 @@
 ###
 #   harden-claude-config.sh
 #
-#   Merge Claude Code privacy and sandbox hardening into a settings.json. MERGES, never
+#   Merge Claude Code privacy, sandbox, and permission hardening into a settings.json. MERGES, never
 #   overwrites: existing settings and unrelated env vars are preserved; only the
 #   keys this tool manages are touched.
 #
@@ -39,6 +39,12 @@
 #       credentials.files                     read-deny ~/.ssh, ~/.aws, ~/.gnupg, ~/.netrc
 #                                             inside the sandbox; tools that need them fall
 #                                             back to an unsandboxed retry behind a prompt
+#     permissions.ask (additive: missing entries are appended; the existing list, its
+#     order, and the allow/deny arrays are never touched):
+#       Bash(git push), Bash(git push *)      every git push prompts for approval, in every
+#                                             permission mode — ask rules bind auto mode,
+#                                             bypassPermissions, and sandbox auto-allow
+#                                             alike, and win over any matching allow rule
 #
 #   RELAX flags:
 #     --allow-updates              env DISABLE_AUTOUPDATER=0. CLI + plugins auto-update.
@@ -148,6 +154,15 @@ CORE_TOP='{
 # unreadable inside the sandbox — tools that need them fall back to an unsandboxed
 # retry behind a permission prompt. Merged one level deep (like env) so hand-added
 # sibling subkeys survive re-runs; "credentials" is replaced as one unit.
+# Ask rules the base appends to permissions.ask. Ask rules prompt in every
+# permission mode (including auto and bypassPermissions) and take precedence
+# over matching allow rules, so these hold even when everything else is
+# auto-approved. Additive: existing entries and order are preserved.
+CORE_ASK='[
+  "Bash(git push)",
+  "Bash(git push *)"
+]'
+
 CORE_SANDBOX='{
   "enabled": true,
   "autoAllowBashIfSandboxed": false,
@@ -227,6 +242,7 @@ command -v jq >/dev/null 2>&1 || _die "jq is required but not found (macOS: brew
 ENV_SET="$CORE_ENV"
 TOP_SET="$CORE_TOP"
 SANDBOX_SET="$CORE_SANDBOX"
+ASK_SET="$CORE_ASK"
 TOP_UNSET='[]'
 
 _env() { ENV_SET="$(jq -n --argjson a "$ENV_SET" --argjson b "$1" '$a + $b')"; }
@@ -296,8 +312,17 @@ sandbox_type="$(printf '%s' "$current" | jq -r '.sandbox | type')"
 [ "$sandbox_type" = "object" ] || [ "$sandbox_type" = "null" ] \
   || _die "existing .sandbox is a $sandbox_type, not an object; refusing to merge"
 
+perm_type="$(printf '%s' "$current" | jq -r '.permissions | type')"
+[ "$perm_type" = "object" ] || [ "$perm_type" = "null" ] \
+  || _die "existing .permissions is a $perm_type, not an object; refusing to merge"
+
+ask_type="$(printf '%s' "$current" | jq -r '.permissions.ask | type')"
+[ "$ask_type" = "array" ] || [ "$ask_type" = "null" ] \
+  || _die "existing .permissions.ask is a $ask_type, not an array; refusing to merge"
+
 current_env="$(printf '%s' "$current" | jq -c '.env // {}')"
 current_sandbox="$(printf '%s' "$current" | jq -c '.sandbox // {}')"
+current_ask="$(printf '%s' "$current" | jq -c '.permissions.ask // []')"
 
 # --- Report the diff ----------------------------------------------------------
 # Emits "+ added", "~ changed: old -> new", "= unchanged", "- removed" per key.
@@ -311,10 +336,20 @@ _diff_set() {  # $1 = current object, $2 = desired SET object, $3 = indent
 }
 
 _info "Hardening changes for $target:"
+_diff_rules() {  # $1 = current array, $2 = desired array, $3 = indent
+  jq -nr --argjson cur "$1" --argjson want "$2" --arg pad "$3" '
+    $want[] as $r
+    | if ($cur | index($r)) != null then "\($pad)= \($r) (already present)"
+      else                               "\($pad)+ \($r)"
+      end'
+}
+
 _info "  env:"
 _diff_set "$current_env" "$ENV_SET" "    "
 _info "  sandbox:"
 _diff_set "$current_sandbox" "$SANDBOX_SET" "    "
+_info "  permissions.ask:"
+_diff_rules "$current_ask" "$ASK_SET" "    "
 _info "  settings:"
 _diff_set "$current" "$TOP_SET" "    "
 jq -nr --argjson cur "$current" --argjson unset "$TOP_UNSET" '
@@ -322,9 +357,11 @@ jq -nr --argjson cur "$current" --argjson unset "$TOP_UNSET" '
 
 # --- Merge (set env + top-level keys, delete relaxed top-level keys) ----------
 merged="$(printf '%s' "$current" | jq \
-  --argjson env "$ENV_SET" --argjson top "$TOP_SET" --argjson sandbox "$SANDBOX_SET" --argjson unset "$TOP_UNSET" '
+  --argjson env "$ENV_SET" --argjson top "$TOP_SET" --argjson sandbox "$SANDBOX_SET" \
+  --argjson ask "$ASK_SET" --argjson unset "$TOP_UNSET" '
   .env = ((.env // {}) + $env)
   | .sandbox = ((.sandbox // {}) + $sandbox)
+  | .permissions.ask = ((.permissions.ask // []) + ($ask - (.permissions.ask // [])))
   | . += $top
   | reduce $unset[] as $k (.; del(.[$k]))
 ')"
