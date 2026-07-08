@@ -36,6 +36,10 @@
 #                                             Linux/WSL2: bubblewrap + socat)
 #       autoAllowBashIfSandboxed=false        sandboxed commands still use the regular
 #                                             permission flow in every permission mode
+#       failIfUnavailable=true                fail closed: refuse to start Claude Code when
+#                                             the sandbox can't initialize (e.g. missing
+#                                             bubblewrap/socat on Linux), instead of the
+#                                             default warn-and-run-unsandboxed
 #       credentials.files                     read-deny ~/.ssh, ~/.aws, ~/.gnupg, ~/.netrc
 #                                             inside the sandbox; tools that need them fall
 #                                             back to an unsandboxed retry behind a prompt
@@ -67,9 +71,13 @@
 #                                  sandbox's own auto-allow, independent of the "auto"
 #                                  permission mode). The base pins this false on every run, so
 #                                  use this flag rather than hand-editing to keep it true.
+#     --allow-unsandboxed-start    sandbox failIfUnavailable=false: when the sandbox can't
+#                                  initialize, warn and run unsandboxed (the product default)
+#                                  instead of refusing to start. For machines where the
+#                                  sandbox dependencies can't be installed.
 #     --disable-sandbox            Pin sandbox.enabled=false. Other sandbox keys are left in
-#                                  place (inert while disabled). Overrides
-#                                  --allow-sandbox-auto-allow.
+#                                  place (inert while disabled). Overrides the other sandbox
+#                                  flags.
 #
 #     The "0" off-value relies on Claude Code's value parser — documented for sibling vars
 #     (CLAUDE_CODE_DISABLE_AUTO_MEMORY, CLAUDE_CODE_ENABLE_AWAY_SUMMARY), inferred for these.
@@ -166,6 +174,7 @@ CORE_ASK='[
 CORE_SANDBOX='{
   "enabled": true,
   "autoAllowBashIfSandboxed": false,
+  "failIfUnavailable": true,
   "credentials": {
     "files": [
       { "path": "~/.ssh", "mode": "deny" },
@@ -187,6 +196,7 @@ allow_model_attribution=0
 allow_session_attribution=0
 allow_auto_mode=0
 allow_sandbox_auto_allow=0
+allow_unsandboxed_start=0
 disable_sandbox=0
 allow_only_plugin=0
 disable_nonessential=0
@@ -205,6 +215,7 @@ while [ "$#" -gt 0 ]; do
     --allow-session-attribution)    allow_session_attribution=1 ;;
     --allow-auto-mode)              allow_auto_mode=1 ;;
     --allow-sandbox-auto-allow)     allow_sandbox_auto_allow=1 ;;
+    --allow-unsandboxed-start)      allow_unsandboxed_start=1 ;;
     --disable-sandbox)              disable_sandbox=1 ;;
     --allow-only-plugin-updates)    allow_only_plugin=1 ;;
     --disable-nonessential-traffic) disable_nonessential=1 ;;
@@ -260,8 +271,9 @@ _top_del() {
 [ "$allow_webfetch_preflight" -eq 1 ] && _top '{"skipWebFetchPreflight": false}'
 [ "$allow_auto_mode" -eq 1 ]          && _env '{"CLAUDE_CODE_ENABLE_AUTO_MODE": "1"}'
 [ "$allow_sandbox_auto_allow" -eq 1 ] && _sandbox '{"autoAllowBashIfSandboxed": true}'
+[ "$allow_unsandboxed_start" -eq 1 ]  && _sandbox '{"failIfUnavailable": false}'
 # Disabling the sandbox resets the managed subkeys to the pinned "off" alone, so it
-# overrides --allow-sandbox-auto-allow; hand-added sandbox subkeys still merge through.
+# overrides the other sandbox flags; hand-added sandbox subkeys still merge through.
 [ "$disable_sandbox" -eq 1 ]          && SANDBOX_SET='{"enabled": false}'
 
 if [ "$allow_model_attribution" -eq 1 ] && [ "$allow_session_attribution" -eq 1 ]; then
