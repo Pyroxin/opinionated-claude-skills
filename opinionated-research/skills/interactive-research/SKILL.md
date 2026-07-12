@@ -16,10 +16,7 @@ allowed-tools:
   - WebFetch
   - mcp__exa__web_search_exa
   - mcp__exa__web_search_advanced_exa
-  - mcp__exa__get_code_context_exa
-  - mcp__exa__company_research_exa
-  - mcp__exa__crawling_exa
-  - mcp__exa__people_search_exa
+  - mcp__exa__web_fetch_exa
   - mcp__kagi__kagi_search_fetch
   - mcp__kagi__kagi_extract
   - mcp__kagi__kagi_summarizer
@@ -303,7 +300,7 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
    - Sources cited by multiple specialists or central to a cross-cutting pattern
    - Sources you expect to quote, interpret, or use to adjudicate a conflict
 
-   Use `WebFetch`, `mcp__kagi__kagi_extract` (privacy-preserving, returns markdown), `mcp__exa__crawling_exa`, or `Read` (for local files).
+   Use a full-fidelity reader — `mcp__kagi__kagi_extract` (privacy-preserving, returns the page as markdown), `mcp__exa__web_fetch_exa` (give it a large `maxCharacters`; the default truncates), `curl` via Bash for the raw page, or `Read` for local files. Avoid `WebFetch` here: it returns a small model's lossy answer over the page, not the source text you need to draft from.
 
    **Distribute the report's essential claim-citation pairs across parallel fact-checker invocations.** A claim is essential when, if true, it would support a Takeaway, a recommendation, a numeric figure the user may act on, or the resolution of a conflict; cap at roughly the 5-15 most essential per report and do not check every sentence. Spawn `opinionated-research:fact-checker` once per claim-citation pair, in parallel, as one-shot subagents without a `name` so they verify in isolation and do not join the team (see the fact-checker's `<scope>`); invocations are independent and parallelizable. Prioritize:
 
@@ -312,6 +309,13 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
    - Any claim where the specialist cited a source without including excerpted text or specific page/section detail
 
    Each verdict costs you a short block rather than a fetched page, so check broadly. Act on verdicts mechanically: `CONTRADICTS` or `OFF-TOPIC` → `SendMessage` the specialist to reconcile and update support labels; `PARTIAL` or `UNCLEAR` → downgrade or reconcile; `SOURCE-UNREACHABLE` → downgrade the claim and note the verification failure in the Sources section.
+
+   **Label-suspicion triggers.** Beyond the essential claims above, some patterns signal that a support label is likely wrong; each warrants a check — a fact-check, a message to the specialist, or a direct relabel — and several are visible only to you, holding every report at once:
+
+   - A `[WELL-SUPPORTED]` claim carrying a single citation, or whose citations are all secondary sources: the label needs independent corroboration or a directly-quoted primary authoritative for the claim (the agents' `<support_labels>`), so verify the missing corroboration or have it downgraded to `[SUPPORTED]`.
+   - A `[WELL-SUPPORTED]` empirical claim about the world resting on a single study, survey, or benchmark: one observation is not corroboration; downgrade to `[SUPPORTED]` unless an independent source replicates it.
+   - The same source, author, or organization cited across many claims or by multiple specialists: over-reliance a single specialist cannot see; check whether the convergence is real independent corroboration or one upstream voice repeated, and demote labels that rest on the repetition.
+   - A claim one specialist marks well-supported that another specialist's report contradicts: a cross-report conflict only you see; reconcile it to `[CONTESTED]` (or resolve it, naming the better-supported side) rather than letting the confident label stand.
 
    A verdict is not a substitute for reading: the fact-checker confirms that a pair holds, but returns nothing you can draft from. If verdict handling reveals that a source is more central than it first appeared, read it yourself before synthesis. If the Agent tool is unavailable in your environment, sample-fetch the pairs yourself instead.
 
@@ -335,6 +339,8 @@ Write the initial deliverable. This is the phase that justifies the orchestratio
 The synthesis should be substantially more than concatenated specialist reports. Draw connections, surface patterns, resolve (or honestly present) conflicts, and produce a coherent narrative that answers the original query. Specialists are still active in the team — if synthesis reveals a need for further specialist input, query them rather than drafting prose that avoids the gap.
 
 **Post-draft verification pass.** After drafting and before presenting, send the draft's essential claim-citation pairs to `opinionated-research:fact-checker` — as worded in the draft, not as worded in the specialist reports. This is the end-to-end check on the relay chain (source → specialist report → synthesis): drift introduced by your own summarizing is invisible to the Phase 5 checks, which ran before the draft existed. Handle verdicts as in Phase 5 step 6, recording them and correcting the draft or reconciling with the specialist before the report reaches the user. Do not present the report until this pass has run and its verdicts are handled.
+
+**Post-draft specialist review.** Send each resident specialist the whole draft — not just the portion drawing on its subtopic. Seeing its material inside the larger synthesis is the point: it can judge whether its findings are represented faithfully once combined with everyone else's, and cross-check the rest of the report against what it knows. Ask for a two-part review against the evidence it already gathered: (1) correctness — is anything drawn from its findings, or any cross-cutting claim it has grounds to judge, misrepresented, overstated, or stripped of a caveat? (2) completeness — is there detail, qualification, or context it holds that the synthesis needs but its report didn't fully convey? The specialists retain the lower-level evidence you synthesized from summaries of, so this catches both where the synthesis is wrong and where your reading lost detail they never fully communicated — a check neither the fact-checker (which tests claim-citation pairs) nor Codex (which reads as an outside model) can make. A specialist answers most of this from evidence in hand, but where the review exposes a genuine gap the synthesis needs, expect it to fill that gap with targeted research rather than only flag it — treat a response that re-reads a source at higher fidelity, seeks further corroboration, or opens a short new line of inquiry as legitimate; only a wholesale re-investigation that discards sound work is out of scope. Reconcile each response as in Phase 5 step 6: correct the draft, push back with reasoning where the specialist is mistaken, and record the disposition in the verification record so the Confidence Assessment reflects it. Keep it to one review round per specialist plus reconciliation.
 
 **Post-draft cross-model review (when Codex is available).** Also run one Codex review of the synthesized draft per `<cross_model_review>`: write the draft to a file and spawn `codex:codex-rescue` with a read-only review request pointed at it. Codex reviews the synthesis as written — a different model family reading your own summarizing — so it checks the relay chain for the same-family blind spots the Claude passes share. Reconcile disputed verdicts against primary sources, revise the draft, record the verdicts in the verification record, and note in the Confidence Assessment that a cross-model pass ran and what it changed. When Codex is unavailable, note that instead and present the Claude-verified draft.
 
