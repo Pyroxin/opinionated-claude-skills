@@ -11,17 +11,23 @@ set -euo pipefail
 #   output_dir: Directory for ZIP files (default: dist)
 #
 # Environment variables:
-#   BUILD_VERSION: Version string to inject (e.g., "20251129-173045.a1b2c3d")
+#   BUILD_VERSION: Version string used in the ZIP filename (e.g., "20251129-173045.a1b2c3d")
 #                  If not set, generates from current timestamp and git SHA
 #
 # Output format: plugin.skill.VERSION.zip
-# Each skill is packaged as:
+# Each skill ships as its whole source directory:
 #   skill-name/
-#   ├── SKILL.md  (with version injected into frontmatter)
-#   └── resources/  (if present)
+#   ├── SKILL.md
+#   └── every other file the skill bundles
 
 OUTPUT_DIR="${1:-dist}"
 mkdir -p "$OUTPUT_DIR"
+
+# Resolve the output directory to an absolute path once. The packaging step runs
+# from inside each skill's parent directory so that the ZIP's entries are rooted
+# at the skill name; a relative output path would otherwise resolve against that
+# directory rather than the caller's.
+OUTPUT_ABS="$(cd "$OUTPUT_DIR" && pwd)"
 
 # Generate version if not provided
 if [[ -z "${BUILD_VERSION:-}" ]]; then
@@ -48,20 +54,38 @@ for plugin_dir in */; do
 
     zip_name="${plugin_name}.${skill_name}.${BUILD_VERSION}.zip"
 
-    # Create temp structure and package in a subshell so trap cleanup is scoped
-    (
-      temp_dir=$(mktemp -d)
-      trap 'rm -rf "$temp_dir"' EXIT
+    # Remove any existing archive first. zip updates an archive in place rather
+    # than replacing it, so a rebuild after a file is deleted from a skill would
+    # otherwise keep shipping the deleted file.
+    rm -f "${OUTPUT_ABS}/${zip_name}"
 
-      mkdir -p "${temp_dir}/${skill_name}"
-      cp "${skill_dir}SKILL.md" "${temp_dir}/${skill_name}/SKILL.md"
-
-      if [[ -d "${skill_dir}resources" ]]; then
-        cp -r "${skill_dir}resources" "${temp_dir}/${skill_name}/"
-      fi
-
-      cd "$temp_dir" && zip -rq "${OLDPWD}/${OUTPUT_DIR}/${zip_name}" "${skill_name}"
-    )
+    # Package the skill's whole directory. Enumerating a fixed set of "standard"
+    # subdirectory names silently drops anything a skill bundles under any other
+    # name, so the directory itself is the unit that ships.
+    #
+    # Which files count as source is delegated to git, so .gitignore stays the
+    # single definition of what is not: Emacs backups, autosave and swap files,
+    # and OS metadata are all listed there already, and this script does not
+    # maintain a competing list that would drift from it. The file set is the
+    # union of tracked files and untracked-but-not-ignored ones, so a reference
+    # file added to a skill but not yet `git add`ed still ships in a local test
+    # build -- listing tracked files alone would reintroduce the silent-drop
+    # failure this change exists to remove.
+    #
+    # This reads git state only; the working tree is never modified. Outside a
+    # git checkout (an extracted source archive, say) there is no ignore
+    # information to consult, so the directory ships as-is.
+    if git rev-parse --git-dir >/dev/null 2>&1; then
+      (
+        cd "${plugin_dir}skills" &&
+          {
+            git ls-files -- "$skill_name"
+            git ls-files --others --exclude-standard -- "$skill_name"
+          } | zip -q "${OUTPUT_ABS}/${zip_name}" -@
+      )
+    else
+      (cd "${plugin_dir}skills" && zip -rq "${OUTPUT_ABS}/${zip_name}" "$skill_name")
+    fi
 
     echo "Built: ${zip_name}"
     count=$((count + 1))
