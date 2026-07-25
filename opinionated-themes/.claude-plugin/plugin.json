@@ -1,0 +1,11 @@
+{
+  "name": "opinionated-themes",
+  "description": "Color themes for the Claude Code terminal UI, tuned for high contrast and for legibility under warm-shift filters such as macOS Night Shift and Redshift. Themes are an experimental plugin component, so the file format may change between releases.",
+  "author": {
+    "name": "Pyroxin",
+    "email": "3385984+Pyroxin@users.noreply.github.com",
+    "url": "https://github.com/Pyroxin"
+  },
+  "repository": "https://github.com/Pyroxin/opinionated-claude-skills",
+  "license": "EPL-2.0"
+}

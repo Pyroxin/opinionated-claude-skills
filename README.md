@@ -147,6 +147,17 @@ For when I want Claude to teach me instead of generate for me. It runs Socratic 
 |-----------|-------------|
 | `socratic-tutor` | Pedagogical framework for teaching programming through Socratic dialogue |
 
+### opinionated-themes
+
+The only plugin that ships no instructions for Claude. Themes are a plugin component like skills and agents, so a marketplace can vend terminal color schemes the same way it vends skills. Both themes target high contrast and remain legible under warm-shift filters such as macOS Night Shift and Redshift, which reduce blue output and flatten the contrast of blue-heavy palettes. Claude Code only; Claude Desktop has no theme equivalent to package.
+
+| Component | Description |
+|-----------|-------------|
+| `adwaita-inspired-light` | Full light palette drawing on the GNOME Adwaita colors |
+| `nightshift-safe` | Minimal variant: the stock light theme with only the suggestion color corrected |
+
+Plugin themes are read-only. Select one in `/theme` and press `Ctrl+E` to copy it into `~/.claude/themes/`, then edit your copy. Themes are currently an experimental plugin component, so the JSON format may change between Claude Code releases.
+
 ## License
 
 Copyright (c) 2025-2026 Pyroxin and contributors. Third-party content remains the property of its respective copyright holders.

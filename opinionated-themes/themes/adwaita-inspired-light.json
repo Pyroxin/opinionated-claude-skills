@@ -1,0 +1,15 @@
+{
+  "name": "Adwaita-Inspired Light",
+  "base": "light",
+  "overrides": {
+    "text": "#1d1d20",
+    "claude": "#a347ba",
+    "claudeShimmer": "#c061cb",
+    "success": "#26a269",
+    "error": "#c01c28",
+    "warning": "#e66100",
+    "permission": "#2a7bde",
+    "planMode": "#2aa1b3",
+    "suggestion": "#b45309"
+  }
+}

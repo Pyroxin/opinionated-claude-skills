@@ -17,6 +17,7 @@
     { "name": "opinionated-fish-shell", "source": "./opinionated-fish-shell" },
     { "name": "opinionated-skill-creation", "source": "./opinionated-skill-creation" },
     { "name": "opinionated-tutoring", "source": "./opinionated-tutoring" },
-    { "name": "opinionated-research", "source": "./opinionated-research" }
+    { "name": "opinionated-research", "source": "./opinionated-research" },
+    { "name": "opinionated-themes", "source": "./opinionated-themes" }
   ]
 }

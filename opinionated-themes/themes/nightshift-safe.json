@@ -1,0 +1,7 @@
+{
+  "name": "Night Shift Safe",
+  "base": "light",
+  "overrides": {
+    "suggestion": "#b45309"
+  }
+}
