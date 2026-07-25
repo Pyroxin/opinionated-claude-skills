@@ -69,6 +69,28 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
+# --- Portable temp-directory root ---
+# Every mktemp call in this repo passes an absolute template. The bare forms
+# (`mktemp -d`, `mktemp`) diverge across the two platforms this repo targets:
+#
+#   GNU coreutils: with no TEMPLATE, uses tmp.XXXXXXXXXX and implies --tmpdir,
+#     so $TMPDIR is honored.
+#   macOS (BSD):   "If no arguments are passed or if only the -d flag is passed
+#     mktemp behaves as if -t tmp was supplied", and -t resolves against the
+#     _CS_DARWIN_USER_TEMP_DIR confstr *before* falling back to $TMPDIR.
+#
+# The macOS precedence is the problem: a caller that redirects $TMPDIR -- a
+# sandbox, a CI runner, a test harness -- is silently ignored, and mktemp writes
+# to /var/folders/... instead, which fails outright when that path is not
+# writable. An absolute template bypasses both fallback paths and resolves
+# identically on GNU and BSD.
+#
+# -p cannot serve this purpose: GNU documents that "With this option, TEMPLATE
+# must not be an absolute name", so -p and an absolute template are mutually
+# exclusive there. Ten X's clears GNU's three-X minimum (BSD accepts one).
+tmp_root="${TMPDIR:-/tmp}"
+tmp_root="${tmp_root%/}"
+
 # --- Step 1: Prepare an isolated environment (full mode only) ---
 # Redirect CLAUDE_CONFIG_DIR to a throwaway directory before any `claude plugin`
 # or `claude plugin validate` call. CLAUDE_CONFIG_DIR governs the CLI's
@@ -103,7 +125,7 @@ fi
 # inline form sidesteps that across versions.
 
 if [[ "$VALIDATE_ONLY" == "false" ]]; then
-  ISOLATED_CONFIG="$(mktemp -d)"
+  ISOLATED_CONFIG="$(mktemp -d "${tmp_root}/claude-marketplace-config.XXXXXXXXXX")"
   trap '[[ -n "${ISOLATED_CONFIG:-}" ]] && rm -rf "$ISOLATED_CONFIG"' EXIT
   trap 'exit 130' INT
   trap 'exit 143' TERM
@@ -259,6 +281,28 @@ for ((i = 0; i < plugin_count; i++)); do
     fi
   done < <(find "${plugin_dir}/commands" -name "*.md" -type f -print0 2>/dev/null)
 
+  # Auto-discover themes (themes/<name>.json)
+  #
+  # Themes are an experimental plugin component, so Claude Code may change their
+  # manifest schema between releases. Check only what a theme needs in order to
+  # load and be selectable -- parseable JSON, plus a non-empty `name` (the label
+  # in /theme) and `base` (the preset the overrides apply to). The `overrides`
+  # map is deliberately not inspected: its color-token vocabulary is Anthropic's
+  # to define and grows with the UI, so validating it here would turn every
+  # upstream token addition into a spurious local failure.
+  while IFS= read -r -d '' theme_json; do
+    theme_name=$(basename "$theme_json" .json)
+    if ! jq empty "$theme_json" 2>/dev/null; then
+      error "${plugin_name}: theme is invalid JSON at ${theme_json}"
+    elif [[ -z "$(jq -r '.name // empty' "$theme_json")" ]]; then
+      error "${plugin_name}: theme ${theme_name} has no 'name'"
+    elif [[ -z "$(jq -r '.base // empty' "$theme_json")" ]]; then
+      error "${plugin_name}: theme ${theme_name} has no 'base'"
+    else
+      info "  theme ${theme_name}: OK"
+    fi
+  done < <(find "${plugin_dir}/themes" -name "*.json" -type f -print0 2>/dev/null)
+
   # Check hooks.json if present
   hooks_file="${plugin_dir}/hooks/hooks.json"
   if [[ -f "$hooks_file" ]]; then
@@ -281,7 +325,7 @@ echo "Running shellcheck..."
 # `set -e` a process substitution discards that status, letting a broken
 # traversal yield an empty list that masquerades as "shellcheck clean". find's
 # stderr is left unredirected so the underlying error is also visible.
-scripts_list=$(mktemp)
+scripts_list=$(mktemp "${tmp_root}/claude-marketplace-scripts.XXXXXXXXXX")
 if ! find "$PROJECT_DIR" \( -name '*.sh' -o -path '*/git-hooks/*' \) -type f -print0 > "$scripts_list"; then
   error "Failed to enumerate shell scripts under ${PROJECT_DIR}"
 fi
