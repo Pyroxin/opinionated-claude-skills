@@ -57,7 +57,7 @@ Each plugin tracks a need I hit while tinkering in my homelab so there's an emph
 
 ### opinionated-software-engineering
 
-This is the foundation. SICP-derived design principles, paradigm guidance for functional, object-oriented, and logic programming, and two cross-cutting process skills for TDD and Git. Most other plugins lean on this for shared coding judgment.
+The foundation plugin. SICP-derived design principles, paradigm guidance for functional, object-oriented, and logic programming, and two cross-cutting process skills for TDD and Git. Most other plugins depend on it for shared coding judgment.
 
 | Component | Description |
 |-----------|-------------|
@@ -70,7 +70,7 @@ This is the foundation. SICP-derived design principles, paradigm guidance for fu
 
 ### opinionated-research
 
-Built while looking for a better way to have Claude investigate a topic than a single long search pass or delegating to external research agents. Two complementary research agents feed the `interactive-research` orchestration skill, which runs multi-source investigation through a persistent agent team (and supports research extensions after the primary task). The `decision-analysis` skill structures option evaluation and supplies the epistemic-label and citation discipline the research agents share. Anecdotally, the combination of explicit decomposition, structured analysis, and adversarial reasoning substantially improves the result.
+An alternative to investigating a topic through a single long search pass or by delegating to an external research agent. Two complementary research agents feed the `interactive-research` orchestration skill, which runs multi-source investigation through a persistent agent team (and supports research extensions after the primary task). The `decision-analysis` skill structures option evaluation and supplies the epistemic-label and citation discipline the research agents share. Combining explicit decomposition, structured analysis, and adversarial reasoning substantially improves the result, on anecdotal evidence.
 
 | Component | Description |
 |-----------|-------------|
@@ -79,11 +79,11 @@ Built while looking for a better way to have Claude investigate a topic than a s
 | `interactive-research` | Orchestration skill that coordinates specialist agents as a team |
 | `decision-analysis` | Structured framework for evaluating options against criteria, with the epistemic-label scheme the research agents inherit |
 
-NOTE: These skills work best if you add the Kagi and Exa MCP servers to your configuration! AWS' documentation servers are also integrated since I mostly use AWS as my cloud provider.
+Note: these skills work best with the Kagi and Exa MCP servers added to the configuration. AWS' documentation servers are also integrated, AWS being the cloud provider these skills were built against.
 
 ### opinionated-skill-creation
 
-The `expert-skill-creator` skill was developed by having Claude reflect on the process of creating and tuning the other skills. It's regularly updated with guidance for how to prompt Claude Sonnet and Opus effectively, and it captures patterns I've found around content depth, XML structure, directive tone, and citation practices, so each new skill can benefit from what the previous ones taught me.
+The `expert-skill-creator` skill was developed by having Claude reflect on the process of creating and tuning the other skills. It is updated regularly with guidance on prompting Claude-family models effectively, and it captures accumulated patterns around content depth, XML structure, directive tone, and citation practices, so each new skill benefits from what the previous ones established.
 
 | Component | Description |
 |-----------|-------------|
@@ -91,7 +91,7 @@ The `expert-skill-creator` skill was developed by having Claude reflect on the p
 
 ### opinionated-apple-development
 
-The Swift community has noted that Claude has trouble writing effective Swift code, especially for Swift concurrency which launched after some of the more-recent models' knowledge cutoff dates. This skill aims to address that deficiency, so it's more instructive and less philosophical than the other ones. macOS coverage follows because that is the workstation platform I use the most.
+The Swift community has noted that Claude has trouble writing effective Swift code, especially for Swift concurrency, which launched after some of the more-recent models' knowledge cutoff dates. These skills address that deficiency, so they are more instructive and less philosophical than the others. macOS coverage follows because macOS is the primary workstation platform for this project.
 
 | Component | Description |
 |-----------|-------------|
@@ -109,7 +109,7 @@ Clojure for data-oriented, REPL-driven work; Racket for language-oriented progra
 
 ### opinionated-java-ecosystem
 
-Java as it actually exists in 2025 (records, sealed types, virtual threads, patterns). This plugin also advocates for using the Checker Framework to provide good correctness guardrails that help Claude produce less buggy code automatically. The skill generally follows the features in the latest LTS because I principally use Java as an infrastructure language rather than an experimental language.
+Java as it actually exists in 2025 (records, sealed types, virtual threads, patterns). The plugin also advocates the Checker Framework for correctness guardrails that help Claude produce less buggy code automatically. The skill generally follows the features in the latest LTS, on the assumption that Java serves as an infrastructure language rather than an experimental one.
 
 | Component | Description |
 |-----------|-------------|
@@ -125,7 +125,7 @@ Pythonic idioms, with extra attention to testing and to Jupyter. Note that Claud
 
 ### opinionated-logic-development
 
-SWI-Prolog: relational thinking, DCGs, constraint programming, PlUnit tests. Narrow niche, but when a problem is more about search than computation, this is what I reach for.
+SWI-Prolog: relational thinking, DCGs, constraint programming, PlUnit tests. A narrow niche, applicable when a problem is more about search than computation.
 
 | Component | Description |
 |-----------|-------------|
@@ -133,7 +133,7 @@ SWI-Prolog: relational thinking, DCGs, constraint programming, PlUnit tests. Nar
 
 ### opinionated-fish-shell
 
-Fish scripting with compatibility notes for macOS and Fedora, because that's where my shell scripts kept breaking when I moved between machines.
+Fish scripting with compatibility notes for macOS and Fedora, the two platforms where scripts carried between machines kept breaking.
 
 | Component | Description |
 |-----------|-------------|
@@ -141,7 +141,7 @@ Fish scripting with compatibility notes for macOS and Fedora, because that's whe
 
 ### opinionated-tutoring
 
-For when I want Claude to teach me instead of generate for me. It runs Socratic dialogue with the learner rather than writing the code for them.
+For sessions where Claude should teach rather than generate. It runs Socratic dialogue with the learner rather than writing the code for them.
 
 | Component | Description |
 |-----------|-------------|
