@@ -6,12 +6,12 @@ They aren't marketplace plugins, and Claude Code won't discover them. They live 
 
 | File | Derived from | Developed for | Characters |
 |------|--------------|---------------|------------|
-| `research-analyst.md` | `opinionated-research/agents/research-analyst.md` | Claude Opus | ~18.3k |
+| `research-analyst.md` | `opinionated-research/agents/research-analyst.md` | Claude Opus | ~18.4k |
 | `research-investigator.md` | `opinionated-research/agents/research-investigator.md` | Claude Sonnet | ~19.5k |
 
 Each definition was tuned for the Claude model in its row, mirroring the `model:` assignment of the agent it came from. The pairing is deliberate. The analyst's work is judgment-led synthesis and premise critique, which leans on Opus-class capability; the investigator's is procedural and checklist-driven, which a Sonnet-class model carries well. Run either on a weaker model than it targets and the output suffers.
 
-Both files sit inside the field's budget, though headroom has narrowed as the definitions have grown; the investigator is now the tighter of the two, roughly 500 characters under the cap — close enough that further additions need an offsetting trim. The live editor caps Response Instructions at 20,000 characters, showing "Maximum of 20000 characters allowed" next to a running counter. Kagi's published documentation still listed 1,500 for this field as of June 2026, but the product allows far more, so trust the counter over the docs. The global user-instructions field shares the same 20,000-character budget.
+Both files sit inside the field's budget, though headroom has narrowed as the definitions have grown; the investigator is now the tighter of the two, roughly 460 characters under the cap — close enough that further additions need an offsetting trim. The live editor caps Response Instructions at 20,000 characters, showing "Maximum of 20000 characters allowed" next to a running counter. Kagi's published documentation still listed 1,500 for this field as of June 2026, but the product allows far more, so trust the counter over the docs. The global user-instructions field shares the same 20,000-character budget.
 
 That same editor offers advice worth heeding: "use clear and concise language with positive instructions ('do this') instead of negative ('don't do this'). If possible, provide a short example." Both definitions follow it, favoring positive phrasing and carrying worked examples of the labeling scheme.
 
@@ -31,7 +31,7 @@ Once saved, the assistant appears in the model dropdown, and you can also reach 
 
 The two assistants are different in kind, and neither is a step up from the other. The analyst is built for judgment-led synthesis; select it when a question spans several facets and the payoff is in the connections between sources: cross-cutting patterns, tensions, conclusions that emerge only from the combination, and scrutiny of the question's own premises. It folds its reasoning about the evidence into the prose.
 
-The investigator is built for methodical case-building; use it when you want an auditable evidence trail and a falsify-before-believing stance, with per-claim adversarial and falsifiability checks and explicit analysis of how independent the sources really are. Instead of weaving that work into the prose, it sets it out in a dedicated Audit section, which is the most visible difference between the two. Underneath, they share the same epistemic labels, source-quality tiers, retrieval ceilings, and citation discipline, carried through Kagi's inline numeric-reference mechanic (`【N】`, black lenticular brackets around a source number) rather than a hand-written bibliography.
+The investigator is built for methodical case-building; use it when you want an auditable evidence trail and a falsify-before-believing stance, with per-claim adversarial and falsifiability checks and explicit analysis of how independent the sources really are. Instead of weaving that work into the prose, it sets it out in a dedicated Audit section, which is the most visible difference between the two. Underneath, they share the same epistemic labels, source-quality tiers, retrieval ceilings, and citation discipline, carried through whatever inline citation mechanism Kagi provides at runtime rather than a hand-written bibliography.
 
 ## What the port changes
 
