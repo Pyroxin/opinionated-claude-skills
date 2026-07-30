@@ -802,12 +802,67 @@ Document the why, not the what:
 - Code should be self-documenting through clear structure and naming
 - Comments explain rationale, trade-offs, and non-obvious decisions
 - Documentation explains interfaces, contracts, and usage
-- Keep documentation synchronized with code changes
+- Keep documentation synchronized with code changes — bring the description into agreement with current behavior rather than appending a note about what changed
 - Use fluent US English with correct grammar
 - Document procedures with step identifiers (e.g., "1. Prepare data.", "2. Process data.")
-- Documentation serves both as communication and as memory
+- Documentation serves both as communication and as memory: memory of the constraints and reasoning the design rests on, not of the session that produced the edit (see `<comments_stand_without_authoring_context>`)
 
 **Documentation as context:** Poor documentation is unacceptable. Strive for perfect documentation on all code entities, even tests. Address linter findings for documentation immediately to ensure documentation is written with proper context.
+
+<comments_stand_without_authoring_context>
+#### Comments Stand Without the Authoring Context
+
+Write every comment and doc comment so it reads correctly to someone holding only the current file: no earlier version of it, no diff, no issue thread, no memory of the discussion that produced the change. Assume the context you hold while editing is unavailable when the comment is read.
+
+A comment that accumulates a record of successive edits duplicates what version control already holds, and holds less accurately.
+
+**Two readings of "why", one of them durable.** "Why is this code like this?" can be answered with a fact about the edit ("we replaced the unbounded queue after the memory report came up") or with a fact about the code and the constraints it lives under ("an unbounded queue would exhaust heap when the producer bursts"). Write the second. The first holds only for a moment that has passed; the second holds as long as the code does, and it is what a reader needs in order to change the code safely.
+
+**Where each kind of material belongs.** The following are examples, not a complete list:
+
+| Material | Destination |
+|----------|-------------|
+| What changed relative to a prior version | The commit message (see `git-version-control` skill, `<conventional_commits>`) |
+| Alternatives weighed and rejected at design scale | A design document or decision record (see `<design_documentation>`) |
+| The progression of a discussion, who asked for what, task or review status | No artifact — it is a property of the session, not of the code |
+| A constraint that still binds the code's shape | A comment, in the present tense, naming a referent the reader can look up |
+| Deprecation and version-introduced facts | The designated slot the language or doc tool provides (e.g., Javadoc's `@since` and `@deprecated`, Sphinx's `.. deprecated::` — renamed `.. version-deprecated::` in Sphinx 9.0, old name kept as an alias — or Swift's `@available`) rather than prose narration |
+
+**Rewrites.** The following are examples, not a complete list:
+
+| Instead of | Write |
+|------------|-------|
+| `// Now uses a bounded queue instead of the previous list` | `// Bounded so a bursting producer can't exhaust heap; capacity covers the 5s batch window` |
+| `/** Parses the config. Note: as of this change, also accepts TOML. */` | `/** Parses the config from JSON, YAML, or TOML. */` |
+| `// Per our discussion, validate here rather than in the handler` | `// Validate at the boundary so handlers can assume well-formed input` |
+| `// Dropped the retry loop because it was masking the real failure` | (nothing — code that is no longer present needs no comment) |
+| `// Sorts the keys, which fixes the flakiness from the earlier run` | `// Sorted for determinism; map iteration order varies per process` |
+
+A doc comment carries a contract for callers, so change history there competes with the contract for the reader's attention and goes stale against it:
+
+```python
+# Narrates the edits
+def load_config(path):
+    """Load configuration.
+
+    Originally JSON-only; YAML and TOML support were added when the
+    deployment config moved over, and the strict= flag went away once
+    we agreed validation belonged in the caller.
+    """
+
+# States the contract, and keeps the durable reason
+def load_config(path):
+    """Load configuration from a JSON, YAML, or TOML file at ``path``.
+
+    Returns the parsed mapping without validating it. Callers validate,
+    so an invalid config can still be loaded for inspection.
+    """
+```
+
+**When history is the constraint.** Some comments reference the past because the past still binds the code: a field retained for wire compatibility with released clients, a workaround for an unfixed upstream bug, a shape imposed by an incomplete migration. Such a comment qualifies when both conditions hold — the constraint remains in force, and the comment names a referent the reader can pursue independently (e.g., a protocol version, a ticket, an upstream issue URL, a spec section). "Retained for clients on protocol v2" qualifies; "used to be a list" names nothing that still binds.
+
+**Check before committing.** Read the comment and documentation lines the change adds or modifies (e.g., from `git diff -U0`) and ask of each whether it names something outside the code: a prior version, a conversation, a request, a review, a task, or a test run. Rewrite those as statements about the code as it stands; rewriting is the default. Drop a comment only when it describes something the code no longer contains, since there is then nothing left to state. Phrases worth pausing on include "previously", "used to", "no longer", "instead of", "as requested", "per our discussion", "we decided", "this fixes", and "this addresses". Delete commented-out code rather than annotating what it did; version control holds it.
+</comments_stand_without_authoring_context>
 </documentation_comments>
 
 <error_handling>
@@ -855,7 +910,7 @@ When refactoring:
 2. Make changes incrementally
 3. Run tests after each change
 4. Preserve external interfaces when possible
-5. Document reasons for changes
+5. Record the reasoning where it belongs: constraints that still bind the code go in comments as present-tense facts; the delta goes in the commit message (see `<comments_stand_without_authoring_context>`)
 6. Avoid creating multiple alternate versions of source files
 7. Use Git feature branches for experimentation
 </refactoring_strategy>
