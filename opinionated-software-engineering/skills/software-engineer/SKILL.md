@@ -711,7 +711,7 @@ Complex systems benefit from architectural patterns that isolate business logic 
 <hex_core_principle>
 **Core principle:** Isolate business logic from external systems (UI, database, APIs) through well-defined boundaries. All external interactions go through ports (interfaces) and adapters (implementations).
 
-> "Allow an application to equally be driven by users, programs, automated test or batch scripts, and to be developed and tested in isolation from its eventual run-time devices and databases." — Alistair Cockburn
+> "Allow an application to equally be driven by users, programs, automated test or batch scripts, and to be developed and tested in isolation from its eventual run-time devices and databases." — Alistair Cockburn[^cockburn-hexarch]
 </hex_core_principle>
 
 <hex_structure>
@@ -757,9 +757,9 @@ Complex systems benefit from architectural patterns that isolate business logic 
 </hex_implementation>
 
 <related_patterns>
-**Related architectural patterns:**
-- **Clean Architecture** (Robert Martin) — Concentric circles: entities → use cases → interface adapters → frameworks
-- **Onion Architecture** (Jeffrey Palermo) — Domain-centric layers, dependencies point inward
+**Origin and later formulations:** Ports & Adapters is Alistair Cockburn's pattern, published in 2005.[^cockburn-hexarch] Two later architectures build on its separation, adding internal structure on the application side:
+- **Onion Architecture** (Jeffrey Palermo, 2008) — Domain-centric layers, dependencies point inward
+- **Clean Architecture** (Robert C. Martin, 2012) — Concentric circles: entities → use cases → interface adapters → frameworks
 - **Common theme:** Business logic at center, dependencies point inward, outer layers adapt to inner
 
 **Works well with Domain-Driven Design:**
@@ -1065,4 +1065,6 @@ These guardrails apply regardless of context or time pressure. They constrain to
 
 <sources>
 [^hickey-speculation]: Rich Hickey. 2016. Spec-ulation (keynote). Clojure/conj 2016. https://www.youtube.com/watch?v=oyLBGkS5ICk
+
+[^cockburn-hexarch]: Alistair Cockburn. 2005. The Hexagonal (Ports & Adapters) Architecture. HaT Technical Report 2005.02, September 4, 2005. Retrieved July 29, 2026 from https://alistair.cockburn.us/hexagonal-architecture
 </sources>
