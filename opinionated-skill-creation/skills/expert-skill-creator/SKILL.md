@@ -609,12 +609,12 @@ For skill research, the `opinionated-research:research-investigator` agent is th
 - **Attribution**: Acknowledging the source (always required for third-party content)
 - **Formal ACM citation**: Full bibliographic reference with footnote (sometimes required)
 
-**Must attribute:**
+**Must attribute** (each of these describes content that referenced a source; see `<citation_provenance>`):
 - Direct quotes from any source
 - Specific claims attributed to sources
 - Statistics, benchmarks, or empirical findings
 - Code patterns adapted from specific sources
-- Well-known concepts with identifiable originators
+- Well-known concepts with identifiable originators, where the skill draws on the concept as such
 
 **Informal attribution is sufficient for:**
 - Short quotes (single sentences) — use `"quote" — Author, Source Work`
@@ -633,8 +633,26 @@ For skill research, the `opinionated-research:research-investigator` agent is th
 - Claude's own analysis and synthesis
 - Content the skill author created
 
-**Judgment call:** When in doubt, attribute. Formal citation when the source adds value.
+**Judgment call:** When you used a source and are unsure whether its attribution should be formal or informal, attribute. Uncertainty about the *form* of attribution resolves toward attributing; uncertainty about whether you used a source at all resolves by checking what you actually drew on (see `<citation_provenance>`), not by citing.
 </citation_scope>
+
+### Citation Provenance
+
+<citation_provenance>
+**A citation records a reference. Cite a source when the skill's content actually referenced it, and not otherwise.**
+
+Overlap is not a reference. Content that resembles published material, while having been derived from your own reasoning or from the problem the user described, referenced nothing and so has nothing to cite. This is definitional rather than a judgment call: skills describe well-trodden ground, so two parties reasoning about the same problem arriving at similar conclusions is the expected outcome, and recognizing the resemblance afterward does not turn independently-derived content into third-party content.
+
+Citing an unreferenced source is a distinct failure from the two covered elsewhere — inventing bibliographic details (see `<citation_accuracy>`) and taking details from memory without checking them (see `<source_verification>`) — and it passes both of their checks. A real source, verified to say what you claim, correctly formatted, attached to content that never referenced it, still misstates where the content came from; verifying the source and formatting it properly cannot detect that.
+
+**Name the reference before citing it.** Identify what the content took from the source: a quote, a paraphrase, a term of art, a statistic, a code pattern, or a claim you relied on the source to support. When you can name it, cite it. When you cannot, there is no reference and therefore no citation. One operational check: ask whether the citation would be present had no reviewer, linter, or reader remarked on the resemblance; if it would not, the content did not reference that source.
+
+**Leave the text as written rather than giving a citation something to attach to.** Introducing a source's named concept into a passage so a footnote has an anchor creates the reference it then records — before the edit, the passage named nothing and cited nothing. Where a passage does not already reference a source, adding that source's vocabulary in order to cite it makes the skill less accurate about its own origins.
+
+**Citing an authority imports its frame.** A named source carries its surrounding position on the topic into the skill, and a reader may apply that position where the skill does not intend it. Before citing, check that the source's stance agrees with what the skill instructs; a citation that contradicts nearby guidance undercuts it. Where the substance is sound but the frame conflicts, state the substance directly and cite nothing.
+
+**When a review flags resemblance to known material,** confirm whether wording, structure, or terminology was actually taken. Where something was, attribute it. Where nothing was, leave the text as written and record the finding as resolved; a resemblance report is not by itself a citation gap (see `<plagiarism_validation>`).
+</citation_provenance>
 
 ### Formal Citation Format
 
@@ -720,6 +738,7 @@ Memories from training are hypotheses, not facts. Before adding any citation:
 - **Informal documentation references** — "From the X documentation" is insufficient. Cite formally: `[^1]: Author. Title. URL`
 - **Paraphrased official guidance without disclosure** — If a skill substantially paraphrases official documentation (like style guides), add upfront disclosure: "This skill synthesizes and paraphrases the official X guidelines."
 - **Assuming well-known means no attribution needed** — Named concepts (e.g., Liskov Substitution Principle, Test Pyramid) should acknowledge their originators. Informal attribution is fine when the name itself attributes (e.g., "Liskov Substitution Principle" names Liskov); formal citation when the source would be useful to look up.
+- **Citing a source the content never referenced** — The converse of the item above, and the harder one to notice, because the citation verifies clean. Independently-derived guidance does not become third-party content because a reviewer recognizes what it resembles; a citation records a reference, so absent a reference there is nothing to record (see `<citation_provenance>`)
 </citation_mistakes>
 </citation_requirements>
 
@@ -757,6 +776,8 @@ Before completing a skill, verify:
 **Attribution and Citations:**
 - [ ] All third-party content is attributed (author + source work)
 - [ ] Formal ACM citations used where warranted (see `<citation_scope>`)
+- [ ] Each citation names the reference it records: the quote, paraphrase, term of art, statistic, or claim drawn from that source (see `<citation_provenance>`)
+- [ ] Findings of mere topic overlap were resolved without adding a citation (see `<citation_provenance>`, `<plagiarism_validation>`)
 - [ ] Sources verified with tools, not just memory (see `<source_verification>`)
 - [ ] URLs fetched to confirm they exist and contain claimed content
 - [ ] Quotes verified against original source (not paraphrased from memory)
@@ -809,7 +830,8 @@ After creating a skill:
 2. Identify passages that sound copied (e.g., unusual phrasing, tone shifts)
 3. Flag quotes or claims lacking citations
 4. Check for specific statistics or unique phrases without sources
-5. Report assessment: clean / needs-review / likely-plagiarized
+5. Separate wording that appears taken from a topic that merely overlaps published material, and report which of the two each finding is
+6. Report assessment: clean / needs-review / likely-plagiarized
 
 **Example prompt for validation agent:**
 ```
@@ -817,10 +839,12 @@ Read [skill file] and check for potential plagiarism. Look for:
 1. Text that sounds copied from external sources
 2. Quotes or specific claims lacking citations
 3. Statistics or unique phrases without sources
+For each finding, say whether specific wording or structure appears taken,
+or whether the passage only covers the same subject as known material.
 Report: File path, suspicious passages with line numbers, assessment.
 ```
 
-**Post-validation:** Address all flagged issues before publication. Even "clean" files may have minor citation improvements identified.
+**Post-validation:** Address flagged issues before publication, matching the remedy to the finding. A finding of taken wording is resolved by attributing it, rewriting it, or removing it. A finding that a passage merely covers well-known ground is resolved by leaving the passage as written; adding a citation there would record a reference the content never made (see `<citation_provenance>`). Even "clean" files may have citation improvements identified — for sources the content does reference.
 </plagiarism_validation>
 
 ### PII and Secret Scanning
