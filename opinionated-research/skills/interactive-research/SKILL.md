@@ -1,7 +1,6 @@
 ---
 name: interactive-research
 description: Runs multi-source research and produces a cited, synthesized report, then remains available for follow-up questions. Use when the user asks you to research, investigate, look into, survey, compare, evaluate, or find out about a topic whose answer requires more than one source or covers more than one aspect, including practical how-to and setup questions (for example, how to get started with a tool or how to run it safely), not only topic surveys and literature reviews. Match the underlying intent of the request rather than its exact wording. Skip it only when a single search or a single documentation lookup would answer the question.
-model: opus
 allowed-tools:
   - Agent
   - SendMessage
