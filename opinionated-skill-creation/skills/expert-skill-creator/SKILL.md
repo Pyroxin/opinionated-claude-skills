@@ -282,6 +282,28 @@ Mark every example and reformulation explicitly, including example tables and se
 This rule governs the skill's instruction text, not user-facing output the skill produces (for example, a report for a human audience), where figurative or evaluative language may be appropriate.
 </literal_language>
 
+### Placeholder Notation
+
+<placeholder_notation>
+**Write a placeholder — a token the reader replaces with a value — in braces: `{project-root}`, `{your-name}`, `{timestamp}`. Reserve angle brackets for XML tags, covering both tag definitions and the `` `<tag_name>` `` references described in `<xml_tag_guidelines>`.**
+
+A skill body uses angle brackets as structure, so a placeholder written as `<project-root>` sits in the same notation as a section tag; the reader can't tell from the token alone whether it marks a slot to fill or names a section. Braces carry no structural meaning in a skill body, so a braced token reads as a slot and nothing else.
+
+The ambiguity does the most damage in a prompt template that a skill tells the model to send to another agent, because the placeholder then arrives in a second context that also reads angle brackets as structure. Paths and command templates are the other places placeholders cluster.
+
+Keep one notation throughout a skill. Mixing both inside a single expression is the common failure; for example, `<project-root>/notes/{timestamp}/` asks the reader to resolve two notations for the same kind of token in one path. The following table gives examples of the substitution; it is not a complete list:
+
+| Ambiguous (avoid) | Unambiguous (prefer) |
+|-------------------|----------------------|
+| `<project-root>/notes/{timestamp}/` | `{project-root}/notes/{timestamp}/` |
+| `Report to the lead ('<lead-name>')` | `Report to the lead ('{lead-name}')` |
+| `/Users/<name>` | `/Users/{name}` |
+
+Braces here denote a value the reader supplies while following the instruction. Runtime argument substitution, where the harness replaces a token before the skill is read, is a separate mechanism with its own syntax; see `skill-creator:skill-creator` as noted in `<when_to_use>`.
+
+This governs the skill's instruction text and any template it carries. Inside content that reproduces another notation, that notation's meaning holds, in both directions: angle brackets stay as they are in a CLI usage synopsis (`init_skill.py <skill_name>`), a generic type (`List<String>`), an HTML or XML example, or a shell redirect; braces stay as they are in shell expansion (`mkdir -p dir/{a,b}`). Fenced code is the usual home for both, and the fence is what signals the switch.
+</placeholder_notation>
+
 ### Instructional Formulation
 
 <instructional_formulation>
@@ -349,7 +371,7 @@ A list that reads as complete becomes wrong the moment the world adds a case it 
 
 Practices:
 - Mark example lists as non-exhaustive: "e.g.,", "for example", "such as", "including but not limited to". Reserve "i.e.," for restating the same thing a different way, not for examples — the two carry different meanings.
-- Hedge claims that ride a moving target: "currently", "as of <date>", "tends to", "in most cases". Date-stamp facts that will age.
+- Hedge claims that ride a moving target: "currently", "as of {date}", "tends to", "in most cases". Date-stamp facts that will age.
 - Prefer describing the condition over closing the set — "use a feature flag when shipping incomplete work" rather than "always use a feature flag" (this reinforces the positive framing in `<directive_language>`).
 - Lead parenthetical example lists with a marker like "e.g.," or "for example,". A bare parenthetical such as "(JSON, YAML, TOML)" reads as the complete set or an "i.e.," restatement; writing it as "(for example, JSON, YAML, TOML)" marks it as open.
 - Apply the same marking to example tables and multi-row example sets, not only inline lists. Introduce them with a phrase such as "The following are examples, not a complete list." An unmarked example table can be read as a closed specification of the only acceptable cases.
@@ -859,7 +881,7 @@ Common leak vectors and how to tell signal from noise. The patterns below are ex
 | Vector | Example pattern | Usually benign when… |
 |--------|-----------------|----------------------|
 | Email addresses | `name@domain.tld` | Placeholder (`your@email.com`) or example domain (`example.com`, `test.`) |
-| Home-path username leaks | `/Users/<name>`, `/home/<name>`, `C:\Users\<name>` | Generic placeholder (`/Users/you`, `$HOME`) |
+| Home-path username leaks | `/Users/{name}`, `/home/{name}`, `C:\Users\{name}` | Generic placeholder (`/Users/you`, `$HOME`) |
 | Credentials | API keys, bearer tokens, `AKIA…`, `-----BEGIN … PRIVATE KEY`, `ghp_…` | Treat every real-looking match as live until proven otherwise |
 | Personal identifiers | Author's real name, phone, SSN | Citing a public figure's published work (attribution, not exposure) |
 | Internal references | Private hostnames, internal URLs, ticket IDs | Public docs or documented example hosts |

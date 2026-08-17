@@ -339,7 +339,47 @@ while IFS= read -r -d '' script; do
 done < "$scripts_list"
 rm -f "$scripts_list"
 
-# --- Step 7: Teardown (full mode only) ---
+# --- Step 7: Placeholder notation ---
+#
+# expert-skill-creator reserves angle brackets for XML tags and braces for value
+# placeholders, so a kebab-case token in angle brackets (such as <project-root>)
+# is ambiguous with a section tag. Only prose is checked: inside fenced code the
+# brackets belong to whatever notation the block quotes, such as a CLI usage
+# synopsis or a generic type. The <placeholder_notation> section that defines the
+# rule is skipped as well, since stating the rule requires showing the
+# counterexample it rules out.
+
+echo ""
+echo "Checking placeholder notation..."
+
+notation_list=$(mktemp "${tmp_root}/claude-marketplace-notation.XXXXXXXXXX")
+if ! find "$PROJECT_DIR" \( -path '*/skills/*/*.md' -o -path '*/agents/*.md' \) -type f -print0 > "$notation_list"; then
+  error "Failed to enumerate skill and agent markdown under ${PROJECT_DIR}"
+fi
+while IFS= read -r -d '' doc; do
+  findings=$(awk '
+    /^[[:space:]]*```/       { fence = !fence; next }
+    /^<placeholder_notation>$/  { exempt = 1; next }
+    /^<\/placeholder_notation>$/ { exempt = 0; next }
+    fence || exempt          { next }
+    {
+      rest = $0
+      while (match(rest, /<[a-z][a-z0-9]*(-[a-z0-9]+)+>/)) {
+        printf "    line %d: %s\n", FNR, substr(rest, RSTART, RLENGTH)
+        rest = substr(rest, RSTART + RLENGTH)
+      }
+    }
+  ' "$doc")
+  if [[ -n "$findings" ]]; then
+    error "angle-bracket placeholder in ${doc#"${PROJECT_DIR}"/} (use braces)"
+    printf '%s\n' "$findings" >&2
+  else
+    info "  $(basename "$(dirname "$doc")")/$(basename "$doc"): OK"
+  fi
+done < "$notation_list"
+rm -f "$notation_list"
+
+# --- Step 8: Teardown (full mode only) ---
 # The entire installation lives under the isolated CLAUDE_CONFIG_DIR, so
 # teardown is a single recursive remove of that directory. It is performed by
 # the cleanup trap registered in Step 1 rather than here, so it runs on every
@@ -352,7 +392,7 @@ rm -f "$scripts_list"
 echo ""
 if [[ "$errors" -eq 0 ]]; then
   if [[ "$VALIDATE_ONLY" == "true" ]]; then
-    echo "Structural validation passed (${plugin_count} plugins, shellcheck clean)."
+    echo "Structural validation passed (${plugin_count} plugins, shellcheck and placeholder notation clean)."
   else
     echo "Full verification passed (${plugin_count} plugins installed and validated)."
   fi
