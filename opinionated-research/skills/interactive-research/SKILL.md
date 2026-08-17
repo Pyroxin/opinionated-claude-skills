@@ -173,7 +173,16 @@ Bias check: if a subtopic description enumerates more than two specific products
 
 The team forms implicitly when you spawn your first teammate; there's no creation step. Phase 4 proceeds in ordered sub-steps: confirm teams are available (4a), create one task per subtopic (4b), select specialist types (4c), spawn teammates (4d), then assign tasks (4e). Teammates retain their context across idle periods, so follow-up queries in later phases don't have to re-establish it.
 
-**Team workspace.** When the research warrants persisted working files, choose one shared workspace directory for the whole team before spawning, and give every specialist the same path: `<project-root>/.claude/research/{timestamp}-{topic-slug}/`, at the root of the project Claude Code is open in — not the user-level `~/.claude/`. Resolve the project root explicitly (for example, `git rev-parse --show-toplevel`, falling back to `pwd`) and generate the timestamp with `date +%Y%m%d_%H%M%S`. Pass this one path to each specialist in its spawn prompt (Step 4d), and keep your own verification record (Phase 5) under it, so the team's artifacts are kept in a single case file instead of scattered per-specialist directories. Each specialist writes under a subdirectory keyed by its teammate name to avoid collisions. The specialists' own `<workspace_convention>` sections defer to a location you supply; supply one so they don't each generate their own. If the research is light enough that no files are needed, skip the workspace and coordinate in-context.
+**Team workspace.** Choose one shared workspace directory for the whole team before spawning, and give every specialist that same path in its spawn prompt (Step 4d). Supply it on every run, including ones you expect to stay light; supplying it is what keeps specialists from each inventing a location. Whether a specialist persists anything stays its own judgment.
+
+Resolve the path in this order:
+
+1. **A location the user's instructions specify.** Project or user instructions may name where research output belongs (for example, a research folder inside a notes vault). A location named there takes precedence over the default below.
+2. **Otherwise, `{project-root}/.tmp/research/{timestamp}-{topic-slug}/`.** Resolve the project root explicitly (for example, `git rev-parse --show-toplevel`, falling back to `pwd`), since a bare relative path can resolve against the wrong working directory. Generate the timestamp with `date +%Y%m%d_%H%M%S`.
+
+The default avoids two failure modes. Claude Code gates writes into `.claude/` and `~/.claude/` behind configuration-level approval, because those trees hold the settings, hooks, agents, skills, and commands the harness reads back and acts on; an autonomous run that can write research there can also rewrite the configuration it runs under. `$TMPDIR` and `/tmp` are cleared on reboot, so a resumed session finds the workspace gone. A `.tmp/` directory inside the project is disposable on the user's terms rather than the system's.
+
+Keep your own verification record (Phase 5) under this path as well, so the team's artifacts form one case file rather than scattered per-specialist directories. Each specialist writes under a subdirectory keyed by its teammate name to avoid collisions; the specialists' own `<workspace_convention>` sections defer to the location you supply. Create the workspace by writing its first file, since `Write` creates missing parent directories and that keeps paths containing spaces out of shell quoting.
 
 <team_setup>
 #### Step 4a: Confirm Agent Teams Are Available
@@ -237,18 +246,18 @@ Each spawn prompt should include:
 ```
 Use the Agent tool with:
   subagent_type: "opinionated-research:research-investigator"   # or research-analyst per Phase 4c
-  name: "specialist-<subtopic-slug>"
-  prompt: "You are joining a research team as a specialist researcher, working under the lead ('<lead-name>').
+  name: "specialist-{subtopic-slug}"
+  prompt: "You are joining a research team as a specialist researcher, working under the lead ('{lead-name}').
 
-    Check the task list for your assignment; the task description contains the subtopic question and reconnaissance context. Claim the task assigned to you via TaskUpdate (set yourself as owner and in_progress), do the research, then mark the task completed and send your findings to the lead ('<lead-name>') via SendMessage.
+    Check the task list for your assignment; the task description contains the subtopic question and reconnaissance context. Claim the task assigned to you via TaskUpdate (set yourself as owner and in_progress), do the research, then mark the task completed and send your findings to the lead ('{lead-name}') via SendMessage.
 
     Discover what is actually dominant in this space rather than verifying a list of presumed-relevant items. The subtopic description gives starting framing; let evidence determine which products, frameworks, features, and practices are actually central.
 
     Source-diversity expectations: [note any specific independence axes or quality tiers worth seeking; otherwise the agent's own source-independence framework applies].
 
-    Working files: if you persist notes, write them under the team workspace at <team-workspace-path>, in a subdirectory named for you ('<your-name>'). Use this path; do not create your own research directory.
+    Working files: if you persist notes, write them under the team workspace at {team-workspace-path}, in a subdirectory named for you ('{your-name}'). Use this path; do not create your own research directory.
 
-    Your peers on this team: <list the other specialists' names>. The lead may later ask you to reconcile findings with a named peer; use SendMessage to coordinate directly if instructed, otherwise route through the lead.
+    Your peers on this team: {list the other specialists' names}. The lead may later ask you to reconcile findings with a named peer; use SendMessage to coordinate directly if instructed, otherwise route through the lead.
 
     After your initial report, the lead may send follow-up messages asking you to clarify findings, extend research, or reconcile conflicts. Retain your working notes and source metadata across idle periods.
 
@@ -318,7 +327,7 @@ For bounded follow-ups (a clarifying question, reconciliation), use `SendMessage
 
    A verdict is not a substitute for reading: the fact-checker confirms that a pair holds, but returns nothing you can draft from. If verdict handling reveals that a source is more central than it first appeared, read it yourself before synthesis. If the Agent tool is unavailable in your environment, sample-fetch the pairs yourself instead.
 
-   **Keep a verification record.** Maintain a running record of claim → citation → verdict → action across all reports. It is what shows verification ran; the Phase 6 entry gate and the final Confidence Assessment both read from it. A report whose essential claims are absent from the record has not been verified, whatever the specialist's stated confidence. Keep it under the team workspace (see Phase 4's team-workspace note) when the research warrants one; otherwise hold it in context. When a specialist's report notes a Codex self-review (see `<cross_model_review>`), fold its verdicts and the changes they drove into this record too, so the cross-model check is visible where the Confidence Assessment reads from.
+   **Keep a verification record.** Maintain a running record of claim → citation → verdict → action across all reports. It is what shows verification ran; the Phase 6 entry gate and the final Confidence Assessment both read from it. A report whose essential claims are absent from the record has not been verified, whatever the specialist's stated confidence. Keep it under the team workspace (see Phase 4's team-workspace note) when you persist it; otherwise hold it in context. When a specialist's report notes a Codex self-review (see `<cross_model_review>`), fold its verdicts and the changes they drove into this record too, so the cross-model check is visible where the Confidence Assessment reads from.
 
    This is sample verification, not re-investigation. Budget roughly 10-20% of synthesis time on it; substantially more means the specialist work should be redone rather than patched at the orchestrator layer.
 
@@ -380,10 +389,10 @@ Reach Codex by spawning the `codex:codex-rescue` subagent through the Agent tool
 
 Run one read-only review of the assembled report:
 
-1. Write the report to a file inside the project tree — the team workspace from Phase 4 when one exists — because a read-only Codex run reads files within the project.
+1. Write the report to a file inside the project tree, because a read-only Codex run reads files within the project. Use the Phase 4 team workspace when it sits inside the project tree; when the user directed the workspace elsewhere (for example, into a notes vault), write the review copy under the project tree instead and leave the workspace copy where it is.
 2. Spawn `codex:codex-rescue` (subagent_type `codex:codex-rescue`) with a read-only review request, for example:
 
-   > Review the research report at `<report-file-path>` for factual errors, unsupported or overstated claims, miscalibrated confidence, and outdated information. Do not edit any files. For each load-bearing claim, return a verdict — AGREE, DISAGREE, UNCERTAIN, or OUTDATED — with a one-line reason, and a source where you dispute a claim.
+   > Review the research report at `{report-file-path}` for factual errors, unsupported or overstated claims, miscalibrated confidence, and outdated information. Do not edit any files. For each load-bearing claim, return a verdict — AGREE, DISAGREE, UNCERTAIN, or OUTDATED — with a one-line reason, and a source where you dispute a claim.
 
 Framing the request as read-only review keeps Codex from editing files (the rescue subagent adds a write-capable flag only when the request is not review, diagnosis, or read-only). A bounded request keeps the run in the foreground, so the subagent returns the review directly rather than a background job id. Budget several minutes.
 

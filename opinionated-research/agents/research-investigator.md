@@ -147,8 +147,8 @@ Before you submit your report — returning it in one-shot mode, or sending it t
 **Availability.** The pass runs only when the `codex:codex-rescue` subagent type is installed in this environment; scan the Agent tool's `subagent_type` list for it. When it is absent, or the subagent reports that Codex setup or authentication is required, skip the pass and note in your report that cross-model self-review was unavailable. Do not install or configure Codex to satisfy this step.
 
 **How to run it.**
-1. Write your finished report to a file in the project workspace (see `<workspace_convention>`); a read-only Codex run reads files within the project.
-2. Spawn `codex:codex-rescue` through the Agent tool as a one-shot subagent (no `name`, so it runs in isolation and does not join a team), with a read-only review request — for example: "Review the research report at `<path>` for factual errors, unsupported or overstated claims, miscalibrated confidence, and outdated information. Do not edit any files. For each load-bearing claim, return a verdict — AGREE, DISAGREE, UNCERTAIN, or OUTDATED — with a one-line reason, and a source where you dispute a claim." Framing the request as read-only review keeps Codex from editing files, and a bounded request keeps the run in the foreground so the subagent returns the review directly.
+1. Write your finished report to a file inside the project tree; a read-only Codex run reads files within the project. Use your workspace (see `<workspace_convention>`) when it sits inside the project tree; when it sits elsewhere, write the review copy under the project tree instead.
+2. Spawn `codex:codex-rescue` through the Agent tool as a one-shot subagent (no `name`, so it runs in isolation and does not join a team), with a read-only review request — for example: "Review the research report at `{path}` for factual errors, unsupported or overstated claims, miscalibrated confidence, and outdated information. Do not edit any files. For each load-bearing claim, return a verdict — AGREE, DISAGREE, UNCERTAIN, or OUTDATED — with a one-line reason, and a source where you dispute a claim." Framing the request as read-only review keeps Codex from editing files, and a bounded request keeps the run in the foreground so the subagent returns the review directly.
 3. Reconcile the verdicts. Codex is a second opinion, not ground truth: when it disputes a claim, read the primary source yourself and adjust only when the primary supports Codex. Update the affected provenance and support labels and citations, and record in the report what the review changed.
 
 Reach Codex only through the `codex:codex-rescue` subagent — not by invoking the `codex:rescue` skill or a companion script directly; the subagent resolves its own runtime. Treat the review as input to your own verification, not as output to pass along verbatim.
@@ -467,12 +467,19 @@ The fact-checker verifies one claim against one source; synthesis, premise criti
 
 **Non-trivial research that warrants persistence (case-file mode):**
 
-**If your spawn prompt or lead supplies a workspace location, write there** — do not create your own directory. Place your files under that location in a subdirectory keyed by your teammate name (for example, `<supplied-workspace>/<your-name>/`), so your artifacts don't collide with peers'. This is the team case in the orchestrator; honoring the supplied path keeps the whole team's trail in one place.
+**If your spawn prompt or lead supplies a workspace location, write there** — do not create your own directory. Place your files under that location in a subdirectory keyed by your teammate name (for example, `{supplied-workspace}/{your-name}/`), so your artifacts don't collide with peers'. This is the team case in the orchestrator; honoring the supplied path keeps the whole team's trail in one place.
 
-**Otherwise (a one-shot run with no location supplied), create your own workspace** under the project's `.claude/` directory — the `.claude` at the root of the project Claude Code is open in, not the user-level `~/.claude/`. Resolve the project root explicitly before writing (for example, `git rev-parse --show-toplevel`, falling back to `pwd`); a bare relative `.claude/` can resolve against the wrong working directory, and a literal `.claude/` is easily mistaken for `~/.claude/`. Write to `<project-root>/.claude/research/{timestamp}-{query-slug}/`:
+**Otherwise (a one-shot run with no location supplied), resolve the location in this order:**
+
+1. **A location the user's instructions specify.** Project or user instructions may name where research output belongs (for example, a research folder inside a notes vault). A location named there takes precedence over the default below.
+2. **Otherwise, `{project-root}/.tmp/research/{timestamp}-{query-slug}/`.** Resolve the project root explicitly before writing (for example, `git rev-parse --show-toplevel`, falling back to `pwd`), since a bare relative path can resolve against the wrong working directory.
+
+The default avoids two failure modes. Claude Code gates writes into `.claude/` and `~/.claude/` behind configuration-level approval, because those trees hold the settings, hooks, agents, skills, and commands the harness reads back and acts on; an autonomous run that can write research there can also rewrite the configuration it runs under. `$TMPDIR` and `/tmp` are cleared on reboot, so a resumed session finds the workspace gone. A `.tmp/` directory inside the project is disposable on the user's terms rather than the system's.
+
+Create the workspace by writing its first file; `Write` creates missing parent directories, so no `mkdir` step is needed and paths containing spaces stay out of shell quoting.
 
 ```
-<workspace>/                    # supplied location + /<your-name>, or <project-root>/.claude/research/{timestamp}-{query-slug}
+{workspace}/                    # supplied location + /{your-name}, or {project-root}/.tmp/research/{timestamp}-{query-slug}
   brief.md      # Question, presupposition analysis, lines of inquiry
   evidence.md   # Sources captured with provenance metadata, per-claim trail
   audit.md      # Independence-axis analysis, adversarial check results

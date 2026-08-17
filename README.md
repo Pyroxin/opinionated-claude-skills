@@ -81,6 +81,8 @@ An alternative to investigating a topic through a single long search pass or by 
 
 Note: these skills work best with the Kagi and Exa MCP servers added to the configuration. AWS' documentation servers are also integrated, AWS being the cloud provider these skills were built against.
 
+Persisted research artifacts go under `{project-root}/.tmp/research/`, or wherever project or user instructions say research output belongs. Keeping them out of `.claude/` means an autonomous run needs no write access to the trees Claude Code loads settings, hooks, agents, and skills from. Many projects already ignore that path through the `*.tmp` pattern in gitignore.io output and in github/gitignore's `Global/Backup` template; adding `.tmp/` to `~/.config/git/ignore` covers the rest.
+
 ### opinionated-skill-creation
 
 The `expert-skill-creator` skill was developed by having Claude reflect on the process of creating and tuning the other skills. It is updated regularly with guidance on prompting Claude-family models effectively, and it captures accumulated patterns around content depth, XML structure, directive tone, and citation practices, so each new skill benefits from what the previous ones established.
