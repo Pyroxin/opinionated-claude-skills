@@ -1,0 +1,11 @@
+{
+  "name": "opinionated-communication",
+  "description": "Output styles that change how Claude Code reports its work. Emphasizes writing for a reader who cannot see the context window, a relaxed but precise register, and direct statement over rhetorical staging.",
+  "author": {
+    "name": "Pyroxin",
+    "email": "3385984+Pyroxin@users.noreply.github.com",
+    "url": "https://github.com/Pyroxin"
+  },
+  "repository": "https://github.com/Pyroxin/opinionated-claude-skills",
+  "license": "EPL-2.0"
+}

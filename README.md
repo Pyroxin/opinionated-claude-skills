@@ -149,6 +149,14 @@ For sessions where Claude should teach rather than generate. It runs Socratic di
 |-----------|-------------|
 | `socratic-tutor` | Pedagogical framework for teaching programming through Socratic dialogue |
 
+### opinionated-communication
+
+Output styles are a plugin component like skills and themes, so this plugin vends communication styles for Claude Code sessions. The first style, Plainspoken, was compiled from an analysis of the project author's own technical documents and research notes (LLM-written material excluded) rather than from generic style guides. It targets a structural problem in LLM-assisted work: Claude reads complete tool outputs while the user sees a collapsed transcript, so untended reporting assumes context the user doesn't have. The style makes messages carry their own evidence, grades each claim by how strongly it should be believed, and removes the rhetorical devices that manufacture emphasis (e.g., contrastive negation, pathological tripling, hollow intensifiers). Engineering behavior is unchanged (`keep-coding-instructions: true`). Output styles apply to the main conversation only, not to subagents (forks excepted), and load at session start; select one under **Output style** in `/config`. Claude Code only; Claude Desktop's skill uploads have no output-style equivalent.
+
+| Component | Description |
+|-----------|-------------|
+| `plainspoken` | Output style: self-contained, evidence-carrying communication with graded confidence and earned emphasis |
+
 ### opinionated-themes
 
 The only plugin that ships no instructions for Claude. Themes are a plugin component like skills and agents, so a marketplace can vend terminal color schemes the same way it vends skills. Both themes target high contrast and remain legible under warm-shift filters such as macOS Night Shift and Redshift, which reduce blue output and flatten the contrast of blue-heavy palettes. Claude Code only; Claude Desktop has no theme equivalent to package.
