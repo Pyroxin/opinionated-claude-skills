@@ -7,8 +7,10 @@
 # tiny default image (node:slim) lacks sudo/apt and cannot run them.
 -P ubuntu-latest=catthehacker/ubuntu:act-latest
 
-# release.yml targets GitHub's amd64 runners and downloads the linux.x86_64
-# ShellCheck binary, so force amd64 here. On an Apple Silicon host that runs the
-# container under the Podman VM's qemu emulation; on an amd64 host it is a no-op.
-# Native arm64 would fail those x86_64 steps for the wrong reason.
---container-architecture linux/amd64
+# No --container-architecture pin: act runs the container natively on the host
+# architecture, and release.yml selects its downloads from `uname -m`, so an
+# arm64 host is served by arm64 assets. Pinning linux/amd64 on an Apple Silicon
+# host puts every step behind the Podman VM's qemu emulation, where the
+# Bun-compiled Claude Code installer that install-and-verify.sh fetches dies with
+# SIGSEGV. Native execution avoids that and is faster. Add the pin back only to
+# reproduce an amd64-specific CI result, and expect the install step to crash.

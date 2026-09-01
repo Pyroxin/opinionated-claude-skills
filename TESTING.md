@@ -37,13 +37,24 @@ act push
 ```
 
 This repository includes `.actrc` so `act` uses an Ubuntu image with the tools
-expected by `.github/workflows/release.yml` and runs the container as
-`linux/amd64`, matching GitHub's hosted runner architecture.
+expected by `.github/workflows/release.yml`. The container architecture is not
+pinned, so the job runs natively on the host: amd64 on an Intel machine, arm64
+on Apple Silicon. `release.yml` picks its ShellCheck download from `uname -m`,
+so both architectures get a working binary.
+
+Do not add `--container-architecture linux/amd64` back to run an arm64 host's
+job as amd64. Under the resulting emulation the Bun-compiled Claude Code
+installer that `install-and-verify.sh` fetches dies with SIGSEGV, so the job
+fails at the "Install and verify plugins" step for a reason unrelated to the
+change under test.
 
 `act push` is not a perfect recreation of GitHub Actions. Treat it as a local
 smoke test for the workflow, not as a proof that GitHub Actions will behave
-identically. In particular, the release-publishing step is skipped under `act`
-because the workflow guards it with `if: ${{ !env.ACT }}`.
+identically. Two known divergences: the release-publishing step is skipped under
+`act` because the workflow guards it with `if: ${{ !env.ACT }}`, and the job
+occasionally exits 137 with act reporting `no such container` during cleanup.
+That exit is a container-lifecycle failure, not a workflow failure; re-run
+before investigating it.
 
 ## Script Tests
 

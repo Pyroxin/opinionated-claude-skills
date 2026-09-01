@@ -12,7 +12,10 @@ jobs:
   build-and-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # v5 is the first release declaring `using: node24`. v4 declares node20,
+      # which GitHub deprecated on 2025-09-19; the runner force-migrates it to
+      # Node 24 and emits a warning on every run.
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: sudo apt-get install -y jq
@@ -22,9 +25,23 @@ jobs:
       # (it shipped 0.9.0, the version skew behind the SC2317 incident). Running
       # the newest stable analyzer keeps CI aligned with current developer tooling
       # and lets new checks surface emergent issues early. Intentionally unpinned.
+      #
+      # The asset is selected from `uname -m` rather than hardcoded to x86_64.
+      # GitHub's ubuntu-latest is amd64, so this resolves to the same download
+      # there; the arch check is what lets a local `act` run execute the workflow
+      # natively on an arm64 host. Emulating amd64 for this one download used to
+      # force every later step through qemu, where the Bun-compiled Claude Code
+      # installer segfaults. koalaman publishes linux.x86_64 and linux.aarch64
+      # for the stable tag; an unrecognized machine name fails loudly rather than
+      # guessing an asset name that would 404 further down.
       - name: Install latest stable ShellCheck
         run: |
-          curl -fsSL -o shellcheck.tar.xz https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.x86_64.tar.xz
+          case "$(uname -m)" in
+            x86_64)          sc_arch=x86_64 ;;
+            aarch64|arm64)   sc_arch=aarch64 ;;
+            *) echo "No ShellCheck stable asset for $(uname -m)" >&2; exit 1 ;;
+          esac
+          curl -fsSL -o shellcheck.tar.xz "https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.${sc_arch}.tar.xz"
           tar -xJf shellcheck.tar.xz
           sudo install shellcheck-stable/shellcheck /usr/local/bin/shellcheck
           rm -rf shellcheck-stable shellcheck.tar.xz
