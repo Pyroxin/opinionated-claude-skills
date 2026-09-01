@@ -155,7 +155,7 @@ Output styles are a plugin component like skills and themes, so this plugin vend
 
 | Component | Description |
 |-----------|-------------|
-| `plainspoken` | Output style: self-contained, evidence-carrying communication with graded confidence and earned emphasis |
+| `plainspoken` | Output style: self-contained, evidence-carrying communication with graded confidence and emphasis from content |
 
 ### opinionated-themes
 
