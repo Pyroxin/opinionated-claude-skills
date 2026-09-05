@@ -36,7 +36,8 @@ Scope the effort to the findings: a skill that triages clean needs only the phas
 1. From the Phase 1 inventory, verify each factual claim with tools — statistics, attributions, quotes, model behavior, API facts (see `<source_verification>`).
 2. Disposition each claim: keep (verified), correct (source disagrees), or retire (no source). Watch for version-specific claims stated as general facts.
 3. Run the plagiarism check (see `<plagiarism_validation>`).
-4. Record claim-by-claim verdicts for the commit message in Phase 7 — not in the skill tree.
+4. If the skill has a `<recent_changes>` section, re-derive its baseline from Anthropic's current models overview page (the oldest reliable knowledge cutoff among the models in its comparison table, currently Haiku, Sonnet, Opus, and Fable); move the baseline if the lineup changed, drop entries older than it, and add releases, behavior changes, deprecations, and community shifts that landed since the section was last written (see `<recent_changes_guidelines>`).
+5. Record claim-by-claim verdicts for the commit message in Phase 7 — not in the skill tree.
 </retrofit_claims_audit>
 
 ## Phase 5: Content substance
@@ -46,6 +47,7 @@ Scope the effort to the findings: a skill that triages clean needs only the phas
 2. Convert how-to material into when/why decision frameworks where the judgment is the value (see `<decision_frameworks>`).
 3. Reorder so the most important guidance leads each section (see the primacy guidance in `<xml_tag_guidelines>`).
 4. Classify each forceful requirement: guidance gets a calm directive; invariants get routed to a deterministic gate (see `<guidance_vs_invariants>`).
+5. If the skill's subject moves with releases and the skill has no `<recent_changes>` section, add one; convert an undated "new features" section to that form rather than keeping it (see `<recent_changes_guidelines>`).
 </retrofit_content_substance>
 
 ## Phase 6: Language and framing
