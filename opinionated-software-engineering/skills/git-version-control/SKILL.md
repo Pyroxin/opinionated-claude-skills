@@ -99,16 +99,11 @@ A feature branch earns its cost for two reasons: it groups a multi-commit unit o
 **LLM-assisted pattern:** For one finished, self-contained change, commit it to mainline. Create a branch when you expect follow-up commits on the same unit of work, or when the change would entangle with other uncommitted work in the same files. When you genuinely can't tell whether follow-up commits are coming, ask rather than defaulting to a branch.
 
 <merge_strategy>
-**Merge strategy for completed branches:**
+**Merge strategy for completed branches:** Squash-merge a feature branch to mainline when it's ready for release. A branch is created only for multi-commit or overlapping work (see the table above), so its intermediate commits are implementation exploration, not history worth carrying onto mainline. Squashing lands the whole unit of work as a single mainline commit, so mainline tells the story of *what* changed, not *how you figured it out*.
 
-| Branch State | Recommended Merge | Rationale |
-|--------------|-------------------|-----------|
-| 1-2 clean commits | ff-merge or rebase-merge | Preserves meaningful history |
-| 3-5 commits | Consider squash-merge | Balance history vs. noise |
-| >5 commits | Strongly prefer squash-merge | Collapse implementation noise |
-| Messy/WIP commits | Squash-merge | Hide the sausage-making |
+A branch is a single unit of work, and its contents define that unit: subunits inside a feature (e.g., a refactor the feature needed) become part of the one commit the squash creates. Concern separation happens when deciding what belongs on the branch (see the table above), so the squash takes the branch whole.
 
-**Squash preference:** Feature branches with more than 3-5 commits should generally be squash-merged. The intermediate commits represent implementation exploration, not meaningful history. Mainline should tell the story of *what* changed, not *how you figured it out*.
+Give the squashed commit a message that summarizes the unit of work as a whole, rather than inheriting the last branch commit's message. Because the squash puts the change on mainline as one finished commit, merge only once the branch is release-ready.
 </merge_strategy>
 </branch_discipline>
 
