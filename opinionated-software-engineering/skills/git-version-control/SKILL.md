@@ -16,9 +16,9 @@ This skill covers Git commit standards, branch strategy, and LLM-assisted develo
 ## Core Philosophy
 
 <core_philosophy>
-**"Commit Often, Perfect Later, Publish Once"** — Seth Robertson
+**"Commit Often, Perfect Later, Publish Once"** — Seth Robertson[^robertson]
 
-**Integration frequency is the most powerful determinant of branching success.** Elite teams integrate multiple times daily. "If it hurts, do it more often." — Martin Fowler
+**Integration frequency is the most powerful determinant of branching success.** State of DevOps research found that elite teams integrate notably more often than low performers, and continuous-integration practitioners typically integrate many times a day. "If it hurts, do it more often." — Martin Fowler[^fowler]
 
 **Revertability principle**: Commits should represent meaningful units of work that could be reverted independently without breaking the system.
 </core_philosophy>
@@ -26,7 +26,7 @@ This skill covers Git commit standards, branch strategy, and LLM-assisted develo
 ## Commit Practices
 
 <atomic_commits>
-**Atomic commit decision:** "If you can describe what you did in a short sentence and it makes sense, commit."
+**Atomic commit decision:** If you can describe what you did in a short sentence and it makes sense, commit.
 
 **When larger commits are acceptable:** Initial prototyping (squash before review), closely coupled changes, when over-granularity loses context.
 
@@ -147,7 +147,7 @@ git config --global rebase.autosquash true
 
 **Trunk-based:** Short-lived branches (<24h), feature flags for incomplete work.
 
-**Branch naming:** `<category>/<ticket-id>-<description>` (e.g., `feature/PROJ-4521-add-oauth`)
+**Branch naming:** `{category}/{ticket-id}-{description}` (e.g., `feature/PROJ-4521-add-oauth`)
 </branching_decision>
 
 <merge_vs_rebase>
@@ -323,6 +323,10 @@ git worktree add ../agent-2-workspace feature-payment
 ## Sources
 
 <sources>
+[^robertson]: Seth Robertson. 2012. Commit Often, Perfect Later, Publish Once: Git Best Practices. https://sethrobertson.github.io/GitBestPractices/
+
+[^fowler]: Martin Fowler. 2020. Patterns for Managing Source Code Branches. Retrieved September 6, 2026 from https://martinfowler.com/articles/branching-patterns.html
+
 [^beams]: Chris Beams. 2014. How to Write a Git Commit Message. https://cbea.ms/git-commit/
 
 [^orick]: Nathan Orick. Git Checkpoints. https://nathanorick.com/git-checkpoints/
