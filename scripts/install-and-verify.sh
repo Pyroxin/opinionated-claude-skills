@@ -303,6 +303,39 @@ for ((i = 0; i < plugin_count; i++)); do
     fi
   done < <(find "${plugin_dir}/themes" -name "*.json" -type f -print0 2>/dev/null)
 
+  # Auto-discover output styles (output-styles/<name>.md)
+  #
+  # Claude Code loads an output style by reading its frontmatter and injecting
+  # the body into the system prompt, so a malformed file fails silently: the
+  # style disappears from the /config picker with no error. `claude plugin
+  # validate` does not reach these files either -- it validates plugin.json
+  # alone -- so this is the only gate on them. Check the frontmatter delimiters
+  # and a non-empty `description` (the picker's label; `name` legitimately
+  # defaults to the filename). Where a style uses this repository's XML section
+  # convention, check the tags balance, since an unclosed tag silently swallows
+  # the rest of the file when the body reaches the model.
+  while IFS= read -r -d '' style_md; do
+    style_name=$(basename "$style_md" .md)
+    if [[ ! -s "$style_md" ]]; then
+      error "${plugin_name}: output style file is empty at ${style_md}"
+    elif [[ "$(head -n 1 "$style_md")" != "---" ]]; then
+      error "${plugin_name}: output style ${style_name} has no frontmatter delimiter on line 1"
+    elif ! awk 'NR>1 && /^---$/{found=1; exit} END{exit !found}' "$style_md"; then
+      error "${plugin_name}: output style ${style_name} has an unterminated frontmatter block"
+    elif ! grep -q '^description:[[:space:]]*[^[:space:]]' "$style_md"; then
+      error "${plugin_name}: output style ${style_name} has no 'description'"
+    else
+      unbalanced=$(grep -o -E '^</?[a-z_]+>$' "$style_md" \
+        | sed 's|</||; s|<||; s|>||' \
+        | sort | uniq -c | awk '$1 % 2 == 1 {print $2}' | tr '\n' ' ')
+      if [[ -n "${unbalanced// /}" ]]; then
+        error "${plugin_name}: output style ${style_name} has unbalanced XML tags: ${unbalanced}"
+      else
+        info "  output style ${style_name}: OK"
+      fi
+    fi
+  done < <(find "${plugin_dir}/output-styles" -name "*.md" -type f -print0 2>/dev/null)
+
   # Check hooks.json if present
   hooks_file="${plugin_dir}/hooks/hooks.json"
   if [[ -f "$hooks_file" ]]; then
