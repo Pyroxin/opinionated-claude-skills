@@ -234,7 +234,7 @@ Each spawn prompt should include:
 1. **Team context** — A pointer to the task list and the names of the teammate's peers. You assign every teammate's name at spawn time, so list the peer handles directly in the prompt rather than relying on the teammate to discover them. (Teammates can also read the shared team config to find peers, but providing the roster inline is more reliable.)
 2. **Expected source types** — Guide the specialist toward source diversity.
 3. **Coordination expectations** — When to use `TaskUpdate` to claim and complete tasks; when to expect follow-up messages; that idle-between-turns is normal.
-4. **Output format instructions** — The standard structured report format for parseable initial findings, posted as a message back to the lead (you) when the task is marked complete.
+4. **Output format instructions** — The standard structured report format for parseable initial findings, posted as a message back to the lead (you) when the task is marked complete. Replace `{lead-address}` in the example spawn below with your own `SendMessage` address, because the specialists send to the address the spawn prompt gives and know no default. When this skill runs in the main conversation (the usual case), the address is `main`, which reaches you from a teammate in Claude Code and from a plain subagent in a host where no team forms (for example, an Agent SDK host); `team-lead` resolves only inside a team.
 5. **Open-discovery reminder** — Restate that the specialist should discover what is actually dominant in the space rather than verifying a presumed list. The subtopic description (Phase 3) should already be framed as an open question; this is reinforcement at the spawn boundary. See `<phase_decompose>` for the discipline.
 6. **Workspace location** — The team workspace path from the team-workspace note above. Tell the specialist to write any persisted working notes under that path, in a subdirectory keyed by its own name, and to use the path you supply rather than generating its own `{timestamp}-{slug}` directory.
 
@@ -247,9 +247,9 @@ Each spawn prompt should include:
 Use the Agent tool with:
   subagent_type: "opinionated-research:research-investigator"   # or research-analyst per Phase 4c
   name: "specialist-{subtopic-slug}"
-  prompt: "You are joining a research team as a specialist researcher, working under the lead ('{lead-name}').
+  prompt: "You are joining a research team as a specialist researcher, working under the lead, whose SendMessage address is '{lead-address}'.
 
-    Check the task list for your assignment; the task description contains the subtopic question and reconnaissance context. Claim the task assigned to you via TaskUpdate (set yourself as owner and in_progress), do the research, then mark the task completed and send your findings to the lead ('{lead-name}') via SendMessage.
+    Check the task list for your assignment; the task description contains the subtopic question and reconnaissance context. Claim the task assigned to you via TaskUpdate (set yourself as owner and in_progress), do the research, then mark the task completed and send your findings to the lead via SendMessage with to: '{lead-address}'.
 
     Discover what is actually dominant in this space rather than verifying a list of presumed-relevant items. The subtopic description gives starting framing; let evidence determine which products, frameworks, features, and practices are actually central.
 
