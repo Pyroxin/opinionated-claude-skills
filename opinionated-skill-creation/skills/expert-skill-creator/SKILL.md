@@ -858,6 +858,7 @@ Before completing a skill, verify:
 - [ ] No PII or secrets in any tracked (publishable) file — see `<pii_and_secret_scanning>`
 - [ ] Read the whole publish surface in full, not just pattern-scanned it (see `<pii_and_secret_scanning>`)
 - [ ] Checked examples for real-scenario context leaks, not only data-value patterns
+- [ ] Every unpushed commit qualifies for publication on its own, not just the state the series ends in (see `<per_commit_publication_gate>`)
 </content_validation>
 
 ### Empirical Validation
@@ -924,10 +925,29 @@ Common leak vectors and how to tell signal from noise. The patterns below are ex
 | Internal references | Private hostnames, internal URLs, ticket IDs | Public docs or documented example hosts |
 | Context leaks in examples | An example or passage carrying detail from a real scenario, such as a real client, employer, project, person, system, or incident | The example is generic or invented (for example, a placeholder, a public technology, or a hypothetical) |
 
-Most hits are false positives, so judge each one: a placeholder email and a citation to a public author are clean; a stray `/Users/yourname` path or a real-looking token are not. When a match is genuinely a secret, rotate it — removing it from the working tree doesn't remove it from history.
+Most hits are false positives, so judge each one: a placeholder email and a citation to a public author are clean; a stray `/Users/yourname` path or a real-looking token are not. When a match is genuinely a secret, rotate it — removing it from the working tree doesn't remove it from history, for the reason `<per_commit_publication_gate>` gives.
 
 Read every tracked file end to end; pattern matching alone is not enough. A context leak — an example or passage carrying real-scenario detail without any flaggable token (the last vector above) — matches no pattern and surfaces only on a read. A pattern scan can also silently match nothing when a path or pathspec is wrong, so a clean scan is not evidence of a clean surface until you have read the files too. So run both: read each file in full, and run a pattern scan (e.g., `git grep -nIE` for the vectors above) plus, for secrets, an entropy-based scanner (e.g., gitleaks, trufflehog) for the high-entropy strings patterns miss. Wire the scanners into the same validation gate as the other automated checks so they run every time; the full read is a manual step the reviewer owns, and a clean scan does not excuse skipping it.
 </pii_and_secret_scanning>
+
+### Per-Commit Publication Qualification
+
+<per_commit_publication_gate>
+**Qualify every commit for publication before pushing, rather than only the state the series ends in, because a pushed commit stays retrievable by its own identifier whatever later commits do.** Hosting services address each commit directly (e.g., GitHub serves a commit at `/commit/{sha}`), so a reader reaches its content without the branch pointing there, and a commit left unreferenced by a branch rewrite can stay served. A later commit that corrects the content therefore publishes a second version beside the first instead of withdrawing it.
+
+This generalizes the history point in `<pii_and_secret_scanning>` — a committed secret needs rotating because deleting it doesn't reach history — from secrets to everything a publication check covers (e.g., personal data, a context leak from a real scenario, a quotation that doesn't match its source, a claim attributed to a document that doesn't support it).
+
+Two requirements come out of it, with different scopes:
+
+| What must hold | Scope | Why |
+|----------------|-------|-----|
+| Publication permissibility: nothing present that can't be public | Every commit | Each commit is independently fetchable, so one bad commit is published however clean the tip is |
+| Functional validity: declared components resolve, the build runs | Every commit where mainline is the release surface; the tip otherwise | A consumer resolving a version from a commit identifier installs whatever that commit holds |
+
+Two practices follow. Correct a mistake in the commit that introduced it while that commit is unpushed, by amending it or by recording a fixup and squashing before the push, so no addressable version carries the mistake. And keep the series short, because each commit is a separate surface needing its own qualification, so dividing work into many commits multiplies the checking rather than splitting it.
+
+State which scope each of a project's gates covers, so the unchecked region is visible. A gate that runs once before a push (e.g., a `pre-push` hook) qualifies the tip; a gate that runs on each commit (e.g., a `pre-commit` hook) qualifies every one, to whatever depth that gate reaches. Where the per-commit gate checks less than the pre-push gate, the commits between the base and the tip are the ones nothing examined deeply, which is a second reason to keep the series short.
+</per_commit_publication_gate>
 
 ### Related Skill Consistency
 

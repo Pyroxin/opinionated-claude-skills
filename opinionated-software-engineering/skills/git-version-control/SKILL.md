@@ -124,6 +124,8 @@ Give the squashed commit a message that summarizes the unit of work as a whole, 
 </conventional_commits>
 
 <fixup_workflow>
+**Record a correction as a fixup and squash it before pushing, so that no pushed commit carries the mistake.** A pushed commit stays retrievable by its own identifier whatever later commits do, so a follow-up fix publishes a corrected version beside the original rather than replacing it. That is also why a short series costs less to qualify than a long one: each commit is independently fetchable and so needs checking on its own. For the publication consequences, see `<per_commit_publication_gate>` in `opinionated-skill-creation:expert-skill-creator`.
+
 ```bash
 git commit --fixup=<sha>           # Creates "fixup! Original message"
 git rebase --autosquash origin/main # Squashes fixups automatically
