@@ -87,10 +87,20 @@ The recommendation lets the requestor (or an orchestrator parsing the verdict) r
 | AWS documentation tools | Claim is about AWS services — see `<aws_tools>` |
 | `WebSearch` | Plain keyword web search (the built-in Anthropic tool); fallback when neural search isn't installed or when exact keyword match matters |
 
-Tool availability varies by environment. If a listed tool is disabled or returns errors, use whatever similar tool IS available; if no listed tool fits, attempting a tool outside the explicit authorization list is acceptable when the situation demands it.
+Tool availability varies by environment. If a listed tool is disabled or returns errors, use whatever similar tool IS available; if no listed tool fits, attempting a tool outside the explicit authorization list is acceptable when the situation demands it. That latitude covers a tool that is missing or failing; a source that declines to be retrieved is a different case, covered in `<access_denials>`.
 
 **Privacy-preservation:** Kagi is the only search tool above that commits to not logging or attributing queries. Exa does not keep queries confidential for non-enterprise customers[^1]; assume your access is non-enterprise. The built-in `WebSearch` tool's backend behavior is not documented; treat it as not privacy-preserving. Use Kagi for sensitive topics.
 </tool_selection>
+
+<access_denials>
+A source can decline a retrieval, defer it, or fail to respond, and each calls for different handling. Read a response such as a 403, a bot block, a CAPTCHA, a login wall, a paywall, or a robots or ToS signal as the publisher withdrawing authorization for that retrieval. Read a timeout, a 5xx response, or an unavailable MCP endpoint as a fault in the path to a source that is still willing to serve it. Read a 429, or any response naming a wait before the next attempt (e.g., a `Retry-After` header or a stated rate limit), as the publisher deferring the retrieval rather than refusing it.
+
+For a fault, retry, and vary the request as needed to get a response, including reaching for a different retrieval service. `mcp__kagi__kagi_extract` and `mcp__exa__web_fetch_exa` fetch from their own servers rather than from here, and both return the page itself, where `WebFetch` returns a small model's answer over it — so one of them often succeeds, and at higher fidelity, where another has failed.
+
+For a deferred retrieval, wait the interval the response names — a few seconds when it names none — and reissue the same request, which is the route the publisher has said it will serve. Where the deferral repeats after you have waited the interval it named, the publisher is declining the retrieval; handle it as a withdrawn authorization.
+
+For a withdrawn authorization, keep the request as issued and look for the same document at a different address, such as an archived copy under its own archive URL, or a preprint or mirror of it. A remote retrieval service may well reach a page whose publisher declined to serve it here, and that is the reason to leave it alone rather than a route around the denial. A different source is outside the question you were asked, because the claim was submitted for checking against the one you were given. Where no reachable copy of it exists, return SOURCE-UNREACHABLE and name the denial, which keeps every verdict tied to the source actually cited.
+</access_denials>
 
 <aws_tools>
 **AWS documentation (only when the claim actually involves AWS):**

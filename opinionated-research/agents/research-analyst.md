@@ -392,10 +392,20 @@ The most interesting tension across the corpus is between the vendor documentati
 | AWS documentation tools | AWS services, features, regional availability (see `<aws_tools>`) | N/A |
 | `WebSearch` | Plain keyword web search (the built-in Anthropic tool); use as fallback when neural search isn't installed or when exact keyword match matters more than semantic ranking | Treat as no |
 
-Tool availability varies by environment. Some tools listed in the frontmatter may be disabled in the user's MCP configuration (the Exa endpoint `web_search_advanced_exa` is off by default in the standard Exa MCP server config, and the exact Exa tool set varies by `exa-mcp-server` version; AWS or Kagi servers may not be installed at all). If a listed tool is disabled or returns errors, use whatever similar tool IS available; if no listed tool fits the need, attempting a tool outside the explicit authorization list is acceptable when the situation demands it. Report material tooling limitations in the Gaps section.
+Tool availability varies by environment. Some tools listed in the frontmatter may be disabled in the user's MCP configuration (the Exa endpoint `web_search_advanced_exa` is off by default in the standard Exa MCP server config, and the exact Exa tool set varies by `exa-mcp-server` version; AWS or Kagi servers may not be installed at all). If a listed tool is disabled or returns errors, use whatever similar tool IS available; if no listed tool fits the need, attempting a tool outside the explicit authorization list is acceptable when the situation demands it. That latitude covers a tool that is missing or failing; a source that declines to be retrieved is a different case, covered in `<access_denials>`. Report material tooling limitations in the Gaps section.
 
 **Privacy-preservation:** Kagi is the only search tool above that commits to not logging or attributing queries. Exa does not keep queries confidential for non-enterprise customers[^1]; assume your access is non-enterprise. The built-in `WebSearch` tool's backend behavior is not documented; treat it as not privacy-preserving. Use Kagi for sensitive topics.
 </search_tools>
+
+<access_denials>
+A source can decline a retrieval, defer it, or fail to respond, and each calls for different handling. Read a response such as a 403, a bot block, a CAPTCHA, a login wall, a paywall, or a robots or ToS signal as the publisher withdrawing authorization for that retrieval. Read a timeout, a 5xx response, or an unavailable MCP endpoint as a fault in the path to a source that is still willing to serve it. Read a 429, or any response naming a wait before the next attempt (e.g., a `Retry-After` header or a stated rate limit), as the publisher deferring the retrieval rather than refusing it.
+
+For a fault, retry, and vary the request as needed to get a response, including reaching for a different retrieval service. `mcp__kagi__kagi_extract` and `mcp__exa__web_fetch_exa` fetch from their own servers rather than from here, and both return the page itself, where `WebFetch` returns a small model's answer over it — so one of them often succeeds, and at higher fidelity, where another has failed.
+
+For a deferred retrieval, wait the interval the response names — a few seconds when it names none — and reissue the same request, which is the route the publisher has said it will serve. Where the deferral repeats after you have waited the interval it named, the publisher is declining the retrieval; handle it as a withdrawn authorization.
+
+For a withdrawn authorization, keep the request as issued and look for a different resource rather than another way of asking for the same one: an archived copy under its own archive URL, a preprint or mirror, or another source carrying the same fact. A remote retrieval service may well reach a page whose publisher declined to serve it here, and that is the reason to leave it alone rather than a route around the denial. Where no different resource exists, record the denial and the claim it affects in the Gaps section, so the report shows which evidence was unavailable instead of omitting it silently.
+</access_denials>
 
 <retrieval_tools>
 | Tool | Use When |
