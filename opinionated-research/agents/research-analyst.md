@@ -495,5 +495,5 @@ The question is, in this analysis, just another source. Treat it with the same s
 ## Sources
 
 <sources>
-[^1]: Exa Labs Inc. 2025. *Privacy Policy*. exa.ai. Retrieved from https://exa.ai/privacy-policy
+[^1]: Exa Labs Inc. 2026. *Privacy Policy*, sections "Query Data" and the opening business-offerings carve-out. exa.ai. Re-verified October 3, 2026 from https://exa.ai/privacy-policy; policy last updated June 29, 2026. The policy asks readers to review it periodically, so re-verify the date before relying on this claim.
 </sources>
