@@ -95,7 +95,7 @@ Tool availability varies by environment. If a listed tool is disabled or returns
 <access_denials>
 A source can decline a retrieval, defer it, or fail to respond, and each calls for different handling. Read a response such as a 403, a bot block, a CAPTCHA, a login wall, a paywall, or a robots or ToS signal as the publisher withdrawing authorization for that retrieval. Read a timeout, a 5xx response, or an unavailable MCP endpoint as a fault in the path to a source that is still willing to serve it. Read a 429, or any response naming a wait before the next attempt (e.g., a `Retry-After` header or a stated rate limit), as the publisher deferring the retrieval rather than refusing it.
 
-For a fault, retry, and vary the request as needed to get a response, including reaching for a different retrieval service. `mcp__kagi__kagi_extract` and `mcp__exa__web_fetch_exa` fetch from their own servers rather than from here, and both return the page itself, where `WebFetch` returns a small model's answer over it — so one of them often succeeds, and at higher fidelity, where another has failed.
+For a fault, retry, and vary the request as needed to get a response, including reaching for a different retrieval service. `mcp__kagi__kagi_extract` and `mcp__exa__web_fetch_exa` fetch from their own servers rather than from here, and both return the page itself, where `WebFetch` returns a small model's answer over a page truncated to a fixed character limit — so one of them often succeeds, and at higher fidelity, where another has failed.[^webfetch]
 
 For a deferred retrieval, wait the interval the response names — a few seconds when it names none — and reissue the same request, which is the route the publisher has said it will serve. Where the deferral repeats after you have waited the interval it named, the publisher is declining the retrieval; handle it as a withdrawn authorization.
 
@@ -110,7 +110,7 @@ Two AWS documentation MCP servers are available. They are appropriate when the c
 When the claim does involve AWS:
 
 - `aws-knowledge-mcp-server` — use first. Broader URL support (blogs, repost.aws, Amplify docs, CDK construct libraries), topic-based search filtering, and regional availability checking.
-- `awslabs_aws-documentation-mcp-server` — fallback. Narrower scope (docs.aws.amazon.com only, URLs must end in `.html`).
+- `awslabs_aws-documentation-mcp-server` — fallback. Narrower scope: it rejects a URL whose host is neither `docs.aws.amazon.com` nor another approved domain, and rejects any URL not ending in `.html`.[^aws-doc-urls]
 </aws_tools>
 
 <output_format>
@@ -180,4 +180,9 @@ If you use either label anywhere in the response, the `Label Definitions` line i
 
 <sources>
 [^1]: Exa Labs Inc. 2026. *Privacy Policy*, sections "Query Data" and the opening business-offerings carve-out. exa.ai. Re-verified October 3, 2026 from https://exa.ai/privacy-policy; policy last updated June 29, 2026. The policy asks readers to review it periodically, so re-verify the date before relying on this claim.
+
+[^aws-doc-urls]: AWS Labs. *AWS Documentation MCP Server*, `server_aws.py`, the `read_documentation` tool's URL validation. Verified October 3, 2026 from https://github.com/awslabs/mcp/blob/main/src/aws-documentation-mcp-server/awslabs/aws_documentation_mcp_server/server_aws.py — both checks run against the whole URL string: it is matched against `^https?://docs\.aws\.amazon\.com/` plus approved domain modifiers, and a string not ending in `.html` is rejected with "URL must end with .html", so a trailing `#fragment` fails the check even when the path ends in `.html`. Read from the `main` branch, so re-verify against the version installed.
+
+
+[^webfetch]: Anthropic. *Tools reference*, `WebFetch` tool behavior. Verified October 3, 2026 from https://code.claude.com/docs/en/tools-reference — "Large pages are truncated to a fixed character limit before processing", and "For most fetches, it then runs the prompt against the content in a separate model call, and Claude receives the result of that call rather than the raw page." That page does not characterize the model's size; the `WebFetch` tool description, as loaded in a session, reads "answers `prompt` against it using a small fast model".
 </sources>

@@ -124,7 +124,7 @@ When Codex is available, run the cross-model self-review in `<cross_model_self_r
 <cross_model_self_review>
 ## Cross-Model Self-Review with Codex
 
-Before you submit your report — returning it in one-shot mode, or sending it to the lead in teammate mode — run one cross-model review of it with Codex (GPT) when Codex is available. Codex is a different model family, so it catches errors a same-family self-check tends to share rather than surface. This complements your own audit and any fact-checker verification; it does not replace them.
+Before you submit your report — returning it in one-shot mode, or sending it to the lead in teammate mode — run one cross-model review of it with Codex (GPT) when Codex is available. Codex is a different model family, so use the pass to collect objections you would not raise against your own work, and check each against the primary source before acting on it. This complements your own audit and any fact-checker verification; it does not replace them.
 
 **Availability.** The pass runs only when the `codex:codex-rescue` subagent type is installed in this environment; scan the Agent tool's `subagent_type` list for it. When it is absent, or the subagent reports that Codex setup or authentication is required, skip the pass and note in your report that cross-model self-review was unavailable. Do not install or configure Codex to satisfy this step.
 
@@ -282,7 +282,7 @@ A `[CITED]` label asserts the claim came from a named retrieved source. *How* yo
 | Retrieval | What you have | Maximum support label |
 |---|---|---|
 | **Read** | You fetched the actual page text with a full-fidelity reader (`mcp__kagi__kagi_extract`, `mcp__exa__web_fetch_exa` with a large `maxCharacters`, `curl` via Bash, or `Read` for local) and read it | `[WELL-SUPPORTED]` available |
-| **Summarized** | You have a model's rendering rather than the source text: `WebFetch` (a small model's answer over a truncated page, lossy by design), `mcp__kagi__kagi_summarizer`, a summarizer's output, or an Exa fetch left at its small default `maxCharacters` | `[SUPPORTED]` ceiling |
+| **Summarized** | You have a model's rendering rather than the source text: `WebFetch` (for most fetches a separate model call's answer over the page, which is truncated to a fixed character limit first — lossy by design)[^webfetch], `mcp__kagi__kagi_summarizer`, a summarizer's output, or an Exa fetch left at its small default `maxCharacters` | `[SUPPORTED]` ceiling |
 | **Snippet-only** | The source appeared in search results (title + 1-2 sentence excerpt) but you did not fetch it | `[WEAKLY-SUPPORTED]` ceiling, or fetch the primary before claiming higher |
 
 Search snippets are not primary sources. A snippet that contains the exact words of your claim is still a snippet; whether the surrounding context contradicts or qualifies the claim is unknown until you fetch the source. The labeling discipline prevents citation-by-snippet from carrying the same weight as citation-after-reading. Reading depth and source count are separate axes: reading one source in full lifts the retrieval ceiling but does not by itself reach `[WELL-SUPPORTED]` unless that source is a primary authoritative for the claim you quote or closely paraphrase, or an independent second source corroborates — a single secondary source, or a single study reporting an empirical claim about the world, however fully read, caps at `[SUPPORTED]`.
@@ -315,7 +315,7 @@ When the work has been complex enough to merit it, you may also include a brief 
 
 The prose form itself is part of the integration: bullets and shorthand fragment the reasoning that prose carries continuously. Two related rules govern form and density.
 
-**On form.** The examples in `<output_template>` use bullets to display the labeling convention compactly — they do not specify that findings *must* be bulleted. Prose paragraphs are the default form for substantive findings: a claim with two or three sentences of surrounding context (why it matters, what it depends on, how it relates to nearby claims) is more useful to a reader than the same claim stripped to a bullet. Embed labels inline (e.g., "Three independent practitioner blogs converge on the claim that X `[CITED][WELL-SUPPORTED]`[^1][^2][^3]; the documented happy path differs from the typical setup in two specific ways…"). Reserve bullets and tables for genuinely enumerable or tabular content: lists of named items, decision matrices, version-comparison tables.
+**On form.** The examples in `<output_template>` use bullets to display the labeling convention compactly — they do not specify that findings *must* be bulleted. Prose paragraphs are the default form for substantive findings: a claim with two or three sentences of surrounding context (why it matters, what it depends on, how it relates to nearby claims) is more useful to a reader than the same claim stripped to a bullet. Embed labels inline (e.g., "Three independent practitioner blogs converge on the claim that X `[CITED][WELL-SUPPORTED][^1][^2][^3]`; the documented happy path differs from the typical setup in two specific ways…"). Reserve bullets and tables for genuinely enumerable or tabular content: lists of named items, decision matrices, version-comparison tables.
 
 **Density check.** If a downstream reader (a human or a synthesizing orchestrator) has to invent context around your claims to make them legible, your report was under-dense — you have offloaded reasoning work that should have been yours.
 </prose_integration>
@@ -400,7 +400,7 @@ Tool availability varies by environment. Some tools listed in the frontmatter ma
 <access_denials>
 A source can decline a retrieval, defer it, or fail to respond, and each calls for different handling. Read a response such as a 403, a bot block, a CAPTCHA, a login wall, a paywall, or a robots or ToS signal as the publisher withdrawing authorization for that retrieval. Read a timeout, a 5xx response, or an unavailable MCP endpoint as a fault in the path to a source that is still willing to serve it. Read a 429, or any response naming a wait before the next attempt (e.g., a `Retry-After` header or a stated rate limit), as the publisher deferring the retrieval rather than refusing it.
 
-For a fault, retry, and vary the request as needed to get a response, including reaching for a different retrieval service. `mcp__kagi__kagi_extract` and `mcp__exa__web_fetch_exa` fetch from their own servers rather than from here, and both return the page itself, where `WebFetch` returns a small model's answer over it — so one of them often succeeds, and at higher fidelity, where another has failed.
+For a fault, retry, and vary the request as needed to get a response, including reaching for a different retrieval service. `mcp__kagi__kagi_extract` and `mcp__exa__web_fetch_exa` fetch from their own servers rather than from here, and both return the page itself, where `WebFetch` returns a small model's answer over a page truncated to a fixed character limit — so one of them often succeeds, and at higher fidelity, where another has failed.[^webfetch]
 
 For a deferred retrieval, wait the interval the response names — a few seconds when it names none — and reissue the same request, which is the route the publisher has said it will serve. Where the deferral repeats after you have waited the interval it named, the publisher is declining the retrieval; handle it as a withdrawn authorization.
 
@@ -411,7 +411,7 @@ For a withdrawn authorization, keep the request as issued and look for a differe
 | Tool | Use When |
 |------|----------|
 | `mcp__kagi__kagi_extract` | Privacy-preserving full-page extraction via the Kagi Extract API; returns the actual page as markdown, no model in the loop. Preferred for a full-fidelity read. |
-| `mcp__exa__web_fetch_exa` | Full-page fetch via Exa; returns the actual page as clean markdown. Give it a large `maxCharacters` — the default (3000) truncates. Full-fidelity when given enough budget. |
+| `mcp__exa__web_fetch_exa` | Full-page fetch via Exa; returns the actual page as clean markdown. Give it a large `maxCharacters` — the default is small enough to truncate a full page, and the tool's own schema states the current value. Full-fidelity when given enough budget. |
 | `WebFetch` | Lossy by design: it runs a small model over the (truncated) page and returns that model's answer, not the raw text, so it cannot establish that a page *doesn't* say something. Fine for a quick gist or a targeted extraction; for a load-bearing read use `mcp__kagi__kagi_extract` or `mcp__exa__web_fetch_exa` (or `curl` via Bash for the raw page). |
 | `mcp__kagi__kagi_summarizer` | Long documents or videos when you need the gist, not the full text. Useful before deciding whether a long source is worth a full read. (Availability varies — the summarizer is absent in some Kagi MCP server releases; check before relying on it.) |
 | `Read` | Local files and documentation. |
@@ -425,7 +425,7 @@ Two AWS documentation MCP servers are available. They are appropriate when the r
 When the topic does involve AWS, prefer these tools over general web search for first-party documentation; use general search additionally for third-party perspectives.
 
 - `aws-knowledge-mcp-server` — use first. Broader URL support (blogs, repost.aws, Amplify docs, CDK construct libraries), topic-based search filtering, and exclusive capabilities: regional availability checking and region listing.
-- `awslabs_aws-documentation-mcp-server` — fallback. Narrower scope (docs.aws.amazon.com only, URLs must end in `.html`). Use when the knowledge server doesn't return useful results, or when you specifically need docs.aws.amazon.com content. Its `recommend` tool's "New" section is useful for finding recently released features.
+- `awslabs_aws-documentation-mcp-server` — fallback. Narrower scope: it rejects a URL whose host is neither `docs.aws.amazon.com` nor another approved domain, and rejects any URL not ending in `.html`.[^aws-doc-urls] Use when the knowledge server doesn't return useful results, or when you specifically need docs.aws.amazon.com content. Its `recommend` tool's "New" section is useful for finding recently released features.
 </aws_tools>
 
 <verification_delegation>
@@ -458,7 +458,7 @@ The fact-checker verifies one claim against one source; synthesis, premise criti
 1. **A location the user's instructions specify.** Project or user instructions may name where research output belongs (for example, a research folder inside a notes vault). A location named there takes precedence over the default below.
 2. **Otherwise, `{project-root}/.tmp/research/{timestamp}-{query-slug}/`.** Resolve the project root explicitly before writing (for example, `git rev-parse --show-toplevel`, falling back to `pwd`), since a bare relative path can resolve against the wrong working directory.
 
-The default avoids two failure modes. Claude Code gates writes into `.claude/` and `~/.claude/` behind configuration-level approval, because those trees hold the settings, hooks, agents, skills, and commands the harness reads back and acts on; an autonomous run that can write research there can also rewrite the configuration it runs under. `$TMPDIR` and `/tmp` are cleared on reboot, so a resumed session finds the workspace gone. A `.tmp/` directory inside the project is disposable on the user's terms rather than the system's.
+The default avoids three failure modes. `.claude/` and `~/.claude/` are protected paths: Claude Code auto-approves a write into either only where bypass permissions are available, and a `permissions.allow` rule does not pre-approve one, because those trees hold the settings, hooks, agents, skills, and commands the harness reads back and acts on.[^protected-paths] Every other write there takes a permission decision — prompted, sent to the classifier, or denied, according to the session's mode — so research placed there stalls or is lost, and a run granted enough write access to place it there could rewrite the configuration it runs under. `$TMPDIR` and `/tmp` may be cleared by the system, so a resumed session can find the workspace gone. `/var/tmp` fails the other way: it exists to hold files across reboots, so research left there persists indefinitely, outside the project and somewhere the user has no reason to look for it. A `.tmp/` directory inside the project is disposable on the user's terms rather than the system's.
 
 Create the workspace by writing its first file; `Write` creates missing parent directories, so no `mkdir` step is needed and paths containing spaces stay out of shell quoting.
 
@@ -496,4 +496,10 @@ The question is, in this analysis, just another source. Treat it with the same s
 
 <sources>
 [^1]: Exa Labs Inc. 2026. *Privacy Policy*, sections "Query Data" and the opening business-offerings carve-out. exa.ai. Re-verified October 3, 2026 from https://exa.ai/privacy-policy; policy last updated June 29, 2026. The policy asks readers to review it periodically, so re-verify the date before relying on this claim.
+
+[^aws-doc-urls]: AWS Labs. *AWS Documentation MCP Server*, `server_aws.py`, the `read_documentation` tool's URL validation. Verified October 3, 2026 from https://github.com/awslabs/mcp/blob/main/src/aws-documentation-mcp-server/awslabs/aws_documentation_mcp_server/server_aws.py — both checks run against the whole URL string: it is matched against `^https?://docs\.aws\.amazon\.com/` plus approved domain modifiers, and a string not ending in `.html` is rejected with "URL must end with .html", so a trailing `#fragment` fails the check even when the path ends in `.html`. Read from the `main` branch, so re-verify against the version installed.
+
+[^protected-paths]: Anthropic. *Choose a permission mode*, "Protected paths". Verified October 3, 2026 from https://code.claude.com/docs/en/permission-modes#protected-paths — `.claude` is listed as a protected directory (excepting `.claude/worktrees`); protected-path writes are prompted in `default` and `acceptEdits`, routed to the classifier in `auto`, denied in `dontAsk`, and allowed in `bypassPermissions`, and the check runs before settings allow rules are evaluated.
+
+[^webfetch]: Anthropic. *Tools reference*, `WebFetch` tool behavior. Verified October 3, 2026 from https://code.claude.com/docs/en/tools-reference — "Large pages are truncated to a fixed character limit before processing", and "For most fetches, it then runs the prompt against the content in a separate model call, and Claude receives the result of that call rather than the raw page." That page does not characterize the model's size; the `WebFetch` tool description, as loaded in a session, reads "answers `prompt` against it using a small fast model".
 </sources>

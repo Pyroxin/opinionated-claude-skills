@@ -180,7 +180,7 @@ Resolve the path in this order:
 1. **A location the user's instructions specify.** Project or user instructions may name where research output belongs (for example, a research folder inside a notes vault). A location named there takes precedence over the default below.
 2. **Otherwise, `{project-root}/.tmp/research/{timestamp}-{topic-slug}/`.** Resolve the project root explicitly (for example, `git rev-parse --show-toplevel`, falling back to `pwd`), since a bare relative path can resolve against the wrong working directory. Generate the timestamp with `date +%Y%m%d_%H%M%S`.
 
-The default avoids two failure modes. Claude Code gates writes into `.claude/` and `~/.claude/` behind configuration-level approval, because those trees hold the settings, hooks, agents, skills, and commands the harness reads back and acts on; an autonomous run that can write research there can also rewrite the configuration it runs under. `$TMPDIR` and `/tmp` are cleared on reboot, so a resumed session finds the workspace gone. A `.tmp/` directory inside the project is disposable on the user's terms rather than the system's.
+The default avoids three failure modes. `.claude/` and `~/.claude/` are protected paths: Claude Code auto-approves a write into either only where bypass permissions are available, and a `permissions.allow` rule does not pre-approve one, because those trees hold the settings, hooks, agents, skills, and commands the harness reads back and acts on.[^protected-paths] Every other write there takes a permission decision — prompted, sent to the classifier, or denied, according to the session's mode — so research placed there stalls or is lost, and a run granted enough write access to place it there could rewrite the configuration it runs under. `$TMPDIR` and `/tmp` may be cleared by the system, so a resumed session can find the workspace gone. `/var/tmp` fails the other way: it exists to hold files across reboots, so research left there persists indefinitely, outside the project and somewhere the user has no reason to look for it. A `.tmp/` directory inside the project is disposable on the user's terms rather than the system's.
 
 Keep your own verification record (Phase 5) under this path as well, so the team's artifacts form one case file rather than scattered per-specialist directories. Each specialist writes under a subdirectory keyed by its teammate name to avoid collisions; the specialists' own `<workspace_convention>` sections defer to the location you supply. Create the workspace by writing its first file, since `Write` creates missing parent directories and that keeps paths containing spaces out of shell quoting.
 
@@ -485,7 +485,7 @@ State confidence levels tied to evidence quality:
 
 Acknowledge gaps rather than concealing them. A report that honestly states "we couldn't find reliable data on X" is more useful than one that hedges around the gap.
 
-State whether a cross-model Codex pass ran (see `<cross_model_review>`) and what it changed. When Codex was unavailable, say so plainly — the report was verified by the Claude passes alone, which share a model family and so share blind spots a cross-model pass would catch.
+State whether a cross-model Codex pass ran (see `<cross_model_review>`) and what it changed. When Codex was unavailable, say so plainly — the report was verified by the Claude passes alone, with no objections collected from outside this model family.
 </honest_assessment>
 </writing_guidance>
 
@@ -747,4 +747,6 @@ Two entry points fail. Invoking `Skill(codex:rescue)` from inside this skill re-
 
 <sources>
 [^1]: Exa Labs Inc. 2026. *Privacy Policy*, sections "Query Data" and the opening business-offerings carve-out. exa.ai. Re-verified October 3, 2026 from https://exa.ai/privacy-policy; policy last updated June 29, 2026. The policy asks readers to review it periodically, so re-verify the date before relying on this claim.
+
+[^protected-paths]: Anthropic. *Choose a permission mode*, "Protected paths". Verified October 3, 2026 from https://code.claude.com/docs/en/permission-modes#protected-paths — `.claude` is listed as a protected directory (excepting `.claude/worktrees`); protected-path writes are prompted in `default` and `acceptEdits`, routed to the classifier in `auto`, denied in `dontAsk`, and allowed in `bypassPermissions`, and the check runs before settings allow rules are evaluated.
 </sources>
