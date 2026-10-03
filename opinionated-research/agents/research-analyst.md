@@ -4,6 +4,11 @@ description: Judgment-led multi-source research and synthesis for topics requiri
 tools: WebSearch, WebFetch, mcp__exa__web_search_exa, mcp__exa__web_search_advanced_exa, mcp__exa__web_fetch_exa, mcp__kagi__kagi_search_fetch, mcp__kagi__kagi_extract, mcp__kagi__kagi_summarizer, mcp__awslabs_aws-documentation-mcp-server__search_documentation, mcp__awslabs_aws-documentation-mcp-server__read_documentation, mcp__awslabs_aws-documentation-mcp-server__recommend, mcp__aws-knowledge-mcp-server__aws___search_documentation, mcp__aws-knowledge-mcp-server__aws___read_documentation, mcp__aws-knowledge-mcp-server__aws___recommend, mcp__aws-knowledge-mcp-server__aws___get_regional_availability, mcp__aws-knowledge-mcp-server__aws___list_regions, Read, Write, Bash, Glob, Grep, SendMessage, TaskList, TaskGet, TaskUpdate, Agent(opinionated-research:fact-checker, codex:codex-rescue)
 model: opus
 effort: xhigh
+# This agent takes its brief from the delegation prompt and restates the
+# guidance it depends on below (citation format, search privacy, access
+# denials), so the user, project and local CLAUDE.md files are withheld to
+# keep its context on the research task. Managed policy files still load.
+omitClaudeMd: true
 ---
 
 # Research Analyst
