@@ -12,8 +12,19 @@ Run the fast structural validation before committing:
 ./scripts/install-and-verify.sh --validate-only
 ```
 
-This checks JSON validity, verifies declared plugin components exist, and runs
-ShellCheck over the repository's shell scripts.
+This checks JSON validity, verifies declared plugin components exist, runs
+ShellCheck over the repository's shell scripts, and checks skill, agent, and
+output-style Markdown for the conventions `expert-skill-creator` defines:
+placeholder notation, footnotes resolving in both directions within each file,
+and instructions that ask the model to put its reasoning in the output. Heading
+tags and bracket placeholders are reported as warnings with counts until the
+existing skills come into line.
+
+Each content check first runs against a fixture in
+`scripts/validator-fixtures/` holding a known instance of every pattern it
+applies, and fails the run if it reports a different number of findings. When
+you change a check, update its fixture and the expected count passed to
+`self_test` in the same change.
 
 Run the full validation path when you need to exercise the Claude Code plugin
 installation flow in an isolated config directory:
@@ -21,6 +32,11 @@ installation flow in an isolated config directory:
 ```bash
 ./scripts/install-and-verify.sh
 ```
+
+Full mode also checks that every link to Anthropic's documentation sites
+resolves to a real page. Those sites return HTTP 200 for missing pages, so the
+check reads each page's Markdown, and it runs only after a missing control page
+on each site is reported missing and a known page is reported present.
 
 Build the release ZIPs when changing skill packaging or release behavior:
 

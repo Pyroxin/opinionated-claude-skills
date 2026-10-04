@@ -20,6 +20,8 @@ set -euo pipefail
 #   5. Verifies all declared components (skills, agents, commands, hooks) exist
 #      on disk in the working tree
 #   6. Runs shellcheck on all shell scripts
+#   7-8. Checks placeholder notation and skill content conventions
+#   9. Checks that Anthropic documentation links resolve to real pages
 #
 #   Full mode is used by pre-push and CI. Pre-push is the last gate before
 #   changes become public; the cost of full validation (including plugin
@@ -29,8 +31,11 @@ set -euo pipefail
 #   leaves no residue in the developer's real config or the workspace.
 #
 # Validate-only mode (--validate-only):
-#   Checks JSON validity, verifies declared components exist on disk, and
-#   runs shellcheck. No Claude CLI calls, no installation, no state mutation.
+#   Checks JSON validity, verifies declared components exist on disk, runs the
+#   shell linter, and checks skill content conventions (placeholder notation,
+#   footnotes, reasoning-in-output instructions; heading tags and bracket
+#   placeholders as warnings), each behind a positive control. No Claude CLI
+#   calls, no installation, no state mutation.
 #   Used by pre-commit for fast local feedback.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -385,24 +390,44 @@ rm -f "$scripts_list"
 echo ""
 echo "Checking placeholder notation..."
 
+FIXTURE_DIR="${SCRIPT_DIR}/validator-fixtures"
+
+# Positive control: a check counts as working only when it reports exactly the
+# known cases its fixture in scripts/validator-fixtures/ holds, because a check
+# that cannot report a finding returns a clean result on every input. The
+# fixtures also hold look-alikes each check must skip (e.g., fenced examples),
+# so a count above the expected number fails the control too.
+self_test() {
+  local name="$1" program="$2" expected="$3" found
+  found=$(awk "$program" "${FIXTURE_DIR}/${name}.md" | grep -c . || true)
+  if [[ "$found" -ne "$expected" ]]; then
+    error "check '${name}' reported ${found} findings on its fixture, which holds ${expected}; its results cannot be trusted"
+  else
+    info "  ${name} control: ${found} of ${expected} known cases reported"
+  fi
+}
+
+# shellcheck disable=SC2016 # an awk program; its $ fields are not shell expansions
+placeholder_check='
+  /^[[:space:]]*```/       { fence = !fence; next }
+  /^<placeholder_notation>$/  { exempt = 1; next }
+  /^<\/placeholder_notation>$/ { exempt = 0; next }
+  fence || exempt          { next }
+  {
+    rest = $0
+    while (match(rest, /<[a-z][a-z0-9]*(-[a-z0-9]+)+>/)) {
+      printf "    line %d: %s\n", FNR, substr(rest, RSTART, RLENGTH)
+      rest = substr(rest, RSTART + RLENGTH)
+    }
+  }'
+self_test placeholders "$placeholder_check" 1
+
 notation_list=$(mktemp "${tmp_root}/claude-marketplace-notation.XXXXXXXXXX")
 if ! find "$PROJECT_DIR" \( -path '*/skills/*/*.md' -o -path '*/agents/*.md' \) -type f -print0 > "$notation_list"; then
   error "Failed to enumerate skill and agent markdown under ${PROJECT_DIR}"
 fi
 while IFS= read -r -d '' doc; do
-  findings=$(awk '
-    /^[[:space:]]*```/       { fence = !fence; next }
-    /^<placeholder_notation>$/  { exempt = 1; next }
-    /^<\/placeholder_notation>$/ { exempt = 0; next }
-    fence || exempt          { next }
-    {
-      rest = $0
-      while (match(rest, /<[a-z][a-z0-9]*(-[a-z0-9]+)+>/)) {
-        printf "    line %d: %s\n", FNR, substr(rest, RSTART, RLENGTH)
-        rest = substr(rest, RSTART + RLENGTH)
-      }
-    }
-  ' "$doc")
+  findings=$(awk "$placeholder_check" "$doc")
   if [[ -n "$findings" ]]; then
     error "angle-bracket placeholder in ${doc#"${PROJECT_DIR}"/} (use braces)"
     printf '%s\n' "$findings" >&2
@@ -412,7 +437,207 @@ while IFS= read -r -d '' doc; do
 done < "$notation_list"
 rm -f "$notation_list"
 
-# --- Step 8: Teardown (full mode only) ---
+# --- Step 8: Skill content conventions ---
+#
+# These checks enforce expert-skill-creator conventions mechanically, so that
+# compliance does not depend on whether an author read the guidance. Each runs
+# per file, over skills (SKILL.md and reference files), agents, and output
+# styles, and each first passes its positive control (see self_test above).
+#
+# Errors, which fail the run:
+#   footnotes - a [^label] used without a definition in the same file, or
+#     defined and never used. Each file carries its own sources, because a
+#     skill's reference files are read separately from SKILL.md.
+#   reasoning - an instruction to put the model's reasoning in its output
+#     (e.g., a <thinking> section, a "reasoning": field, "think step by
+#     step"), which current Claude models may decline as reasoning_extraction.
+#     A line that names reasoning_extraction is discussing the rule and is
+#     skipped, and expert-skill-creator is exempt, because stating the rule
+#     requires quoting the patterns it rules out.
+#
+# Warnings, reported with counts but not failing the run:
+#   heading-tags - a heading whose next non-blank line is not its own XML tag.
+#   brackets - a [lowercase words] placeholder where braces are the convention.
+#   Both conventions postdate most skills in this repository; each skill comes
+#   into line when it is next upgraded through expert-skill-creator. Make them
+#   errors once their counts reach zero.
+
+echo ""
+echo "Checking skill content conventions..."
+
+# shellcheck disable=SC2016 # an awk program; its $ fields are not shell expansions
+footnote_check='
+  /^[[:space:]]*```/ { fence = !fence; next }
+  fence { next }
+  {
+    line = $0
+    if (match(line, /^\[\^[A-Za-z0-9_-]+\]:/)) {
+      label = substr(line, 1, RLENGTH - 1)
+      if (!(label in def)) def[label] = FNR
+      line = substr(line, RLENGTH + 1)
+    }
+    gsub(/`[^`]*`/, "", line)
+    while (match(line, /\[\^[A-Za-z0-9_-]+\]/)) {
+      label = substr(line, RSTART, RLENGTH)
+      if (!(label in use)) use[label] = FNR
+      line = substr(line, RSTART + RLENGTH)
+    }
+  }
+  END {
+    for (u in use) if (!(u in def)) printf "    line %d: %s is used but never defined\n", use[u], u
+    for (d in def) if (!(d in use)) printf "    line %d: %s is defined but never used\n", def[d], d
+  }'
+
+# shellcheck disable=SC2016 # an awk program; its $ fields are not shell expansions
+reasoning_check='
+  {
+    l = tolower($0)
+    if (l ~ /reasoning_extraction/) next
+    if (l ~ /<(thinking|reasoning|scratchpad)>/ ||
+        l ~ /"(reasoning|thinking|trace)"[[:space:]]*:/ ||
+        l ~ /think step[- ]by[- ]step|chain[- ]of[- ]thought/ ||
+        l ~ /(show|narrate|write out|explain) (your|its) (internal )?(reasoning|thinking|work)/)
+      printf "    line %d: %s\n", FNR, substr($0, 1, 100)
+  }'
+
+# shellcheck disable=SC2016 # an awk program; its $ fields are not shell expansions
+heading_check='
+  /^[[:space:]]*```/ { fence = !fence; next }
+  fence { next }
+  pending && NF {
+    if ($0 !~ /^<[a-z_]+( [^>]*)?>$/) printf "    line %d: %s\n", heading_line, heading
+    pending = 0
+  }
+  /^##+ / { pending = 1; heading = $0; heading_line = FNR }'
+
+# shellcheck disable=SC2016 # an awk program; its $ fields are not shell expansions
+bracket_check='
+  /^[[:space:]]*```/ { fence = !fence; next }
+  fence { next }
+  {
+    line = $0 " "
+    gsub(/`[^`]*`/, "", line)
+    while (match(line, /\[[a-z][a-z0-9 _-]+\]/)) {
+      next_char = substr(line, RSTART + RLENGTH, 1)
+      if (next_char != "(" && next_char != "[" && next_char != ":")
+        printf "    line %d: %s\n", FNR, substr(line, RSTART, RLENGTH)
+      line = substr(line, RSTART + RLENGTH)
+    }
+  }'
+
+self_test footnotes "$footnote_check" 2
+self_test reasoning "$reasoning_check" 12
+self_test heading-tags "$heading_check" 1
+self_test brackets "$bracket_check" 2
+
+# The list stays until Step 9, which extracts documentation links from it.
+content_list=$(mktemp "${tmp_root}/claude-marketplace-content.XXXXXXXXXX")
+if ! find "$PROJECT_DIR" \( -path '*/skills/*/*.md' -o -path '*/agents/*.md' -o -path '*/output-styles/*.md' \) -not -path '*/.git/*' -type f -print0 > "$content_list"; then
+  error "Failed to enumerate skill, agent, and output-style markdown under ${PROJECT_DIR}"
+fi
+files_checked=0
+heading_warnings=0
+bracket_warnings=0
+while IFS= read -r -d '' doc; do
+  rel="${doc#"${PROJECT_DIR}"/}"
+  files_checked=$((files_checked + 1))
+
+  findings=$(awk "$footnote_check" "$doc") || error "footnote check failed to run on ${rel}"
+  if [[ -n "$findings" ]]; then
+    error "footnote reference or definition without its counterpart in ${rel}"
+    printf '%s\n' "$findings" >&2
+  fi
+
+  case "$rel" in
+    */skills/expert-skill-creator/*) ;;
+    *)
+      findings=$(awk "$reasoning_check" "$doc") || error "reasoning check failed to run on ${rel}"
+      if [[ -n "$findings" ]]; then
+        error "instruction to put reasoning in the output in ${rel} (current Claude models may decline it as reasoning_extraction)"
+        printf '%s\n' "$findings" >&2
+      fi
+      ;;
+  esac
+
+  count=$(awk "$heading_check" "$doc" | grep -c . || true)
+  if [[ "$count" -gt 0 ]]; then
+    info "  WARNING: ${rel}: ${count} heading(s) without their own XML tag"
+    heading_warnings=$((heading_warnings + count))
+  fi
+  count=$(awk "$bracket_check" "$doc" | grep -c . || true)
+  if [[ "$count" -gt 0 ]]; then
+    info "  WARNING: ${rel}: ${count} [bracket] placeholder(s); use braces"
+    bracket_warnings=$((bracket_warnings + count))
+  fi
+done < "$content_list"
+if [[ "$files_checked" -eq 0 ]]; then
+  error "No skill, agent, or output-style markdown found under ${PROJECT_DIR}; the content checks examined nothing"
+fi
+info "  ${files_checked} files checked for footnotes and reasoning instructions; warnings not yet enforced: ${heading_warnings} heading-tag, ${bracket_warnings} bracket-placeholder"
+
+# --- Step 9: Documentation links (full mode only) ---
+#
+# Anthropic's documentation sites answer HTTP 200 for pages that do not exist,
+# so a status code cannot show that a page exists. The check reads each page's
+# Markdown instead: a platform.claude.com page starts with front matter that
+# carries a `title:` field, while a missing page returns "Not Found"; a
+# code.claude.com page's first top-level heading is its title, while a missing
+# page's is "# Page Not Found". A missing control page on each site has to be
+# reported missing, and a known page present, before any result is believed.
+# Links to other hosts are not checked. This step needs the network, so it runs
+# only in full mode (pre-push and CI).
+
+doc_page_exists() {
+  local url="${1%.md}" body heading
+  body=$(curl -sSL --max-time 30 "${url}.md") || return 1
+  case "$url" in
+    https://platform.claude.com/*)
+      [[ "${body:0:400}" == *$'\ntitle: '* ]] ;;
+    https://code.claude.com/*)
+      heading=$(printf '%s\n' "$body" | awk '/^# / && !seen { print; seen = 1 }')
+      [[ -n "$heading" && "$heading" != "# Page Not Found" ]] ;;
+    *)
+      return 1 ;;
+  esac
+}
+
+if [[ "$VALIDATE_ONLY" != "true" ]]; then
+  echo ""
+  echo "Checking documentation links..."
+  link_controls_ok=true
+  for control in https://platform.claude.com/docs/en/validator-control-missing-page \
+                 https://code.claude.com/docs/en/validator-control-missing-page; do
+    if doc_page_exists "$control"; then
+      error "link check reports the missing control page ${control} as present"
+      link_controls_ok=false
+    fi
+  done
+  for control in https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices \
+                 https://code.claude.com/docs/en/skills; do
+    if ! doc_page_exists "$control"; then
+      error "link check reports the known page ${control} as missing"
+      link_controls_ok=false
+    fi
+  done
+  if [[ "$link_controls_ok" == "true" ]]; then
+    url_list=$(mktemp "${tmp_root}/claude-marketplace-urls.XXXXXXXXXX")
+    while IFS= read -r -d '' doc; do
+      grep -ohE 'https://(platform|code)\.claude\.com/docs/en/[A-Za-z0-9/_.-]+' "$doc" || true
+    done < "$content_list" | sed -E 's/[.)]+$//' | sort -u > "$url_list"
+    link_count=0
+    while IFS= read -r url; do
+      link_count=$((link_count + 1))
+      if ! doc_page_exists "$url"; then
+        error "documentation link does not resolve to a page: ${url}"
+      fi
+    done < "$url_list"
+    info "  ${link_count} documentation links checked after both sites' controls passed"
+    rm -f "$url_list"
+  fi
+fi
+rm -f "$content_list"
+
+# --- Step 10: Teardown (full mode only) ---
 # The entire installation lives under the isolated CLAUDE_CONFIG_DIR, so
 # teardown is a single recursive remove of that directory. It is performed by
 # the cleanup trap registered in Step 1 rather than here, so it runs on every
@@ -425,7 +650,7 @@ rm -f "$notation_list"
 echo ""
 if [[ "$errors" -eq 0 ]]; then
   if [[ "$VALIDATE_ONLY" == "true" ]]; then
-    echo "Structural validation passed (${plugin_count} plugins, shellcheck and placeholder notation clean)."
+    echo "Structural validation passed (${plugin_count} plugins; shellcheck, placeholder notation, and skill content checks clean)."
   else
     echo "Full verification passed (${plugin_count} plugins installed and validated)."
   fi
