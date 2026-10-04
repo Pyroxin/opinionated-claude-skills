@@ -496,7 +496,7 @@ reasoning_check='
     if (l ~ /<(thinking|reasoning|scratchpad)>/ ||
         l ~ /"(reasoning|thinking|trace)"[[:space:]]*:/ ||
         l ~ /think step[- ]by[- ]step|chain[- ]of[- ]thought/ ||
-        l ~ /(show|narrate|write out|explain) (your|its) (internal )?(reasoning|thinking|work)/)
+        l ~ /(shows?|narrates?|writes? out|explains?) (your|its) (internal )?(reasoning|thinking|work)/)
       printf "    line %d: %s\n", FNR, substr($0, 1, 100)
   }'
 
@@ -526,7 +526,7 @@ bracket_check='
   }'
 
 self_test footnotes "$footnote_check" 2
-self_test reasoning "$reasoning_check" 12
+self_test reasoning "$reasoning_check" 13
 self_test heading-tags "$heading_check" 1
 self_test brackets "$bracket_check" 2
 
