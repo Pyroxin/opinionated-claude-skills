@@ -859,7 +859,29 @@ Before completing a skill, verify:
 - [ ] Read the whole publish surface in full, not just pattern-scanned it (see `<pii_and_secret_scanning>`)
 - [ ] Checked examples for real-scenario context leaks, not only data-value patterns
 - [ ] Every unpushed commit qualifies for publication on its own, not just the state the series ends in (see `<per_commit_publication_gate>`)
+- [ ] Each check above reported a finding on a case it should catch before its null result was believed (see `<positive_control>`)
 </content_validation>
+
+### Positive Control for Every Check
+
+<positive_control>
+**Establish that a check can report a finding before treating a null result from it as evidence, because a check that cannot fail reports success under every condition.** Run it once against a case it ought to catch — a positive control, the known-positive sample an experiment includes to show the instrument responds. Where it reports nothing on that case, it is measuring nothing, and its clean result on the real content carries no information.
+
+A clean result has two causes that the result alone cannot distinguish: the content is clean, or the check did not examine the content. The following are ways the second happens, each observed rather than hypothetical, and not a complete list:
+
+| How a check reports clean without examining | How it appears | Control that exposes it |
+|------------------------------------|--------------------|-------------------------|
+| It examines one direction of a two-way relation | A footnote check reports every reference resolved, having never looked for definitions that nothing references | A definition with no reference to it |
+| Its pattern cannot match the syntax it scans | A tag check counts an indented or attribute-carrying tag as absent; a footnote check counts an illustration inside a fenced block as a real definition | One indented tag; one fenced illustration |
+| The tool errored instead of running | A shell pattern beginning with `-` is read as an option, so the scan never runs and its error text is mistaken for a finding | Any invocation whose exit status goes unread |
+| Its path or scope missed the content | A scan of a moved or renamed file matches nothing | A control case inside the scanned scope |
+
+Give the control a positive case for every pattern or rule the check applies, not one case for the check as a whole. A control that exercises two of a scan's ten patterns leaves eight unverified, and their zeros on the real content mean nothing while reading exactly like the two that are meaningful.
+
+Report what a check examined alongside what it found, and give the count rather than a verdict, because "zero findings across 40 files" and "zero findings because the glob matched no files" are the same word otherwise. State the control's result next to the content's, per pattern, so an unexercised pattern is visible rather than hidden among the ones that work.
+
+This extends the warning in `<pii_and_secret_scanning>` that a clean scan is not evidence of a clean surface: that entry covers a wrong pathspec, and the same null result follows from every row above. It also bears on `<guidance_vs_invariants>`, which routes an invariant to a gate because only a mechanism observes actual state — a gate that cannot fail observes nothing, whatever it reports.
+</positive_control>
 
 ### Empirical Validation
 
@@ -927,7 +949,7 @@ Common leak vectors and how to tell signal from noise. The patterns below are ex
 
 Most hits are false positives, so judge each one: a placeholder email and a citation to a public author are clean; a stray `/Users/yourname` path or a real-looking token are not. When a match is genuinely a secret, rotate it — removing it from the working tree doesn't remove it from history, for the reason `<per_commit_publication_gate>` gives.
 
-Read every tracked file end to end; pattern matching alone is not enough. A context leak — an example or passage carrying real-scenario detail without any flaggable token (the last vector above) — matches no pattern and surfaces only on a read. A pattern scan can also silently match nothing when a path or pathspec is wrong, so a clean scan is not evidence of a clean surface until you have read the files too. So run both: read each file in full, and run a pattern scan (e.g., `git grep -nIE` for the vectors above) plus, for secrets, an entropy-based scanner (e.g., gitleaks, trufflehog) for the high-entropy strings patterns miss. Wire the scanners into the same validation gate as the other automated checks so they run every time; the full read is a manual step the reviewer owns, and a clean scan does not excuse skipping it.
+Read every tracked file end to end; pattern matching alone is not enough. A context leak — an example or passage carrying real-scenario detail without any flaggable token (the last vector above) — matches no pattern and surfaces only on a read. A pattern scan can also silently match nothing when a path or pathspec is wrong, or when the scanner errors instead of running, so a clean scan is not evidence of a clean surface until you have read the files too and shown the scan responds to a case it should catch (see `<positive_control>`). So run both: read each file in full, and run a pattern scan (e.g., `git grep -nIE` for the vectors above) plus, for secrets, an entropy-based scanner (e.g., gitleaks, trufflehog) for the high-entropy strings patterns miss. Wire the scanners into the same validation gate as the other automated checks so they run every time; the full read is a manual step the reviewer owns, and a clean scan does not excuse skipping it.
 </pii_and_secret_scanning>
 
 ### Per-Commit Publication Qualification
