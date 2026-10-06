@@ -248,7 +248,7 @@ Elaboration and details follow...
 |------------|-------|
 | "CRITICAL: You MUST..." | "Use {tool} when..." |
 | "ALWAYS check..." | "Check {condition} before..." |
-| "If in doubt, use {tool}"[^3] | "Use {tool} when it would improve your understanding of the problem" |
+| "If in doubt, use {tool}"[^3] | "Use {tool} when it would enhance your understanding of the problem"[^3] |
 
 **Choose between describing the desired behavior and naming the behavior to avoid by what the instruction is for.**
 - To set a style or format, describe or show it. Anthropic's general guide says "Tell Claude what to do instead of what not to do" (e.g., "Your response should be composed of smoothly flowing prose paragraphs" rather than "Do not use markdown in your response"), and its Opus 5 and Sonnet 5 pages report that positive examples of a communication style work better than instructions about what not to do.[^3][^4][^10]
