@@ -30,7 +30,7 @@ Follow these steps in order, skipping a step only when you can state why skippin
 
 **Activities:**
 1. Identify concrete examples of how the skill will be used
-2. Determine what triggers should invoke this skill
+2. Determine what triggers should invoke this skill; they go in the `description` (see `<description_optimization>`)
 3. Identify the related skills that exist and how this skill differs from them
 4. Establish the skill's scope boundaries
 
@@ -84,12 +84,7 @@ Follow these steps in order, skipping a step only when you can state why skippin
 <step_initialize>
 **Goal:** Create the skill directory structure.
 
-**For new skills**, use the init script in Anthropic's `skill-creator:skill-creator` skill if it is available:
-```bash
-scripts/init_skill.py <skill_name> --path <output_directory>
-```
-
-**Manual initialization:**
+**Create the directories and an empty `SKILL.md`:**
 ```bash
 mkdir -p skill-name/{scripts,references,assets}
 touch skill-name/SKILL.md
@@ -97,7 +92,7 @@ touch skill-name/SKILL.md
 
 **Skip when:** Iterating on an existing skill.
 
-**Complete when:** The directory structure exists, with a `SKILL.md` template.
+**Complete when:** The directory structure exists, with an empty `SKILL.md`.
 </step_initialize>
 
 ### Step 5: Write the Skill
@@ -115,13 +110,12 @@ touch skill-name/SKILL.md
 
 **Order of writing:**
 1. YAML frontmatter (name, description)
-2. `<skill_scope skill="skill-name">` with related skills and purpose
-3. When-to-use section
-4. Core content sections with XML tags
-5. Common mistakes section
-6. Recent changes section, when the subject changes with releases (see `<recent_changes_guidelines>`)
-7. Resources section
-8. Sources section (citations)
+2. `<skill_scope skill="skill-name">` with related skills, purpose, and out-of-scope boundaries
+3. Core content sections with XML tags
+4. Common mistakes section
+5. Recent changes section, when the subject changes with releases (see `<recent_changes_guidelines>`)
+6. Resources section
+7. Sources section (citations)
 
 **Complete when:** All content is written, structured as the writing principles above describe, with sections in the order listed.
 </step_write>

@@ -1,40 +1,28 @@
 ---
 name: expert-skill-creator
-description: Expert-level guidance for creating high-quality Claude Code skills. Use alongside Anthropic's skill-creator when creating new skills, improving existing skills, or needing guidance on skill content quality. Complements basic skill mechanics with research-driven content development, XML tag structuring, decision frameworks over mechanics, cross-references between skills, and systematic validation.
+description: Expert-level guidance for creating high-quality Claude Code skills, complementing Anthropic's skill-creator, which covers basic skill mechanics. Covers research-driven content development, XML tag structuring, decision frameworks over mechanics, model targeting, cross-references between skills, citations, and systematic validation. Invoke when creating a new skill, improving, refactoring, or upgrading an existing skill (e.g., after a new Claude model release), evaluating or validating a skill's content, deciding a skill's architecture, structure, or content depth, or researching content for a skill, even if the request does not use the word "skill".
 ---
 
 # Expert Skill Creator
 
 <skill_scope skill="expert-skill-creator">
 **Related skills:**
-- `skill-creator:skill-creator` (Anthropic) - Basic skill mechanics, directory structure, initialization
+- `skill-creator:skill-creator` (Anthropic) - Basic skill mechanics (e.g., directory structure, packaging) and an evaluation loop for testing skills
 - `opinionated-software-engineering:software-engineer` - Design principles that inform skill architecture
 - `opinionated-software-engineering:test-driven-development` - Validation methodology parallels
 
-**Load this skill together with Anthropic's `skill-creator:skill-creator` when creating skills.** `skill-creator:skill-creator` covers basic mechanics (e.g., directory structure, initialization scripts, packaging); this skill covers content quality, structure, and validation.
+**Load this skill together with Anthropic's `skill-creator:skill-creator` when creating skills.** `skill-creator:skill-creator` covers basic mechanics (e.g., directory structure and packaging) and an evaluation loop for testing skills; this skill covers content quality, structure, and validation.
 
 A skill is a modular package that extends Claude's capabilities with specialized knowledge, workflows, and tool integrations. It functions as a *retrieval trigger* that activates and organizes Claude's trained knowledge, not as teaching material that explains concepts from scratch. Because a skill activates existing knowledge, too much detail *constrains* behavior rather than enhancing it: give high-level frameworks that trigger trained knowledge, and reserve detailed content for areas that are novel to the model or where the model makes mistakes.
 
 **Model calibration:** By default, skills written with this skill target the Opus and Fable lines; write an agent or skill that runs on a Sonnet or Haiku model for that line. Target the fewest lines a skill needs (see `<model_targeting>`), and before writing guidance that depends on how a model behaves, read the per-line reference files listed in `<reference_files>`.
-</skill_scope>
 
-## When to Use This Skill
-
-<when_to_use>
-Use this skill when:
-- Creating a new skill from scratch
-- Improving or refactoring an existing skill (for the staged procedure, see `references/retrofitting-existing-skills.md`)
-- Evaluating skill quality against established guidelines
-- Needing guidance on skill architecture, structure, or content depth
-- Researching content for a skill using agents
-- Validating skill content for accuracy and completeness
-
-Do not use this skill for:
+**Out of scope.** If this skill was invoked for one of the following, use the resource named or proceed without this one:
 - General prompt engineering (this skill covers skills only)
-- Subagent packaging mechanics (e.g., tool lists, model selection, agent frontmatter fields); agent prompt *content* follows similar quality principles (see `<directive_language>`)
-- Skill frontmatter syntax beyond `name` and `description`; for fields and features such as `context`, `agent`, `allowed-tools`, `hooks`, argument substitution, and dynamic context injection, see `skill-creator:skill-creator`
+- Subagent packaging mechanics (e.g., tool lists, agent frontmatter fields); agent prompt *content* follows similar quality principles (see `<directive_language>`), and choosing a worker's model is covered in `references/choosing-worker-models.md`
+- Skill frontmatter syntax beyond `name` and `description` (this skill notes only which fields work outside Claude Code); for fields and features such as `context`, `agent`, `allowed-tools`, `hooks`, argument substitution, and dynamic context injection, see Claude Code's skills documentation[^20]
 - One-off instructions that don't warrant a reusable skill
-</when_to_use>
+</skill_scope>
 
 ## Reference Files
 
@@ -145,7 +133,7 @@ The size targets are Anthropic's.[^7] Measure a body in words, which a word coun
 
 **Reference skills** provide context Claude applies in its responses. Write them as frameworks and principles (as throughout this skill). They run inline with full conversation access.
 
-**Task skills** are complete prompts sent to a subagent as its task. They need explicit instructions because the subagent has no conversation context. Use `context: fork`, and optionally `agent:` to select the execution environment (e.g., `Explore` for read-only, `general-purpose` for full tool access). Task skills can launch further agents through the Agent tool, enabling fan-out patterns such as parallel research or batch code changes.
+**Task skills** are complete prompts sent to a subagent as its task. They need explicit instructions because the subagent has no conversation context. Use `context: fork`, and optionally `agent:` to select the execution environment (e.g., `Explore` for read-only, `general-purpose` for full tool access). Task skills can launch further agents through the Agent tool, enabling fan-out patterns such as parallel research or batch code changes. Fields such as `context`, `agent`, `model`, and `effort` exist only in Claude Code: a skill that uses them fails to upload to claude.ai or the Skills API, or to package with skill-creator's `package_skill.py`, so use them in skills distributed for Claude Code.[^20]
 </content_patterns>
 </skill_anatomy>
 
@@ -300,9 +288,9 @@ Keep one notation throughout a skill. The common failure is mixing both inside a
 | `Report to the lead ('<lead-name>')` | `Report to the lead ('{lead-name}')` |
 | `/Users/<name>` | `/Users/{name}` |
 
-Braces here denote a value the reader supplies while following the instruction. Runtime argument substitution, where the harness replaces a token before the skill is read, is a separate mechanism with its own syntax; see `skill-creator:skill-creator`, as noted in `<when_to_use>`.
+Braces here denote a value the reader supplies while following the instruction. Runtime argument substitution, where the harness replaces a token before the skill is read, is a separate mechanism with its own syntax; see Claude Code's skills documentation on passing arguments and string substitutions.[^20]
 
-This rule governs the skill's instruction text and any template it carries. Inside content that reproduces another notation, that notation's meaning holds in both directions: angle brackets stay as they are in a CLI usage synopsis (`init_skill.py <skill_name>`), a generic type (`List<String>`), an HTML or XML example, or a shell redirect; braces stay as they are in shell expansion (`mkdir -p dir/{a,b}`). Such content usually appears in fenced code, and the fence signals the change of notation.
+This rule governs the skill's instruction text and any template it carries. Inside content that reproduces another notation, that notation's meaning holds in both directions: angle brackets stay as they are in a CLI usage synopsis (`cp <source> <destination>`), a generic type (`List<String>`), an HTML or XML example, or a shell redirect; braces stay as they are in shell expansion (`mkdir -p dir/{a,b}`). Such content usually appears in fenced code, and the fence signals the change of notation.
 </placeholder_notation>
 
 ### Instructional Formulation
@@ -418,7 +406,7 @@ The following table gives examples of the rewrite; it is not a complete list:
 <proportional_engagement>
 **When a skill's overhead exceeds what the task needs, say so and point to a lighter alternative.**
 
-A skill that runs its full process on every invocation adds cost to small tasks the process was never needed for. Where a skill carries substantial overhead (e.g., multi-step workflows, heavy upfront planning, or multi-agent orchestration), state the conditions under which a lighter alternative, such as a simpler sibling skill, the model's native capabilities, or doing the task directly, is the better choice. This guideline extends the "do not use for" list in `<when_to_use>` from a fixed boundary to a judgment made during the work: when to stop partway, as well as when not to start. Scope the effort to the task; the goal is the result, not completing the full process for its own sake.
+A skill that runs its full process on every invocation adds cost to small tasks the process was never needed for. Where a skill carries substantial overhead (e.g., multi-step workflows, heavy upfront planning, or multi-agent orchestration), state the conditions under which a lighter alternative, such as a simpler sibling skill, the model's native capabilities, or doing the task directly, is the better choice. This guideline extends the out-of-scope list in `<skill_scope>` from a fixed boundary to a judgment made during the work: when to stop partway, as well as when not to start. Scope the effort to the task; the goal is the result, not completing the full process for its own sake.
 </proportional_engagement>
 
 ### Common Mistakes Sections
@@ -492,14 +480,22 @@ This section covers language-specific practices...
 ### Description Field Optimization
 
 <description_optimization>
-**The `description` field in YAML frontmatter determines whether and when Claude invokes the skill.** Include:
-- WHAT the skill does
-- WHEN Claude should use it
-- Trigger terminology users would mention
+**The `description` field in YAML frontmatter determines whether and when Claude invokes the skill, so put everything about invocation there.** The body loads only after the skill is invoked, so a body section that says when to use the skill cannot affect whether it is used; Anthropic's skill-creator says, "All 'when to use' info goes here, not in the body."[^18] Include:
+- what the skill does;
+- when to invoke it, in a clause that begins "Invoke when" and names the tasks, situations, and request wording that call for the skill;
+- the trigger terms a user would mention.
 
-**Example to follow (states what, when, and trigger terms):**
+Word the invocation clause with the verb the harness uses. Claude Code's `Skill` tool describes its own purpose with the verb "invoke";[^19] a description that says "Invoke when …" states its conditions with that same verb. This wording is this skill's convention, chosen to match the harness's vocabulary; its effect on invocation rates has not been measured. State the conditions broadly enough to cover requests that do not name the skill's subject: Anthropic's skill-creator notes that "currently Claude has a tendency to 'undertrigger' skills", asks for descriptions that are "a little bit 'pushy'", and gives an example description that names the situations calling for the skill "even if they don't explicitly ask" for it.[^18] This skill gets the same breadth from conditions written as plain statements of when, not from intensifiers (see `<directive_language>`).
+
+Put all of this in `description`. Claude Code's optional `when_to_use` field adds its text to the description shown in the skill listing, within the description's character limit,[^6] and only Claude Code supports it: outside Claude Code (uploading to claude.ai or the Skills API, or packaging with skill-creator's `package_skill.py`), a skill whose frontmatter has a field other than `name`, `description`, `license`, `compatibility`, `metadata`, or `allowed-tools` is rejected with an error.[^20]
+
+In the body, keep only the scope boundaries that still matter after invocation, i.e., what the skill does not cover and where to go instead, in `<skill_scope>`, so an agent that invoked the skill for an uncovered task can hand off.
+
+**Test invocation with the user before treating a description as final.** Draft realistic requests that should invoke the skill, including ones that do not name its subject, and near-miss requests that should not; have the user run them in fresh sessions, or run them with the user's agreement; and revise the description from which requests invoked the skill. Anthropic's `skill-creator:skill-creator` includes a description-optimization loop that automates this.[^21] It runs headless Claude sessions (`claude -p`), so confirm with the user before using it.
+
+**Example to follow (states what, when to invoke, and trigger terms):**
 ```yaml
-description: Fish shell scripting judgment frameworks and critical idioms. Use when writing Fish scripts or shell automation. Focuses on when to use Fish vs bash, macOS/Fedora compatibility requirements, and Fish-specific patterns that prevent bugs.
+description: Fish shell scripting judgment frameworks and critical idioms, including when to use Fish vs bash, macOS/Fedora compatibility requirements, and Fish-specific patterns that prevent bugs. Invoke when writing, reviewing, or debugging Fish scripts, Fish configuration (e.g., config.fish or conf.d files), or shell automation that will run under Fish.
 ```
 
 **Example to avoid (states only the topic):**
@@ -711,4 +707,12 @@ The following patterns reduce skill effectiveness, grouped by where they occur.
 [^16]: Anthropic. 2026. Prompting Claude Fable 5.1. Claude Platform Docs. Retrieved October 3, 2026 from https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1
 
 [^17]: Anthropic. 2026. All settings, "`skillListingMaxDescChars`". Claude Code Docs. Retrieved October 3, 2026 from https://code.claude.com/docs/en/settings-reference.md
+
+[^18]: Anthropic. 2026. skill-creator, SKILL.md, "Write the SKILL.md" section, `description` entry. anthropics/skills (GitHub), commit 8a1541c. Retrieved October 7, 2026 from https://github.com/anthropics/skills/blob/8a1541c/skills/skill-creator/SKILL.md
+
+[^19]: Anthropic. 2026. Skill tool description, as supplied to the model in Claude Code v2.1.288. Observed October 7, 2026. [Not published as a document; the wording may change between Claude Code versions.]
+
+[^20]: Anthropic. 2026. Extend Claude with skills, "Frontmatter reference", "Using skill frontmatter outside Claude Code", "Pre-approve tools for a skill", "Pass arguments to skills", "Available string substitutions", and "Inject dynamic context". Claude Code Docs. Retrieved October 7, 2026 from https://code.claude.com/docs/en/skills.md
+
+[^21]: Anthropic. 2026. skill-creator, SKILL.md, "Description Optimization" and "Claude.ai-specific instructions". anthropics/skills (GitHub), commit 8a1541c. Retrieved October 7, 2026 from https://github.com/anthropics/skills/blob/8a1541c/skills/skill-creator/SKILL.md
 </sources>

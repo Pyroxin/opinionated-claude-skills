@@ -63,7 +63,7 @@ When the upgrade follows the release of a new Claude model version, also run `<m
 2. Apply open-world framing: mark example lists as non-exhaustive, hedge claims about things that change, and assert only where the skill defines a closed set (see `<open_world_framing>`).
 3. Apply the model-targeting rules: name model lines in guidance and version numbers only in evidence; remove instructions that ask the model to put its reasoning in the output, verbatim or in a fixed section or field; and trim over-prescription (see `<model_targeting>`).
 4. Apply the XML tagging convention: a `<skill_scope>` opening, 1:1 correspondence between headers and tags, and descriptive `snake_case` names (see `<xml_tag_guidelines>`).
-5. Rewrite the frontmatter description for discovery, concisely stating what the skill does, when to use it, and the terms that should trigger it (see `<description_optimization>`).
+5. Rewrite the frontmatter description for discovery, concisely stating what the skill does, when to invoke it in a clause beginning "Invoke when", and the terms that should trigger it; move any body section that only says when to use the skill into the description, keeping out-of-scope boundaries in `<skill_scope>` (see `<description_optimization>`).
 6. Add or repair cross-references to related skills, with a brief restatement of critical principles in case the referenced skill is not loaded (see `<cross_reference_guidelines>`).
 </retrofit_language>
 

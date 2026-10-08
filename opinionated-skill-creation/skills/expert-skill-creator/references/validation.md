@@ -27,7 +27,8 @@ Before completing a skill, verify:
 
 **Structure:**
 - [ ] YAML frontmatter has `name` and `description`
-- [ ] Description states what the skill does and when to use it (at most 1,024 characters)
+- [ ] Description states what the skill does and, in a clause beginning "Invoke when", when to invoke it (at most 1,024 characters; see `<description_optimization>`)
+- [ ] No section in the body only says when to use the skill; out-of-scope boundaries are in `<skill_scope>`
 - [ ] Opens with `<skill_scope skill="skill-name">` containing related skills
 - [ ] Major sections use XML tags with `snake_case` names
 - [ ] Cross-references use the exact names of the skills they refer to
@@ -120,6 +121,8 @@ After creating a skill:
 - Does any constraint degrade results more than it improves them?
 - Which reference files did each run open, and did it read each one in full? A file never opened, or previewed with a partial read, indicates that its load instruction is missing or ineffective (see `<content_organization>`).
 - Does the skill behave consistently on every model that will run it (e.g., Opus and Fable, plus any Sonnet or Haiku worker; see `<model_targeting>`)? Anthropic's skill-authoring guide says to test a skill with all the models you plan to use it with.[^1] A directive calibrated for one model line may be followed too literally, expand in scope, or underperform on another (see `<directive_language>`).
+
+Anthropic's `skill-creator:skill-creator` includes an evaluation loop: test prompts run with and without the skill, graded assertions, a benchmark, and a viewer for reviewing outputs. The loop fits a skill whose effect shows in the output of a fixed task (e.g., a procedural skill that produces a file). A dispositional skill, i.e., one that changes how the model approaches work in general (e.g., judgment frameworks or conventions), is harder to measure with small fixed interactions (skill-creator makes a related point about outputs: "Subjective skills (writing style, design quality) are better evaluated qualitatively"[^2]); decide with the user whether the loop fits before adopting it.
 </empirical_validation>
 
 ### Plagiarism and Citation Validation
@@ -221,4 +224,6 @@ When creating or updating a skill, check for conflicts with related skills, and 
 
 <sources>
 [^1]: Anthropic. 2026. Skill authoring best practices, "Test with all models you plan to use". Claude Platform Docs. Retrieved October 3, 2026 from https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices
+
+[^2]: Anthropic. 2026. skill-creator, SKILL.md, "Step 2: While runs are in progress, draft assertions". anthropics/skills (GitHub), commit 8a1541c. Retrieved October 7, 2026 from https://github.com/anthropics/skills/blob/8a1541c/skills/skill-creator/SKILL.md
 </sources>
