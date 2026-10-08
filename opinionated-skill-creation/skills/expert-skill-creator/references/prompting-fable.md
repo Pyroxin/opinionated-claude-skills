@@ -5,7 +5,7 @@ Read this file in full, from its first line to its last, before applying it; a p
 
 This file records what Anthropic documents about how Fable-line models respond to instructions, for authors of skills, agent prompts, and other instructions those models will run. As of October 3, 2026, the current version is Claude Fable 5.1 (`claude-fable-5-1`); Claude Mythos 5.1 shares its prompting page. Anthropic writes each version's prompting page as a set of differences from its predecessor's and states that "Your existing Claude Fable 5 prompts should perform well on Claude Fable 5.1 without changes",[^1] so this file keeps the Fable 5 findings that the Fable 5.1 page does not revise, and labels every finding with the version it was documented for.
 
-Treat each finding as measured on the version it names. Anthropic's general guide says: "Where a technique names a specific model, treat it as measured on that model and re-check it against your own evals before applying it to another."[^4] Where this file disagrees with the current documentation, the documentation is correct and this file is out of date. When a new Fable version ships, compare its prompting page against this file using the model-upgrade checklist in `references/retrofitting-existing-skills.md`.
+Treat each finding as measured on the version it names. Anthropic's general guide says: "Where a technique names a specific model, treat it as measured on that model and re-check it against your own evals before applying it to another."[^4] Where this file disagrees with the current documentation, the documentation is correct and this file is out of date. The current documentation for this line is Anthropic's page Prompting Claude Fable 5.1 (https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1); for a later version, find its page in the "Model-specific guidance" table of Prompting best practices (https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices), which links the prompting page of each current model. When a new Fable version ships, compare its prompting page against this file using the model-upgrade checklist in `references/retrofitting-existing-skills.md`.
 
 **Contents:** instruction following; scope and autonomy; writing and formatting; verification, delegation, and memory; thinking, effort, and refusals; changes from Fable 5 to Fable 5.1; retired claims; sources.
 </fable_reference_scope>
@@ -67,7 +67,7 @@ Per the "What's new" page, Fable 5.1 differs from Fable 5 in the following ways 
 <fable_retired_claims>
 Earlier versions of `expert-skill-creator` made these claims about Fable; do not reintroduce them without a current source.
 - "Fable 5 is new and capacity-limited as of June 2026", used to justify treating Fable as an upgrade path rather than a target. No current source supports it.
-- The `reasoning_extraction` refusal described as a Fable-class hazard. Anthropic now documents it for Fable 5.1, Fable 5, Opus 5.5, Opus 5, and Sonnet 5.5;[^5] see `<model_targeting>` in `SKILL.md`.
+- The `reasoning_extraction` refusal described as a Fable-class hazard. Anthropic now documents it as a category of the safety classifiers that Fable 5.1, Fable 5, Opus 5.5, Opus 5, Sonnet 5.5, and Haiku 5.5 run, though Haiku 5.5's prompting page does not list it;[^5] see `<model_targeting>` in `SKILL.md`.
 </fable_retired_claims>
 
 ## Sources
@@ -81,5 +81,5 @@ Earlier versions of `expert-skill-creator` made these claims about Fable; do not
 
 [^4]: Anthropic. 2026. Prompting best practices, "General principles" and "Control the format of responses". Claude Platform Docs. Retrieved October 3, 2026 from https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
 
-[^5]: Anthropic. 2026. Refusals and fallback, introduction and "Keep reasoning in thinking blocks". Claude Platform Docs. Retrieved October 3, 2026 from https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback
+[^5]: Anthropic. 2026. Refusals and fallback, introduction and "Keep reasoning in thinking blocks". Claude Platform Docs. Retrieved October 7, 2026 from https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback
 </sources>
