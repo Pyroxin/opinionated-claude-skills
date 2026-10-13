@@ -81,7 +81,6 @@ Treat what you recall from training as a hypothesis, not a fact. Before adding a
 1. Draft citations from memory
 2. Before finalizing, verify each citation with the available tools
 3. Correct or remove citations that fail verification
-4. Note in the commit message that sources were verified
 </source_verification>
 
 ## Common Citation Mistakes

@@ -43,7 +43,7 @@ When the upgrade follows the release of a new Claude model version, also run `<m
 2. Assign each claim a disposition: keep (verified), correct (source disagrees), or retire (no source). Check for version-specific claims stated as general facts.
 3. Run the plagiarism check (see `<plagiarism_validation>`).
 4. If the skill has a `<recent_changes>` section, re-derive its baseline from Anthropic's current models overview page (the oldest reliable knowledge cutoff among the models in its comparison table, currently Haiku, Sonnet, Opus, and Fable); move the baseline if the lineup changed, drop entries older than it, and add releases, behavior changes, deprecations, and community shifts that occurred since the section was last written (see `<recent_changes_guidelines>`).
-5. Record claim-by-claim verdicts for the commit message in Phase 7, not in the skill tree.
+5. Keep the claim-by-claim verdicts for the report to the user in Phase 7; they go in neither the skill tree nor the commit message.
 </retrofit_claims_audit>
 
 ## Phase 5: Content substance
@@ -72,7 +72,7 @@ When the upgrade follows the release of a new Claude model version, also run `<m
 <retrofit_validation>
 1. Run the full `<content_validation>` checklist, the PII and secret scan over the publish surface (see `<pii_and_secret_scanning>`), the related-skill consistency check (see `<consistency_validation>`), and the per-reference-file review (see `<reference_conformance_review>`).
 2. Re-test in a clean context window against the Phase 1 baseline; a changed description changes triggering, so verify the skill still fires when expected (see `<empirical_validation>`). Fix regressions before proceeding.
-3. Commit with the claim-by-claim verification ledger from Phase 4 in the commit message body.
+3. Report the claim-by-claim verdicts from Phase 4 to the user. Commit with a message that states the upgrade's intent and main changes at a high level; the diff records the details, and the verdicts and verification steps describe how the change was made, not what changed.
 </retrofit_validation>
 
 ## Model-Upgrade Checklist
