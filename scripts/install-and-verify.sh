@@ -33,8 +33,9 @@ set -euo pipefail
 # Validate-only mode (--validate-only):
 #   Checks JSON validity, verifies declared components exist on disk, runs the
 #   shell linter, and checks skill content conventions (placeholder notation,
-#   footnotes, reasoning-in-output instructions; heading tags and bracket
-#   placeholders as warnings), each behind a positive control. No Claude CLI
+#   footnotes, reasoning-in-output instructions; heading tags, bracket
+#   placeholders, and skills that could not be uploaded outside Claude Code as
+#   warnings), each behind a positive control. No Claude CLI
 #   calls, no installation, no state mutation.
 #   Used by pre-commit for fast local feedback.
 
@@ -71,6 +72,11 @@ fi
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "FATAL: jq is required but not found on \$PATH." >&2
+  exit 1
+fi
+
+if ! command -v dasel >/dev/null 2>&1; then
+  echo "FATAL: dasel v3 is required but not found on \$PATH." >&2
   exit 1
 fi
 
@@ -368,11 +374,11 @@ if ! find "$PROJECT_DIR" \( -name '*.sh' -o -path '*/git-hooks/*' \) -type f -pr
   error "Failed to enumerate shell scripts under ${PROJECT_DIR}"
 fi
 while IFS= read -r -d '' script; do
-  if shellcheck "$script" >/dev/null 2>&1; then
+  if shellcheck -x "$script" >/dev/null 2>&1; then
     info "  $(basename "$script"): OK"
   else
     error "shellcheck failed: ${script}"
-    shellcheck "$script" >&2 || true
+    shellcheck -x "$script" >&2 || true
   fi
 done < "$scripts_list"
 rm -f "$scripts_list"
@@ -461,6 +467,16 @@ rm -f "$notation_list"
 #   Both conventions postdate most skills in this repository; each skill comes
 #   into line when it is next upgraded through expert-skill-creator. Make them
 #   errors once their counts reach zero.
+#   portable-skill - a SKILL.md that couldn't be uploaded outside Claude Code
+#     (e.g., a frontmatter field other than the six the Agent Skills spec
+#     allows), per scripts/portable-skill.sh, which lists the rules and their
+#     sources. This stays a warning: inside Claude Code a plugin skill can use
+#     every field in its frontmatter reference, so such a skill still works
+#     there.
+#     build-skills.sh applies the same check and skips the skill. Its controls
+#     compare each fixture's output with an .expected file instead of using
+#     self_test, because the check needs a directory name and reports text
+#     whose content, not only count, has to be right.
 
 echo ""
 echo "Checking skill content conventions..."
@@ -574,6 +590,50 @@ if [[ "$files_checked" -eq 0 ]]; then
   error "No skill, agent, or output-style markdown found under ${PROJECT_DIR}; the content checks examined nothing"
 fi
 info "  ${files_checked} files checked for footnotes and reasoning instructions; warnings not yet enforced: ${heading_warnings} heading-tag, ${bracket_warnings} bracket-placeholder"
+
+# The portability check reads a skill's frontmatter and needs the skill's
+# directory name, so it runs over SKILL.md files only. Its controls are the
+# fixtures portable-skill*.md, each run with its own base name as the directory
+# name; a control passes when its output matches the fixture's .expected file
+# line for line, which tests what is reported and not only how much.
+# shellcheck source-path=SCRIPTDIR source=portable-skill.sh
+source "${SCRIPT_DIR}/portable-skill.sh"
+portable_controls=0
+for expected in "${FIXTURE_DIR}"/portable-skill*.expected; do
+  [[ -f "$expected" ]] || continue
+  fixture_name=$(basename "$expected" .expected)
+  # Compared as strings rather than piped to `diff -`, which some sandboxes
+  # forbid from reading standard input.
+  actual=$(portable_skill_findings "${FIXTURE_DIR}/${fixture_name}.md" "$fixture_name" || echo "check failed to run")
+  if [[ "$actual" == "$(cat "$expected")" ]]; then
+    portable_controls=$((portable_controls + 1))
+  else
+    error "check 'portable-skill' output on fixture ${fixture_name}.md differs from ${fixture_name}.expected; its results can't be trusted"
+  fi
+done
+if [[ "$portable_controls" -eq 0 ]]; then
+  error "no portable-skill control passed; the portability check is untested"
+else
+  info "  portable-skill controls: ${portable_controls} fixture(s) match their expected findings"
+fi
+skills_checked=0
+portable_warnings=0
+for skill_md in "$PROJECT_DIR"/*/skills/*/SKILL.md; do
+  [[ -f "$skill_md" ]] || continue
+  rel="${skill_md#"${PROJECT_DIR}"/}"
+  skills_checked=$((skills_checked + 1))
+  skill_dir_name=$(basename "$(dirname "$skill_md")")
+  findings=$(portable_skill_findings "$skill_md" "$skill_dir_name") || error "portable-skill check failed to run on ${rel}"
+  if [[ -n "$findings" ]]; then
+    info "  WARNING: ${rel}: can't be uploaded outside Claude Code (build-skills.sh skips it):"
+    printf '%s\n' "$findings" | sed 's/^/      /'
+    portable_warnings=$((portable_warnings + $(printf '%s\n' "$findings" | grep -c .)))
+  fi
+done
+if [[ "$skills_checked" -eq 0 ]]; then
+  error "No SKILL.md found under ${PROJECT_DIR}; the portability check didn't examine anything"
+fi
+info "  ${skills_checked} skills checked for portability outside Claude Code; warnings: ${portable_warnings}"
 
 # --- Step 9: Documentation links (full mode only) ---
 #

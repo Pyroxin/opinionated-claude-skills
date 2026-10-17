@@ -1,0 +1,6 @@
+frontmatter field "argument-hint" isn't accepted outside Claude Code
+frontmatter field "model" isn't accepted outside Claude Code
+name has characters other than lowercase letters, numbers, and hyphens
+name contains a reserved word ("anthropic" or "claude")
+name doesn't match the directory name "portable-skill"
+description contains an XML tag

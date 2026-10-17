@@ -10,7 +10,7 @@ set -euo pipefail
 # Usage: ./scripts/dev-setup.sh
 #
 # This script:
-#   1. Verifies required tools are available (jq, shellcheck, Claude Code)
+#   1. Verifies required tools are available (jq, shellcheck, dasel, Claude Code)
 #   2. Registers the local marketplace in Claude Code
 #   3. Configures git to use the repo's versioned hooks
 
@@ -30,6 +30,7 @@ missing=()
 
 command -v jq >/dev/null 2>&1 || missing+=("jq")
 command -v shellcheck >/dev/null 2>&1 || missing+=("shellcheck")
+command -v dasel >/dev/null 2>&1 || missing+=("dasel")
 
 if [[ ${#missing[@]} -gt 0 ]]; then
   echo "FATAL: missing required tools: ${missing[*]}" >&2
@@ -39,6 +40,7 @@ fi
 
 echo "  jq: OK"
 echo "  shellcheck: OK"
+echo "  dasel: OK"
 
 # --- Claude Code ---
 

@@ -43,7 +43,15 @@ Use `/reload-plugins` inside a running session or restart Claude Code after plug
 
 ### Claude Desktop / Claude Web
 
-Individual skills can be downloaded as ZIP files from the [Releases](https://github.com/Pyroxin/opinionated-claude-skills/releases) page and uploaded to Claude Desktop or Claude Web via **Settings > Capabilities**. (Also, check out the build system for the package! It automates some basic QA for publishing skills.)
+On a paid plan (Pro, Max, Team, or Enterprise), claude.ai, the Chat tab of the Claude Desktop app, and Cowork can add this repository as a plugin marketplace: add a marketplace and enter `Pyroxin/opinionated-claude-skills`. An organization can restrict which marketplaces its members add, and skills need code execution turned on. Which plugin components load depends on the app:
+
+- Skills load in chat, Cowork, and Claude Code.
+- The `opinionated-research` agents load in Cowork and Claude Code. Chat ignores them, so `interactive-research` loads in chat but can't delegate to them there.
+- Output styles and themes (`opinionated-communication` and `opinionated-themes`) load only in Claude Code.
+
+Plugins enabled on claude.ai also [load in Claude Code terminal sessions](https://code.claude.com/docs/en/plugins/loading#synced-plugins) signed in with the same claude.ai account.
+
+**Deprecated:** individual skills can still be downloaded as ZIP files from the [Releases](https://github.com/Pyroxin/opinionated-claude-skills/releases) page and uploaded in **Customize > Skills**. This is the only route on the Free plan, which doesn't get plugins. The ZIPs are expected to be removed in favor of the marketplace, and a skill that can't be uploaded outside Claude Code is left out of them. (Also, check out the build system for the package! It automates some basic QA for publishing skills.)
 
 ZIP files are named `plugin.skill.TIMESTAMP.SHA.zip` (e.g., `opinionated-software-engineering.software-engineer.20251130-014305.c7223ee.zip`). The timestamp and commit SHA identify the exact build the ZIP was derived from.
 

@@ -1,0 +1,4 @@
+# The portability check's edge-case fixture has Windows (CRLF) line endings on
+# purpose, to test that scripts/portable-skill.sh handles them. Store it byte
+# for byte, so that core.autocrlf or core.eol settings cannot convert it to LF.
+scripts/validator-fixtures/portable-skill-edge.md -text

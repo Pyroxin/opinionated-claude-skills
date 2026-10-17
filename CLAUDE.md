@@ -39,7 +39,7 @@ Address all flagged issues before committing. Even "clean" files may have citati
 ## Build System
 
 <build_system>
-The build system packages individual skills as ZIP files for Claude Desktop users.
+The build system packages individual skills as ZIP files for Claude Desktop users. It is deprecated and expected to be removed, because claude.ai, the Claude Desktop app, and Cowork can now install plugins from this marketplace on paid plans; until then it skips any skill that `scripts/portable-skill.sh` reports could not be uploaded outside Claude Code.
 
 **Local testing:**
 ```bash

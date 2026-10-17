@@ -1,6 +1,6 @@
 ---
 name: deep-research
-description: Deprecated name; the skill formerly here is now opinionated-research:interactive-research. Retained as a context-level notice because Claude Code now ships a built-in deep-research workflow that runs one-shot, non-interactive fan-out research (no conversation after the report). interactive-research instead runs a persistent agent team you can keep questioning after the report is delivered. Guidance for Claude: when the user makes a research request, ask whether they want the interactive team (interactive-research) or the built-in non-interactive deep-research workflow before starting.
+description: "Deprecated name; the skill formerly here is now opinionated-research:interactive-research. Retained as a context-level notice because Claude Code now ships a built-in deep-research workflow that runs one-shot, non-interactive fan-out research (no conversation after the report). interactive-research instead runs a persistent agent team you can keep questioning after the report is delivered. Guidance for Claude: when the user makes a research request, ask whether they want the interactive team (interactive-research) or the built-in non-interactive deep-research workflow before starting."
 ---
 
 # Renamed — routing notice

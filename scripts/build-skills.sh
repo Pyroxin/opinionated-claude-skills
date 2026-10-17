@@ -7,6 +7,17 @@ set -euo pipefail
 
 # Build skill ZIPs for Claude Desktop distribution
 #
+# DEPRECATED: this script and the ZIP releases it feeds are expected to be
+# removed. Claude Code, and on paid plans claude.ai, the Claude Desktop app, and
+# Cowork, can add this repository as a plugin marketplace and install its
+# plugins directly, so per-skill ZIPs now serve Free-plan users, who don't get
+# plugins, and users who upload a single skill by hand.
+#
+# A skill that couldn't be uploaded outside Claude Code (see
+# scripts/portable-skill.sh for the rules and their sources) is skipped with
+# its reasons, rather than built into a ZIP that would fail to upload. The check
+# needs dasel v3.
+#
 # Usage: ./scripts/build-skills.sh [output_dir]
 #   output_dir: Directory for ZIP files (default: dist)
 #
@@ -40,9 +51,17 @@ if [[ -z "${BUILD_VERSION:-}" ]]; then
   fi
 fi
 
+echo "DEPRECATED: skill ZIPs are expected to be removed; install the plugins from this repository's marketplace instead." >&2
 echo "Build version: ${BUILD_VERSION}"
 
+if ! command -v dasel >/dev/null 2>&1; then
+  echo "FATAL: dasel v3 is required but not found on \$PATH." >&2
+  exit 1
+fi
+# shellcheck source-path=SCRIPTDIR source=portable-skill.sh
+source "$(cd "$(dirname "$0")" && pwd)/portable-skill.sh"
 count=0
+skipped=0
 
 for plugin_dir in */; do
   [[ -f "${plugin_dir}.claude-plugin/plugin.json" ]] || continue
@@ -51,6 +70,20 @@ for plugin_dir in */; do
   for skill_dir in "${plugin_dir}skills/"*/; do
     [[ -f "${skill_dir}SKILL.md" ]] || continue
     skill_name=$(basename "$skill_dir")
+
+    if ! problems=$(portable_skill_findings "${skill_dir}SKILL.md" "$skill_name"); then
+      echo "FATAL: the portability check failed to run on ${skill_dir}SKILL.md; no ZIPs were changed for it" >&2
+      exit 1
+    fi
+    if [[ -n "$problems" ]]; then
+      echo "Skipped: ${plugin_name}.${skill_name} (can't be uploaded outside Claude Code)" >&2
+      printf '%s\n' "$problems" | sed 's/^/  /' >&2
+      # Remove this skill's ZIPs from earlier builds into the same directory,
+      # so a skipped skill isn't still published from a stale archive.
+      rm -f "${OUTPUT_ABS}/${plugin_name}.${skill_name}."*.zip
+      skipped=$((skipped + 1))
+      continue
+    fi
 
     zip_name="${plugin_name}.${skill_name}.${BUILD_VERSION}.zip"
 
@@ -92,4 +125,4 @@ for plugin_dir in */; do
   done
 done
 
-echo "Done. Built ${count} skill ZIPs in ${OUTPUT_DIR}/"
+echo "Done. Built ${count} skill ZIPs in ${OUTPUT_DIR}/; skipped ${skipped} that can't be uploaded outside Claude Code"

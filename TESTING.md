@@ -18,13 +18,19 @@ output-style Markdown for the conventions `expert-skill-creator` defines:
 placeholder notation, footnotes resolving in both directions within each file,
 and instructions that ask the model to put its reasoning in the output. Heading
 tags and bracket placeholders are reported as warnings with counts until the
-existing skills come into line.
+existing skills come into line. A skill that couldn't be uploaded outside
+Claude Code (`scripts/portable-skill.sh` lists the rules; it needs dasel v3) is also reported as a
+warning, and `build-skills.sh` leaves it out of the ZIPs. A `SKILL.md` that
+can't be read (e.g., mode 000) stops both the validation and the build with an
+error, rather than being reported as lacking frontmatter and left out.
 
 Each content check first runs against a fixture in
 `scripts/validator-fixtures/` holding a known instance of every pattern it
 applies, and fails the run if it reports a different number of findings. When
 you change a check, update its fixture and the expected count passed to
-`self_test` in the same change.
+`self_test` in the same change. The portability check is the exception: each
+`portable-skill*.md` fixture has a `.expected` file with its exact findings, so
+update those files instead.
 
 Run the full validation path when you need to exercise the Claude Code plugin
 installation flow in an isolated config directory:
@@ -38,7 +44,8 @@ resolves to a real page. Those sites return HTTP 200 for missing pages, so the
 check reads each page's Markdown, and it runs only after a missing control page
 on each site is reported missing and a known page is reported present.
 
-Build the release ZIPs when changing skill packaging or release behavior:
+Build the release ZIPs when changing skill packaging or release behavior. The
+ZIP builds are deprecated and expected to be removed:
 
 ```bash
 ./scripts/build-skills.sh

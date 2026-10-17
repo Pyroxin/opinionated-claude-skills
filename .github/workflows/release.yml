@@ -47,6 +47,23 @@ jobs:
           rm -rf shellcheck-stable shellcheck.tar.xz
           shellcheck --version
 
+      # dasel parses skill frontmatter for the portability check in
+      # install-and-verify.sh and build-skills.sh. Pinned because its query
+      # language changed between major versions and the check's query is
+      # written for v3. The asset is chosen from `uname -m`, as for ShellCheck,
+      # so a local `act` run on an arm64 host stays native.
+      - name: Install dasel
+        run: |
+          case "$(uname -m)" in
+            x86_64)          dasel_arch=amd64 ;;
+            aarch64|arm64)   dasel_arch=arm64 ;;
+            *) echo "No dasel asset for $(uname -m)" >&2; exit 1 ;;
+          esac
+          curl -fsSL -o dasel "https://github.com/TomWright/dasel/releases/download/v3.11.2/dasel_linux_${dasel_arch}"
+          sudo install dasel /usr/local/bin/dasel
+          rm dasel
+          dasel version
+
       - name: Install and verify plugins
         run: ./scripts/install-and-verify.sh
 
@@ -74,6 +91,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # build-skills.sh skips skills that can't be uploaded outside Claude
+          # Code, so a run can end without producing any ZIPs. Check before
+          # deleting anything, so that such a run leaves the existing release
+          # in place.
+          if ! compgen -G "dist/*.zip" > /dev/null; then
+            echo "No skill ZIPs were built; keeping the existing release."
+            exit 0
+          fi
+
           # Delete existing 'latest' release if it exists
           gh release delete latest --yes 2>/dev/null || true
 
@@ -88,6 +114,8 @@ jobs:
 
           **Version:** \`${{ steps.version.outputs.version }}\`
 
-          Download individual skill ZIPs and upload to Claude Desktop via **Settings > Capabilities**.
+          **Deprecated:** these ZIPs are expected to be removed. On a paid plan, claude.ai, the Claude Desktop app, Cowork, and Claude Code can add this repository as a plugin marketplace instead.
+
+          Download individual skill ZIPs and upload them in **Customize > Skills**. A skill that can't be uploaded outside Claude Code is not included.
 
           See [README](https://github.com/${{ github.repository }}#claude-desktop--claude-web) for installation instructions."
