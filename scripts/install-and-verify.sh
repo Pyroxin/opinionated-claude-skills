@@ -8,27 +8,29 @@ set -euo pipefail
 # Install marketplace and verify all plugins and their components
 #
 # Usage: ./scripts/install-and-verify.sh [--validate-only] [project_dir]
-#   --validate-only: Skip installation; only verify structure and run shellcheck
+#   --validate-only: Skip installation and the documentation-link check; verify
+#                    structure, run shellcheck, and run the content checks
 #   project_dir:     Root of the marketplace repo (default: script's parent directory)
 #
 # Full mode (default):
 #   1. Creates a throwaway config dir (CLAUDE_CONFIG_DIR) so installation
-#      touches neither the user's ~/.claude nor the workspace's .claude/
+#      doesn't touch the user's ~/.claude or the workspace's .claude/
 #   2. Ensures Claude Code is on $PATH (installs if missing)
 #   3. Validates the marketplace structure via Claude CLI
 #   4. Registers the marketplace and installs every plugin into the isolated dir
-#   5. Verifies all declared components (skills, agents, commands, hooks) exist
-#      on disk in the working tree
+#   5. Verifies all declared components (skills, agents, commands, hooks,
+#      themes, output styles) exist on disk in the working tree
 #   6. Runs shellcheck on all shell scripts
 #   7-8. Checks placeholder notation and skill content conventions
 #   9. Checks that Anthropic documentation links resolve to real pages
+#   10. Removes the isolated config dir (an EXIT trap, so it runs on failure too)
 #
 #   Full mode is used by pre-push and CI. Pre-push is the last gate before
 #   changes become public; the cost of full validation (including plugin
 #   installation) is justified because it catches integration issues that
 #   structural checks alone would miss. Because the installation happens in an
 #   isolated config dir removed by an EXIT trap, a partial or interrupted run
-#   leaves no residue in the developer's real config or the workspace.
+#   doesn't leave residue in the developer's real config or the workspace.
 #
 # Validate-only mode (--validate-only):
 #   Checks JSON validity, verifies declared components exist on disk, runs the
@@ -115,9 +117,9 @@ tmp_root="${tmp_root%/}"
 # CLAUDE_CONFIG_DIR: install.sh keys off $HOME -- it creates $HOME/.claude/downloads
 # and runs `claude install` to place the launcher and shell integration. It runs
 # only when `claude` is absent (CI or a fresh machine), provisions the tool itself
-# (the intended persistent effect), and writes no plugin/marketplace state, so it
-# does not weaken the isolation guarantee above. install.sh exposes no path env
-# vars; its only argument is an optional version. (Source: https://claude.ai/install.sh,
+# (the intended persistent effect), and doesn't write plugin/marketplace state, so
+# it does not weaken the isolation guarantee above. install.sh doesn't expose path
+# env vars; its only argument is an optional version. (Source: https://claude.ai/install.sh,
 # reviewed 2026-06-20.)
 #
 # The EXIT trap removes the dir on any exit; the INT/TERM traps just exit (routing
@@ -152,7 +154,7 @@ if [[ "$VALIDATE_ONLY" == "false" ]]; then
     curl -fsSL https://claude.ai/install.sh | bash
     # The installer places the launcher in ~/.local/bin, which is not guaranteed
     # to be on PATH in minimal or non-interactive environments: GitHub's runners
-    # already include it, but a fresh container (e.g. a local `act` run) does not,
+    # already include it, but a fresh container (e.g., a local `act` run) does not,
     # so the check below would report a successful install as a failure. Add it
     # explicitly before probing for the CLI.
     export PATH="$HOME/.local/bin:$PATH"
@@ -254,8 +256,9 @@ for ((i = 0; i < plugin_count; i++)); do
     continue
   fi
 
-  # Component directories (skills/, agents/, commands/) are optional: a plugin
-  # may ship any subset, and most here ship only skills/. The find calls below
+  # Component directories (e.g., skills/, agents/, commands/, themes/,
+  # output-styles/) are optional: a plugin may ship any subset, and most here
+  # ship only skills/. The find calls below
   # send stderr to /dev/null so an absent directory reads as "no components of
   # that kind" rather than an error. Discovery is structural, not driven by a
   # manifest list, so there is no authoritative "expected" set to diff against;
@@ -306,9 +309,9 @@ for ((i = 0; i < plugin_count; i++)); do
     if ! jq empty "$theme_json" 2>/dev/null; then
       error "${plugin_name}: theme is invalid JSON at ${theme_json}"
     elif [[ -z "$(jq -r '.name // empty' "$theme_json")" ]]; then
-      error "${plugin_name}: theme ${theme_name} has no 'name'"
+      error "${plugin_name}: theme ${theme_name} doesn't have a 'name'"
     elif [[ -z "$(jq -r '.base // empty' "$theme_json")" ]]; then
-      error "${plugin_name}: theme ${theme_name} has no 'base'"
+      error "${plugin_name}: theme ${theme_name} doesn't have a 'base'"
     else
       info "  theme ${theme_name}: OK"
     fi
@@ -330,11 +333,11 @@ for ((i = 0; i < plugin_count; i++)); do
     if [[ ! -s "$style_md" ]]; then
       error "${plugin_name}: output style file is empty at ${style_md}"
     elif [[ "$(head -n 1 "$style_md")" != "---" ]]; then
-      error "${plugin_name}: output style ${style_name} has no frontmatter delimiter on line 1"
+      error "${plugin_name}: output style ${style_name} doesn't have a frontmatter delimiter on line 1"
     elif ! awk 'NR>1 && /^---$/{found=1; exit} END{exit !found}' "$style_md"; then
       error "${plugin_name}: output style ${style_name} has an unterminated frontmatter block"
     elif ! grep -q '^description:[[:space:]]*[^[:space:]]' "$style_md"; then
-      error "${plugin_name}: output style ${style_name} has no 'description'"
+      error "${plugin_name}: output style ${style_name} doesn't have a 'description'"
     else
       unbalanced=$(grep -o -E '^</?[a-z_]+>$' "$style_md" \
         | sed 's|</||; s|<||; s|>||' \
@@ -429,8 +432,8 @@ placeholder_check='
 self_test placeholders "$placeholder_check" 1
 
 notation_list=$(mktemp "${tmp_root}/claude-marketplace-notation.XXXXXXXXXX")
-if ! find "$PROJECT_DIR" \( -path '*/skills/*/*.md' -o -path '*/agents/*.md' \) -type f -print0 > "$notation_list"; then
-  error "Failed to enumerate skill and agent markdown under ${PROJECT_DIR}"
+if ! find "$PROJECT_DIR" \( -path '*/skills/*/*.md' -o -path '*/agents/*.md' -o -path '*/output-styles/*.md' \) -not -path '*/.git/*' -type f -print0 > "$notation_list"; then
+  error "Failed to enumerate skill, agent, and output-style markdown under ${PROJECT_DIR}"
 fi
 while IFS= read -r -d '' doc; do
   findings=$(awk "$placeholder_check" "$doc")
@@ -587,7 +590,7 @@ while IFS= read -r -d '' doc; do
   fi
 done < "$content_list"
 if [[ "$files_checked" -eq 0 ]]; then
-  error "No skill, agent, or output-style markdown found under ${PROJECT_DIR}; the content checks examined nothing"
+  error "No skill, agent, or output-style markdown found under ${PROJECT_DIR}; the content checks didn't examine anything"
 fi
 info "  ${files_checked} files checked for footnotes and reasoning instructions; warnings not yet enforced: ${heading_warnings} heading-tag, ${bracket_warnings} bracket-placeholder"
 

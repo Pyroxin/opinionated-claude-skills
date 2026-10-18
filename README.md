@@ -78,18 +78,20 @@ The foundation plugin. SICP-derived design principles, paradigm guidance for fun
 
 ### opinionated-research
 
-An alternative to investigating a topic through a single long search pass or by delegating to an external research agent. Two complementary research agents feed the `interactive-research` orchestration skill, which runs multi-source investigation through a persistent agent team (and supports research extensions after the primary task). The `decision-analysis` skill structures option evaluation and supplies the epistemic-label and citation discipline the research agents share. Combining explicit decomposition, structured analysis, and adversarial reasoning substantially improves the result, on anecdotal evidence.
+An alternative to investigating a topic through a single long search pass or by delegating to an external research agent. Two complementary research agents feed the `interactive-research` orchestration skill, which runs multi-source investigation through a persistent agent team (and supports research extensions after the primary task). The agents can delegate claim checks to a Haiku-based fact-checker. The `decision-analysis` skill structures option evaluation and supplies the epistemic-label and citation discipline the research agents share. Combining explicit decomposition, structured analysis, and adversarial reasoning substantially improves the result, on anecdotal evidence.
 
 | Component | Description |
 |-----------|-------------|
 | `research-investigator` | Sonnet agent for methodical evidence-gathering: case-building from primary sources with procedural rigor and an explicit Audit section |
 | `research-analyst` | Opus agent for judgment-led synthesis: cross-source pattern recognition and emergent insight beyond what any single source establishes |
+| `fact-checker` | Haiku agent that checks one claim against one source in a fresh context, unprimed by the conversation the claim came from |
 | `interactive-research` | Orchestration skill that coordinates specialist agents as a team |
 | `decision-analysis` | Structured framework for evaluating options against criteria, with the epistemic-label scheme the research agents inherit |
+| `deep-research` | Deprecated name kept as a notice: it points to `interactive-research` and to Claude Code's built-in deep-research workflow |
 
 Note: these skills work best with the Kagi and Exa MCP servers added to the configuration. AWS' documentation servers are also integrated, AWS being the cloud provider these skills were built against.
 
-Persisted research artifacts go under `{project-root}/.tmp/research/`, or wherever project or user instructions say research output belongs. Keeping them out of `.claude/` means an autonomous run needs no write access to the trees Claude Code loads settings, hooks, agents, and skills from. Many projects already ignore that path through the `*.tmp` pattern in gitignore.io output and in github/gitignore's `Global/Backup` template; adding `.tmp/` to `~/.config/git/ignore` covers the rest.
+Persisted research artifacts go under `{project-root}/.tmp/research/`, or wherever project or user instructions say research output belongs. Keeping them out of `.claude/` means an autonomous run doesn't need write access to the trees Claude Code loads settings, hooks, agents, and skills from. Many projects already ignore that path through the `*.tmp` pattern in gitignore.io output and in github/gitignore's `Global/Backup` template; adding `.tmp/` to `~/.config/git/ignore` covers the rest.
 
 ### opinionated-skill-creation
 
@@ -159,7 +161,7 @@ For sessions where Claude should teach rather than generate. It runs Socratic di
 
 ### opinionated-communication
 
-Output styles are a plugin component like skills and themes, so this plugin vends communication styles for Claude Code sessions. The first style, Plainspoken, was compiled from an analysis of the project author's own technical documents and research notes (LLM-written material excluded) rather than from generic style guides. It targets a structural problem in LLM-assisted work: Claude reads complete tool outputs while the user sees a collapsed transcript, so untended reporting assumes context the user doesn't have. The style makes messages carry their own evidence, grades each claim by how strongly it should be believed, replaces figurative wording with literal statements, and removes the devices that manufacture emphasis (e.g., staged contrast, rhythm-padded triples, hollow emphasis words). Engineering behavior is unchanged (`keep-coding-instructions: true`). Output styles apply to the main conversation only, not to subagents (forks excepted), and load at session start; select one under **Output style** in `/config`. Claude Code only; Claude Desktop's skill uploads have no output-style equivalent.
+Output styles are a plugin component like skills and themes, so this plugin vends communication styles for Claude Code sessions. The first style, Plainspoken, was compiled from an analysis of the project author's own technical documents and research notes (LLM-written material excluded) rather than from generic style guides. It targets a structural problem in LLM-assisted work: Claude reads complete tool outputs while the user sees a collapsed transcript, so untended reporting assumes context the user doesn't have. The style makes messages carry their own evidence, grades each claim by how strongly it should be believed, replaces figurative wording with literal statements, and removes the devices that manufacture emphasis (e.g., staged contrast, rhythm-padded triples, hollow emphasis words). Engineering behavior is unchanged (`keep-coding-instructions: true`). Output styles apply to the main conversation only, not to subagents (forks excepted), and load at session start; select one under **Output style** in `/config`. Claude Code only; Claude Desktop's skill uploads don't have an output-style equivalent.
 
 | Component | Description |
 |-----------|-------------|
@@ -167,7 +169,7 @@ Output styles are a plugin component like skills and themes, so this plugin vend
 
 ### opinionated-themes
 
-The only plugin that ships no instructions for Claude. Themes are a plugin component like skills and agents, so a marketplace can vend terminal color schemes the same way it vends skills. Both themes target high contrast and remain legible under warm-shift filters such as macOS Night Shift and Redshift, which reduce blue output and flatten the contrast of blue-heavy palettes. Claude Code only; Claude Desktop has no theme equivalent to package.
+The only plugin that doesn't ship any instructions for Claude. Themes are a plugin component like skills and agents, so a marketplace can vend terminal color schemes the same way it vends skills. Both themes target high contrast and remain legible under warm-shift filters such as macOS Night Shift and Redshift, which reduce blue output and flatten the contrast of blue-heavy palettes. Claude Code only; Claude Desktop doesn't have a theme equivalent to package.
 
 | Component | Description |
 |-----------|-------------|

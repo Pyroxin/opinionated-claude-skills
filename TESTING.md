@@ -62,8 +62,8 @@ act push
 This repository includes `.actrc` so `act` uses an Ubuntu image with the tools
 expected by `.github/workflows/release.yml`. The container architecture is not
 pinned, so the job runs natively on the host: amd64 on an Intel machine, arm64
-on Apple Silicon. `release.yml` picks its ShellCheck download from `uname -m`,
-so both architectures get a working binary.
+on Apple Silicon. `release.yml` picks its ShellCheck and dasel downloads from
+`uname -m`, so both architectures get working binaries.
 
 Do not add `--container-architecture linux/amd64` back to run an arm64 host's
 job as amd64. Under the resulting emulation the Bun-compiled Claude Code

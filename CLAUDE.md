@@ -11,14 +11,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Repository Structure
 
 <repository_structure>
-This is a Claude Code plugin marketplace containing multiple plugins, each with skills and/or agents. The marketplace configuration is in `.claude-plugin/marketplace.json`. Each plugin has its own manifest at `.claude-plugin/plugin.json`; skills and agents are auto-discovered from their conventional directories.
+This is a Claude Code plugin marketplace containing multiple plugins, each with some combination of skills, agents, output styles, and themes. The marketplace configuration is in `.claude-plugin/marketplace.json`. Each plugin has its own manifest at `.claude-plugin/plugin.json`; components are auto-discovered from their conventional directories.
+
+A plugin's `description` in its `plugin.json`, and the marketplace's description, state the plugin's or marketplace's theme. They do not list the skills, agents, or other components inside it, or the models those run on; the README's plugin tables are where components are listed, so a description stays accurate as components are added, renamed, or removed.
 
 ```
 .claude-plugin/marketplace.json              # Marketplace catalog
 <plugin-name>/
 ├── .claude-plugin/plugin.json               # Plugin manifest
 ├── skills/<skill-name>/SKILL.md             # Skill definitions (auto-discovered)
-└── agents/<agent-name>.md                   # Agent definitions (auto-discovered)
+├── agents/<agent-name>.md                   # Agent definitions (auto-discovered)
+├── output-styles/<style-name>.md            # Output styles (auto-discovered)
+└── themes/<theme-name>.json                 # Terminal color themes (auto-discovered)
 ```
 </repository_structure>
 
@@ -44,10 +48,10 @@ The build system packages individual skills as ZIP files for Claude Desktop user
 **Local testing:**
 ```bash
 ./scripts/build-skills.sh      # Builds to dist/
-unzip -l dist/<skill>.zip      # Verify ZIP structure
+unzip -l dist/<plugin>.<skill>.*.zip  # Verify ZIP structure
 ```
 
-**Releases:** Pushes to `main` trigger GitHub Actions, which builds all skills and updates the rolling `latest` release. Version format is `YYYYMMDD-HHMMSS.SHA`.
+**Releases:** Pushes to `main` trigger GitHub Actions, which builds every portable skill and updates the rolling `latest` release. Version format is `YYYYMMDD-HHMMSS.SHA`.
 </build_system>
 
 ## Plugin Versioning
@@ -55,7 +59,7 @@ unzip -l dist/<skill>.zip      # Verify ZIP structure
 <plugin_versioning>
 The plugin manifests deliberately omit the `version` field. Claude Code then resolves each plugin's version from its git commit SHA, so every commit on `main` reaches installed users as an update. That's safe because the marketplace tracks `main`: feature-branch commits never reach users, and by the time a commit lands on mainline it is release-quality. Commit-to-update is therefore exactly the behavior we want, with no per-release bookkeeping.
 
-**Do not add a static `version` to clear the validator's advisory warning.** A pinned `version` only updates users when the string changes, so an unbumped commit silently withholds the update (`/plugin update` reports "already at the latest version"). Anthropic recommends leaving `version` unset while iterating; see https://code.claude.com/docs/en/plugins-reference ("Version management"). The 10 advisory version warnings from `claude plugin validate` are accepted as cosmetic — validation still passes, and CI does not run `--strict`.
+**Do not add a static `version` to clear the validator's advisory warning.** A pinned `version` only updates users when the string changes, so an unbumped commit silently withholds the update (`/plugin update` reports "already at the latest version"). Anthropic recommends leaving `version` unset while iterating; see https://code.claude.com/docs/en/plugins-reference ("Version management"). The advisory version warnings from `claude plugin validate` (one per plugin) are accepted as cosmetic — validation still passes, and CI does not run `--strict`.
 
 Reconsider only if a plugin must become a declared semver `dependency` of another (the `dependencies` field requires real versions). `marketplace.json`'s `metadata.version` is the catalog's own version, independent of this.
 </plugin_versioning>

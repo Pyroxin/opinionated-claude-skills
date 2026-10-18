@@ -1,6 +1,6 @@
 {
   "name": "opinionated-logic-development",
-  "description": "Logic programming with SWI-Prolog: relational thinking, steadfastness, DCGs, constraints, and PlUnit testing.",
+  "description": "Logic programming in SWI-Prolog: relational thinking and the idioms that keep programs declarative.",
   "author": {
     "name": "Pyroxin",
     "email": "3385984+Pyroxin@users.noreply.github.com",

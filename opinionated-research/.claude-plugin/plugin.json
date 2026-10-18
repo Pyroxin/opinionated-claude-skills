@@ -1,6 +1,6 @@
 {
   "name": "opinionated-research",
-  "description": "Multi-source research, information synthesis, and decision analysis. Two complementary research agents — investigator (Sonnet, methodical evidence-trail discipline) and analyst (Opus, judgment-led cross-source synthesis) — plus a Haiku-based fact-checker for atomic claim/source verification. Includes interactive-research orchestration and a structured decision-analysis framework for evaluating options with competing benefits.",
+  "description": "Multi-source research and decision analysis: investigating a question across sources with explicit evidence trails, synthesizing what the sources establish, and evaluating options against criteria.",
   "author": {
     "name": "Pyroxin",
     "email": "3385984+Pyroxin@users.noreply.github.com",

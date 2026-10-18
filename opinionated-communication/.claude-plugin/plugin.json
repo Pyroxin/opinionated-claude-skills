@@ -1,6 +1,6 @@
 {
   "name": "opinionated-communication",
-  "description": "Output styles that change how Claude Code reports its work. Emphasizes writing for a reader who cannot see the context window, a relaxed but precise register, and direct statement over rhetorical staging.",
+  "description": "Output styles for how Claude Code writes to you: precise, direct prose for a reader who cannot see Claude's context.",
   "author": {
     "name": "Pyroxin",
     "email": "3385984+Pyroxin@users.noreply.github.com",

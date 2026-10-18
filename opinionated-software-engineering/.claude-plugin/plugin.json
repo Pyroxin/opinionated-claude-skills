@@ -1,6 +1,6 @@
 {
   "name": "opinionated-software-engineering",
-  "description": "Core opinionated software engineering skills: SICP-based software engineering, paradigm skills (functional, OOP, logic), and development process (TDD, git).",
+  "description": "Software engineering judgment grounded in SICP: design principles, programming paradigms, and development process. The foundation the other programming plugins build on.",
   "author": {
     "name": "Pyroxin",
     "email": "3385984+Pyroxin@users.noreply.github.com",

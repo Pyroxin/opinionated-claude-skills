@@ -1,6 +1,6 @@
 {
   "name": "opinionated-lisp-development",
-  "description": "Lisp family languages: Clojure (data-oriented design, REPL-driven development) and Racket (language-oriented programming, contracts, macros).",
+  "description": "Programming in Lisp-family languages: REPL-driven development, data-oriented and language-oriented design, and macros.",
   "author": {
     "name": "Pyroxin",
     "email": "3385984+Pyroxin@users.noreply.github.com",

@@ -4,7 +4,7 @@
     "name": "Pyroxin"
   },
   "metadata": {
-    "description": "Opinionated skills for Claude Code reflecting SICP principles, functional and logic programming paradigms, and expert-level software engineering judgment.",
+    "description": "Opinionated Claude Code plugins that favor judgment over procedure: software engineering and programming languages, research, tutoring, writing style, and terminal themes.",
     "version": "1.0.0"
   },
   "plugins": [
