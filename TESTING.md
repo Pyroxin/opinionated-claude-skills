@@ -115,6 +115,48 @@ Cover these regression cases when changing the script:
   `FORCE_AUTOUPDATE_PLUGINS=1`. WebFetch preflight remains controlled by
   `--allow-webfetch-preflight`, matching Claude Code's separate WebFetch
   preflight setting.
+- Base hardening writes `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`, adds the managed
+  `sandbox.credentials` entries (`files` by path, `envVars` by name), and keeps
+  hand-added sibling `sandbox` keys such as `excludedCommands`. A user's own
+  credentials entries (e.g., `~/.kube`, `GITHUB_TOKEN`) are kept; an entry for
+  a managed path or name with another mode (e.g., `~/.ssh` `allow`, or
+  `AWS_ACCESS_KEY_ID` `mask` with `injectHosts`) keeps its position and its
+  other fields, gets `mode: "deny"`, and shows in the preview as
+  `~ AWS_ACCESS_KEY_ID: mask -> deny`; a managed-path entry already set to
+  `deny` with an extra field shows as `=`; a rerun doesn't change anything. A
+  file that holds every managed entry with a user entry placed between two of
+  them is a no-op under `--write` (no rewrite, no backup), so the merge doesn't
+  reorder entries. `--disable-sandbox` leaves an existing credentials block as it is
+  and doesn't create one. A non-object `credentials` or a non-array `files` or
+  `envVars` is rejected with a clear error.
+- Base hardening adds the five cloud metadata endpoints to
+  `sandbox.network.deniedDomains`, keeping existing `allowedDomains` and
+  `deniedDomains` entries; a rerun doesn't add duplicates.
+- `--allow-metadata-endpoints` removes only those five entries, keeps entries
+  the user added, and doesn't create a `network` block in a file that has none.
+- `--allow-cloud-credential-files` removes the `deny` entries for `~/.aws`,
+  `~/.config/gcloud`, and `~/.azure` from `sandbox.credentials.files` (the
+  preview shows each as `-`), keeps `~/.ssh`, `~/.gnupg`, `~/.netrc`, and the
+  user's own entries, and a later base run adds them back.
+- A non-object `.sandbox.network` or non-array `deniedDomains` is rejected with
+  a clear error.
+- `--allow-feature-flags` deletes `DISABLE_TELEMETRY` (setting it to `"0"`
+  would still opt out) and writes `DO_NOT_TRACK=0`; the preview reports the
+  deletion as a `-` line. Run after `--disable-nonessential-traffic`, it also
+  deletes `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`. Run from a shell that
+  exports either variable (e.g., `DISABLE_TELEMETRY=1 ./extras/...`), it warns
+  on stderr; without the flag, or with neither variable set, it doesn't.
+- `--dnt-prefix PATH` writes `CLAUDE_CODE_SHELL_PREFIX` verbatim, including a
+  path with spaces, and is rejected without `--allow-feature-flags`, with a
+  relative path, with an empty value (`--dnt-prefix=""`), or when the target
+  isn't an executable file. A target inside a git working tree (e.g., the
+  checkout's `extras/claude-dnt-prefix.sh`) prints a warning on stderr, and so
+  does a symlink outside any working tree that resolves to that file, directly
+  or through a chain of links; a copy outside any working tree, and a symlink
+  to such a copy, don't. Check the symlink cases with GNU coreutils first on
+  `PATH` too.
+- `--allow-feature-flags` with `--disable-nonessential-traffic` is rejected.
+- `--allow-subprocess-credentials` writes `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`.
 - A top-level non-object JSON value, e.g., `[]`, is rejected with a clear error.
 - A non-object `.env` value is rejected with a clear error.
 - A symlinked settings path updates the target file and preserves the symlink.
@@ -224,6 +266,46 @@ cfg="$tmpdir/settings.json"
   "$cfg"
 
 jq -e 'has("attribution") | not' "$cfg"
+```
+
+```bash
+# Feature flags: DISABLE_TELEMETRY is deleted, and the DNT prefix path keeps
+# its spaces.
+tmpdir="$(mktemp -d)"
+cfg="$tmpdir/settings.json"
+mkdir "$tmpdir/dir with space"
+cp ./extras/claude-dnt-prefix.sh "$tmpdir/dir with space/prefix.sh"
+
+./extras/harden-claude-config.sh --write --no-backup "$cfg"
+./extras/harden-claude-config.sh \
+  --write \
+  --no-backup \
+  --allow-feature-flags \
+  --dnt-prefix "$tmpdir/dir with space/prefix.sh" \
+  "$cfg"
+
+jq -e --arg p "$tmpdir/dir with space/prefix.sh" '
+  (.env | has("DISABLE_TELEMETRY") | not)
+  and (.env.DO_NOT_TRACK == "0")
+  and (.env.CLAUDE_CODE_SHELL_PREFIX == $p)
+' "$cfg"
+
+# The wrapper restores DO_NOT_TRACK=1 for the command it runs.
+DO_NOT_TRACK=0 "$tmpdir/dir with space/prefix.sh" 'test "$DO_NOT_TRACK" = 1'
+
+# It re-runs the command under SHELL when that names bash or zsh, the shell
+# Claude Code assembled the command for, and under /bin/bash otherwise
+# (e.g., fish, unset, or a path that doesn't exist).
+SHELL="$(command -v zsh)" "$tmpdir/dir with space/prefix.sh" 'test -n "$ZSH_VERSION"'
+SHELL="$(command -v bash)" "$tmpdir/dir with space/prefix.sh" 'test -n "$BASH_VERSION"'
+SHELL=/usr/bin/fish "$tmpdir/dir with space/prefix.sh" 'test -n "$BASH_VERSION"'
+SHELL=/nonexistent/zsh "$tmpdir/dir with space/prefix.sh" 'test -n "$BASH_VERSION"'
+env -u SHELL "$tmpdir/dir with space/prefix.sh" 'test -n "$BASH_VERSION"'
+
+# Any argument count other than one is refused (exit 2) rather than dropping
+# arguments.
+"$tmpdir/dir with space/prefix.sh" true extra; test $? -eq 2
+"$tmpdir/dir with space/prefix.sh"; test $? -eq 2
 ```
 
 ### `extras/harden-codex-config.sh`
