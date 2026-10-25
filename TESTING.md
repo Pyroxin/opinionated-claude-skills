@@ -129,6 +129,15 @@ Cover these regression cases when changing the script:
   reorder entries. `--disable-sandbox` leaves an existing credentials block as it is
   and doesn't create one. A non-object `credentials` or a non-array `files` or
   `envVars` is rejected with a clear error.
+- The `envVars` deny list names exactly the variables in
+  `extras/harden-codex-config.sh`'s `CREDENTIAL_ENV_VARS`, so both scripts
+  strip the same credentials. Compare them when changing either list:
+
+  ```bash
+  diff <(grep -o '"name": "[A-Z_]*"' extras/harden-claude-config.sh | cut -d'"' -f4 | sort) \
+       <(sed -n '/^CREDENTIAL_ENV_VARS = (/,/^)$/p' extras/harden-codex-config.sh \
+           | grep -v '^ *#' | grep -o '"[A-Z_]*"' | tr -d '"' | sort)
+  ```
 - Base hardening adds the five cloud metadata endpoints to
   `sandbox.network.deniedDomains`, keeping existing `allowedDomains` and
   `deniedDomains` entries; a rerun doesn't add duplicates.
@@ -338,6 +347,32 @@ Cover these regression cases when changing the script:
   environments remain filtered for likely secrets.
 - Base hardening writes `features.apps=false`,
   `features.codex_git_commit=false`, and `features.memories=false`.
+- Base hardening writes `features.shell_snapshot=false` (openai/codex#22124)
+  and prints a note on stderr about tools found only through shell startup
+  files when it changes the setting; a rerun on an already-hardened config
+  doesn't print a note. `--allow-shell-snapshot` writes `true`. `codex features list`
+  with that config as `CODEX_HOME` reports `shell_snapshot` as `false`.
+- Base hardening writes the credential names as
+  `shell_environment_policy.filters` entries, or into a legacy `exclude` array
+  when the config already has `exclude` or `include_only`; Codex loads each
+  result. A config mixing `filters` with either legacy array, or a legacy
+  value that isn't a list of strings, stops the script with an error naming
+  the key. A credential name in `shell_environment_policy.set` (any case) is
+  removed, the preview shows the removal without the value, and other `set`
+  entries stay.
+- Base hardening writes `cli_auth_credentials_store="keyring"`;
+  `--allow-file-credentials` writes `"auto"` instead. With an `auth.json` next
+  to the target and keyring storage selected, the script warns on stderr.
+- Base hardening writes
+  `plugins."unified-computer-use@openai-bundled".enabled=false` and removes a
+  `notify` command that runs `SkyComputerUseClient`, but keeps any other
+  `notify` command; `--allow-computer-use` writes `enabled=true` and leaves
+  `notify` alone. A second run is a no-op. The client is recognized by its
+  file name, directly, behind `/usr/bin/env` with options and assignments, and
+  inside `sh -c`. A shell running a script (e.g., `bash notify.sh`) is kept
+  without a warning; a program whose name only contains the client's (e.g.,
+  `SkyComputerUseClient-status-reporter`) is kept,
+  with a warning on stderr.
 - `--allow-workspace-write`, `--allow-network`, `--allow-web-search`,
   `--allow-live-web-search`, `--allow-login-shell`, `--allow-updates`,
   `--allow-feedback`, `--allow-analytics`, `--allow-otel-metrics`,

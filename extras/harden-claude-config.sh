@@ -58,7 +58,13 @@
 #                                             one approval at a time (see
 #                                             --allow-cloud-credential-files). ~/.codex is
 #                                             not denied: the Codex plugin runs codex through
-#                                             Bash, which needs to read it.
+#                                             Bash, and with Codex's keyring credential store
+#                                             (see harden-codex-config.sh) a login doesn't
+#                                             write a credential file there. An auth.json
+#                                             left by an earlier file-based login stays in
+#                                             ~/.codex: harden-codex-config.sh keeps it and
+#                                             warns, and it's readable inside the sandbox
+#                                             until you delete it.
 #       credentials.envVars                   unset these in sandboxed commands (exact names;
 #                                             Claude Code doesn't have a built-in list or wildcards):
 #                                             Anthropic: ANTHROPIC_API_KEY,

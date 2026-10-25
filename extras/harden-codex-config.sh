@@ -27,9 +27,27 @@
 #       allow_login_shell=false             reject login-shell requests
 #       check_for_update_on_startup=false   suppress startup update checks
 #       web_search="disabled"               disable the web search tool
+#       cli_auth_credentials_store="keyring"
+#                                           keep login credentials in the OS credential
+#                                           store, never in a plaintext auth.json, so the
+#                                           Codex home doesn't hold anything for a sandboxed
+#                                           tool (e.g., another agent's commands) to read. An
+#                                           auth.json left by an earlier file-based login
+#                                           isn't removed; the script warns when one exists.
 #     shell_environment_policy:
 #       inherit="core", ignore_default_excludes=false
 #                                           pass a small env and keep secret filters
+#       filters.<NAME>="exclude"            exclude the Anthropic, OpenAI/Codex, AWS,
+#                                           Google, and Azure credential variables by
+#                                           name, the same list harden-claude-config.sh
+#                                           denies to Claude Code (CREDENTIAL_ENV_VARS
+#                                           below); a config already using the legacy
+#                                           exclude or include_only arrays gets the
+#                                           names in its exclude array instead, and
+#                                           one mixing both forms stops the script.
+#                                           Any of these names in
+#                                           shell_environment_policy.set is removed,
+#                                           since `set` applies after the excludes.
 #     sandbox_workspace_write:
 #       network_access=false                keep spawned commands offline if relaxed
 #     analytics / feedback:
@@ -41,11 +59,51 @@
 #       apps=false, codex_git_commit=false, memories=false
 #                                           disable connector/apps, commit attribution,
 #                                           and persisted memories
+#       shell_snapshot=false                Codex's shell snapshot (on by default) puts
+#                                           variables shell_environment_policy removed
+#                                           back into the environment of commands the
+#                                           model runs, so the excludes above don't hold
+#                                           with it on
+#                                           (https://github.com/openai/codex/issues/22124).
+#                                           Cost: commands no longer get the snapshot's
+#                                           shell environment, so a tool found only
+#                                           through shell startup files (e.g., a PATH
+#                                           entry added in ~/.zshrc) may not be found;
+#                                           the script prints a note when it turns the
+#                                           snapshot off. Revisit when #22124 is fixed.
+#     computer use:
+#       plugins."unified-computer-use@openai-bundled".enabled=false
+#                                           disable the bundled Computer Use plugin, which
+#                                           lets Codex operate desktop apps
+#       notify                              removed when it runs the Computer Use client
+#                                           (SkyComputerUseClient), which the plugin's
+#                                           installer sets to run at the end of every turn,
+#                                           including behind env, nohup, or exec, or as a
+#                                           command inside sh -c (e.g., after ; or &&);
+#                                           any other notify command is left alone, with
+#                                           a warning when it mentions the client but
+#                                           doesn't plainly run it (e.g., the name as an
+#                                           argument to echo, after a # comment, or in
+#                                           a heredoc)
+#     A trusted project's own config can turn the plugin back on, because Codex
+#     lets trusted-project settings override user settings for plugins. To block
+#     Computer Use and its reinstallation everywhere, an administrator can set
+#     [features] computer_use = false in /etc/codex/requirements.toml, which users
+#     and projects can't override; this script doesn't write system files.
 #
 #   RELAX flags:
 #     --allow-workspace-write     sandbox_mode="workspace-write".
 #     --allow-network             sandbox_workspace_write.network_access=true.
 #                                Useful only with workspace-write permissions.
+#                                Commands that need the network then run without
+#                                asking, git push included: with on-request
+#                                approvals Codex asks only when a command needs to
+#                                leave the sandbox, and in the base posture a push
+#                                asks only because it can't reach the network.
+#                                Without [features.network_proxy] and a domain
+#                                allowlist (not managed by this script), the access
+#                                is unrestricted. See
+#                                https://learn.chatgpt.com/docs/agent-approvals-security
 #     --allow-web-search          web_search="cached" (OpenAI-maintained cache).
 #     --allow-live-web-search     web_search="live"; overrides --allow-web-search.
 #     --allow-login-shell         allow_login_shell=true.
@@ -57,6 +115,16 @@
 #     --allow-apps                features.apps=true.
 #     --allow-codex-git-commit    features.codex_git_commit=true.
 #     --allow-memories            features.memories=true.
+#     --allow-shell-snapshot      features.shell_snapshot=true. Restores tools found
+#                                only through shell startup files, at the cost of
+#                                the environment excludes (openai/codex#22124).
+#     --allow-file-credentials    cli_auth_credentials_store="auto": use the OS
+#                                credential store when available, otherwise fall
+#                                back to a plaintext auth.json. For headless Linux
+#                                hosts without a keyring, where "keyring" makes
+#                                login fail.
+#     --allow-computer-use        plugins."unified-computer-use@openai-bundled"
+#                                .enabled=true, and notify is left as it is.
 #
 #   Operational:
 #     -w, --write       Apply the changes. Without it the script only previews.
@@ -72,6 +140,18 @@
 #   Codex may also read ${CODEX_HOME:-$HOME/.codex}/.env for environment values in
 #   desktop and IDE contexts. This script does not manage .env because current
 #   documented privacy and execution controls are durable config.toml keys.
+#
+#   Two other controls are left out on purpose:
+#     Per-path read denies (e.g., ~/.ssh, ~/.aws): sandbox_mode can't express
+#     them. Permission profiles can (a filesystem "deny" entry), but they are in
+#     beta, and Codex ignores them whenever sandbox_mode is set in any loaded
+#     config, so this script stays on sandbox_mode. Revisit when profiles leave
+#     beta: https://learn.chatgpt.com/docs/permissions
+#     Command rules (.rules files, e.g., a "prompt" rule for git push): the
+#     rules page calls them experimental, and a prompt rule for git push is
+#     reported not to fire under danger-full-access
+#     (https://github.com/openai/codex/issues/25312), so
+#     this script doesn't write any: https://learn.chatgpt.com/docs/agent-configuration/rules
 ###
 
 set -euo pipefail
@@ -108,6 +188,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import sys
 import tempfile
@@ -141,12 +222,320 @@ Relax flags:
   --allow-apps
   --allow-codex-git-commit
   --allow-memories
+  --allow-shell-snapshot
+  --allow-file-credentials
+  --allow-computer-use
 
 Path:
   Defaults to ${CODEX_HOME:-$HOME/.codex}/config.toml; override with one path.
 """
 
 SAFE_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_-]*$")
+
+# The bundled Computer Use plugin's config key, and the client program its
+# installer registers as the notify command.
+COMPUTER_USE_PLUGIN = "unified-computer-use@openai-bundled"
+COMPUTER_USE_CLIENT = "SkyComputerUseClient"
+
+# Programs that run another program named in their arguments, so the program a
+# notify command really runs can sit behind them.
+ENV_LAUNCHER = "env"
+WRAPPERS = {"exec", "nohup"}
+SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "fish"}
+
+# env's options, so an option's argument isn't mistaken for the program (e.g.,
+# the NAME in `env -u NAME prog`). GNU and BSD env differ: -C is GNU's, -P is
+# BSD's; both are accepted, since either env may be the one installed. An
+# option outside these sets makes the command unreadable rather than guessed.
+ENV_SHORT_FLAGS = "0iv"
+ENV_SHORT_WITH_ARG = "uCPS"
+ENV_LONG_FLAGS = {"--ignore-environment", "--null", "--debug"}
+ENV_LONG_WITH_ARG = {"--unset": "u", "--chdir": "C", "--split-string": "S"}
+
+# A shell assignment prefix (NAME=value before the program). env's own rule is
+# looser (any word with "="), so env's arguments are checked separately.
+SHELL_ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
+
+# Characters shlex returns as operator tokens in a -c command. A newline ends a
+# command like ";" does, so it's an operator here rather than whitespace.
+SHELL_PUNCTUATION = "();<>|&\n"
+
+# Credential variables excluded by name from the environment of commands Codex
+# runs: the same list harden-claude-config.sh denies to Claude Code's sandboxed
+# commands, so the two hardening scripts strip the same names. inherit="core"
+# already starts from a short allowlist; the names are excluded as well because
+# filters merge across config layers, so they stay excluded even where a
+# profile or project config widens inheritance (e.g., inherit="all").
+CREDENTIAL_ENV_VARS = (
+    # Anthropic
+    "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
+    "ANTHROPIC_FOUNDRY_API_KEY", "ANTHROPIC_FOUNDRY_AUTH_TOKEN", "ANTHROPIC_AWS_API_KEY",
+    "AWS_BEARER_TOKEN_BEDROCK",
+    # OpenAI and Codex, including Codex's own launch context
+    # (NON_INHERITABLE_ENV_VARS in
+    # https://github.com/openai/codex/blob/main/codex-rs/protocol/src/shell_environment.rs).
+    # Codex removes these from the commands it starts; naming them here also
+    # covers a session started in the same environment as Codex (e.g., a
+    # container where they're set).
+    "OPENAI_API_KEY", "OPENAI_ADMIN_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN",
+    "CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN", "NODE_REPL_AUTH_TOKEN",
+    "CODEX_GUARDIAN_DECISIONS_API_KEY", "OPENAI_FEDERATION_RULE_ID",
+    "OPENAI_IDENTITY_TOKEN_FILE", "OPENAI_WORKLOAD_IDENTITY_CONTEXT",
+    # AWS
+    "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_ACCESS_KEY",
+    "AWS_SECRET_KEY", "AWS_CONTAINER_AUTHORIZATION_TOKEN",
+    "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE", "AWS_CONTAINER_CREDENTIALS_FULL_URI",
+    "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_PROFILE",
+    # Google
+    "GOOGLE_API_KEY", "GEMINI_API_KEY",
+    # Azure
+    "AZURE_CLIENT_SECRET", "AZURE_CLIENT_CERTIFICATE_PASSWORD", "AZURE_OPENAI_API_KEY",
+    "AZURE_OPENAI_AD_TOKEN",
+)
+
+
+def skip_env_arguments(words, index):
+    """Skip env's options and assignments, starting at ``words[index]``.
+
+    An option's argument is consumed whether it's attached (``-uNAME``,
+    ``--unset=NAME``) or the next word. A ``-S`` string is split into words
+    that replace it, and scanning continues through them, since env treats
+    them as more of its own arguments.
+
+    :returns: ``(words, index)`` with ``index`` at the program, or None when
+        an option isn't one env is known to take.
+    """
+    while index < len(words):
+        word = words[index]
+        if word == "--":
+            index += 1
+            break
+        if word == "-":
+            index += 1
+            continue
+        if word.startswith("--"):
+            name, has_value, value = word.partition("=")
+            if name in ENV_LONG_FLAGS and not has_value:
+                index += 1
+                continue
+            if name not in ENV_LONG_WITH_ARG:
+                return None
+            option = ENV_LONG_WITH_ARG[name]
+            if has_value:
+                argument, index = value, index + 1
+            elif index + 1 < len(words):
+                argument, index = words[index + 1], index + 2
+            else:
+                return None
+        elif word.startswith("-"):
+            option = None
+            for position, letter in enumerate(word[1:], start=1):
+                if letter in ENV_SHORT_FLAGS:
+                    continue
+                if letter not in ENV_SHORT_WITH_ARG:
+                    return None
+                option = letter
+                break
+            if option is None:
+                index += 1
+                continue
+            attached = word[position + 1:]
+            if attached:
+                argument, index = attached, index + 1
+            elif index + 1 < len(words):
+                argument, index = words[index + 1], index + 2
+            else:
+                return None
+        else:
+            break
+        if option == "S":
+            try:
+                split = shlex.split(argument)
+            except ValueError:
+                return None
+            words = words[:index] + split + words[index:]
+    while index < len(words) and "=" in words[index]:
+        index += 1
+    return words, index
+
+
+def skip_wrapper_options(name, words, index):
+    """Skip a wrapper's options, returning the program's index or None.
+
+    nohup doesn't take any options a notify command would use; the shell's
+    exec takes -c, -l, and -a NAME. Anything else is unreadable rather than guessed.
+    """
+    if index < len(words) and words[index] == "--":
+        return index + 1
+    while name == "exec" and index < len(words) and words[index].startswith("-"):
+        word = words[index]
+        if word == "-a":
+            index += 2
+        elif set(word[1:]) <= {"c", "l"}:
+            index += 1
+        else:
+            return None
+    if index < len(words) and words[index].startswith("-"):
+        return None
+    return index
+
+
+def shell_command_string(args):
+    """Return the command string a shell runs with -c, or None.
+
+    The shell's options come first: -c may be combined with others (e.g.,
+    ``-lc``, ``-ec``), and -o, -O, --rcfile, and --init-file take an argument.
+    The command string is the first word after the options. Without -c the
+    shell runs a script file, which this script doesn't read.
+    """
+    index = 0
+    runs_string = False
+    while index < len(args):
+        arg = args[index]
+        if arg == "--":
+            index += 1
+            break
+        if arg.startswith("--"):
+            index += 2 if arg in ("--rcfile", "--init-file") else 1
+            continue
+        if len(arg) > 1 and arg[0] in "-+":
+            letters = arg[1:]
+            if arg[0] == "-" and "c" in letters:
+                runs_string = True
+            index += 2 if ("o" in letters or "O" in letters) else 1
+            continue
+        break
+    if not runs_string or index >= len(args):
+        return None
+    return args[index]
+
+
+def simple_commands(command):
+    """Split a shell command string into the words of each simple command.
+
+    Commands are separated by ``;``, ``&&``, ``||``, ``|``, ``&``, and
+    newlines. A redirection and the word after it are dropped, since that word
+    is a file, not a program. Parentheses stay as words, so a command inside a
+    subshell is never read as being in command position.
+
+    shlex in POSIX mode returns a quoted ``";"`` the same as an operator, so
+    the string is also split in non-POSIX mode, which keeps the quotes: a token
+    counts as an operator only when both splits agree on it.
+
+    Two constructs make the string unreadable instead of being parsed. A word
+    starting with an unquoted ``#`` begins a comment, and a heredoc (``<<``,
+    ``<<-``) or here-string (``<<<``) feeds the lines or word after it to the
+    command as input. Reading either as code could find the client in text
+    the shell never runs and delete a notify command the user wrote, and
+    modeling them exactly (where a comment ends, which lines a heredoc spans)
+    adds parsing that can itself be wrong; reporting them unreadable keeps
+    notify in place with a warning instead.
+
+    :raises ValueError: when the string can't be split (e.g., an unbalanced
+        quote), the two splits don't line up, or it holds a comment, a
+        heredoc, or a here-string.
+    """
+    def tokens(posix):
+        lexer = shlex.shlex(command, posix=posix, punctuation_chars=SHELL_PUNCTUATION)
+        lexer.whitespace = " \t\r"
+        lexer.whitespace_split = True
+        lexer.commenters = ""
+        return list(lexer)
+
+    words, raw = tokens(True), tokens(False)
+    if len(words) != len(raw):
+        raise ValueError("ambiguous quoting")
+    commands = [[]]
+    skip_operand = False
+    for word, raw_word in zip(words, raw):
+        is_operator = word == raw_word and word != "" and all(ch in SHELL_PUNCTUATION for ch in word)
+        # The raw token is checked, so a quoted "#" (raw '#') stays a word.
+        # An operator splits off from the word after it, so `true;#x` still
+        # yields a token starting with "#".
+        if not is_operator and raw_word.startswith("#"):
+            raise ValueError("comment")
+        if is_operator and "<<" in word:
+            raise ValueError("heredoc or here-string")
+        if skip_operand:
+            skip_operand = False
+        elif is_operator and ("<" in word or ">" in word):
+            skip_operand = True
+        elif is_operator and "(" not in word and ")" not in word:
+            commands.append([])
+        else:
+            commands[-1].append(word)
+    return commands
+
+
+def shell_runs_client(args):
+    """Report whether a shell's -c command runs the client in command position.
+
+    The client counts as run only as the program of a simple command; any
+    other mention (e.g., an argument to echo, printf, or test) is unreadable,
+    so the caller warns and leaves notify in place.
+    """
+    command = shell_command_string(args)
+    if command is None:
+        return None
+    try:
+        commands = simple_commands(command)
+    except ValueError:
+        return None
+    results = [program_runs_client(words, shell_words=True) for words in commands]
+    if True in results:
+        return True
+    if None in results or COMPUTER_USE_CLIENT in command:
+        return None
+    return False
+
+
+def notify_runs_computer_use(notify):
+    """Report whether a notify command runs the Computer Use client.
+
+    The program is identified by its file name, not by a substring of the
+    command, so another program whose name merely contains the client's (e.g.,
+    a status reporter) is left alone. The program is found behind ``env`` (with
+    its options, their arguments, and VAR=value assignments), ``nohup``, and
+    ``exec``, and inside a shell's ``-c`` command, where it must be in command
+    position.
+
+    :returns: True when the client is the program run, False when another
+        program is, and None when the command can't be read with confidence
+        (e.g., a shell running a script, or an unparseable ``-c`` command),
+        so the caller leaves notify in place instead of guessing.
+    """
+    return program_runs_client([str(arg) for arg in notify])
+
+
+def program_runs_client(words, shell_words=False):
+    """Apply notify_runs_computer_use's rules to one command's words.
+
+    ``shell_words`` marks a simple command from a shell string, where leading
+    NAME=value words are assignments rather than the program.
+    """
+    index = 0
+    while index < len(words):
+        word = words[index]
+        if shell_words and SHELL_ASSIGNMENT.match(word):
+            index += 1
+            continue
+        shell_words = False
+        name = os.path.basename(word)
+        if name == ENV_LAUNCHER:
+            skipped = skip_env_arguments(words, index + 1)
+            if skipped is None:
+                return None
+            words, index = skipped
+            continue
+        if name in WRAPPERS:
+            index = skip_wrapper_options(name, words, index + 1)
+            if index is None:
+                return None
+            continue
+        if name in SHELLS:
+            return shell_runs_client(words[index + 1:])
+        return name == COMPUTER_USE_CLIENT
+    return False
 
 
 def die(message):
@@ -273,6 +662,9 @@ def parse_args(argv):
         "allow_apps": False,
         "allow_codex_git_commit": False,
         "allow_memories": False,
+        "allow_shell_snapshot": False,
+        "allow_file_credentials": False,
+        "allow_computer_use": False,
     }
     target = None
     iterator = iter(argv)
@@ -310,6 +702,12 @@ def parse_args(argv):
             flags["allow_codex_git_commit"] = True
         elif arg == "--allow-memories":
             flags["allow_memories"] = True
+        elif arg == "--allow-shell-snapshot":
+            flags["allow_shell_snapshot"] = True
+        elif arg == "--allow-file-credentials":
+            flags["allow_file_credentials"] = True
+        elif arg == "--allow-computer-use":
+            flags["allow_computer_use"] = True
         elif arg == "--":
             rest = list(iterator)
             if len(rest) > 1 or (rest and target is not None):
@@ -335,7 +733,7 @@ def parse_args(argv):
     return flags, pathlib.Path(target).expanduser()
 
 
-def desired_settings(flags):
+def desired_settings(flags, current):
     settings = {
         ("approval_policy",): "on-request",
         ("approvals_reviewer",): "user",
@@ -343,6 +741,7 @@ def desired_settings(flags):
         ("allow_login_shell",): False,
         ("check_for_update_on_startup",): False,
         ("web_search",): "disabled",
+        ("cli_auth_credentials_store",): "keyring",
         ("shell_environment_policy", "inherit"): "core",
         ("shell_environment_policy", "ignore_default_excludes"): False,
         ("sandbox_workspace_write", "network_access"): False,
@@ -355,7 +754,37 @@ def desired_settings(flags):
         ("features", "apps"): False,
         ("features", "codex_git_commit"): False,
         ("features", "memories"): False,
+        # Off because the snapshot overlay restores variables the environment
+        # policy removed (openai/codex#22124); see the header for the cost.
+        ("features", "shell_snapshot"): False,
+        ("plugins", COMPUTER_USE_PLUGIN, "enabled"): False,
     }
+
+    # Name the credential variables as excludes. Codex rejects the canonical
+    # `filters` table in a layer that also has the legacy `exclude` or
+    # `include_only` arrays, so a config already using either gets the names
+    # added to its legacy `exclude` array instead. Entries the user added stay.
+    # A config that already mixes the two forms, or holds a legacy value that
+    # isn't a list of strings, can't be merged into correctly, so the script
+    # stops and names the keys rather than writing a config Codex won't load.
+    policy, _ = get_path(current, ("shell_environment_policy",))
+    legacy = [key for key in ("exclude", "include_only") if isinstance(policy, dict) and key in policy]
+    if legacy and "filters" in policy:
+        die("shell_environment_policy mixes `filters` with the legacy "
+            + " and ".join(f"`{key}`" for key in legacy)
+            + "; Codex refuses to load that, so convert one form to the other first")
+    for key in legacy:
+        value = policy[key]
+        if not (isinstance(value, list) and all(isinstance(item, str) for item in value)):
+            die(f"shell_environment_policy.{key} isn't a list of strings; fix it before hardening")
+    if legacy:
+        existing = policy.get("exclude", [])
+        settings[("shell_environment_policy", "exclude")] = existing + [
+            name for name in CREDENTIAL_ENV_VARS if name not in existing
+        ]
+    else:
+        for name in CREDENTIAL_ENV_VARS:
+            settings[("shell_environment_policy", "filters", name)] = "exclude"
 
     if flags["allow_workspace_write"]:
         settings[("sandbox_mode",)] = "workspace-write"
@@ -381,8 +810,82 @@ def desired_settings(flags):
         settings[("features", "codex_git_commit")] = True
     if flags["allow_memories"]:
         settings[("features", "memories")] = True
+    if flags["allow_shell_snapshot"]:
+        settings[("features", "shell_snapshot")] = True
+    if flags["allow_file_credentials"]:
+        settings[("cli_auth_credentials_store",)] = "auto"
+    if flags["allow_computer_use"]:
+        settings[("plugins", COMPUTER_USE_PLUGIN, "enabled")] = True
 
     return settings
+
+
+def removals(flags, current):
+    """Return the key paths to delete from the config.
+
+    A notify command that runs the Computer Use client is removed unless
+    Computer Use is allowed; any other notify command is the user's and stays.
+    A credential variable named in shell_environment_policy.set is removed from
+    it, because Codex applies `set` after its excludes, so a value there would
+    reach every command despite them.
+    """
+    paths = []
+    env_set, _ = get_path(current, ("shell_environment_policy", "set"))
+    if isinstance(env_set, dict):
+        managed = {name.upper() for name in CREDENTIAL_ENV_VARS}
+        paths += [("shell_environment_policy", "set", key) for key in env_set if key.upper() in managed]
+    notify, exists = get_path(current, ("notify",))
+    if not flags["allow_computer_use"] and exists and isinstance(notify, list) and notify:
+        runs_client = notify_runs_computer_use(notify)
+        if runs_client:
+            paths.append(("notify",))
+        # Only a command that names the client draws the warning. One that
+        # can't be read but doesn't name it (e.g., a shell running a script)
+        # is the user's, and warning on it at every run would teach the user
+        # to ignore the warning.
+        elif any(COMPUTER_USE_CLIENT in str(arg) for arg in notify):
+            print(
+                f"warning: notify mentions {COMPUTER_USE_CLIENT} but doesn't plainly run it, "
+                "so it was left in place; remove it by hand if it starts Computer Use.",
+                file=sys.stderr,
+            )
+    return paths
+
+
+def note_shell_snapshot_off(current, settings):
+    """Explain the cost when this run turns the shell snapshot off.
+
+    Printed only when the setting changes, so a rerun on an already-hardened
+    config stays quiet.
+    """
+    path = ("features", "shell_snapshot")
+    current_value, exists = get_path(current, path)
+    if settings.get(path) is False and (not exists or current_value is not False):
+        print(
+            "note: features.shell_snapshot=false keeps the environment excludes in force "
+            "(openai/codex#22124), but commands no longer get the snapshot's shell "
+            "environment, so a tool found only through shell startup files (e.g., a PATH "
+            "entry added in ~/.zshrc) may not be found. Use --allow-shell-snapshot to "
+            "turn it back on.",
+            file=sys.stderr,
+        )
+
+
+def warn_about_plaintext_credentials(target, settings):
+    """Warn when keyring storage is set but a plaintext auth.json remains.
+
+    Switching the store doesn't delete credentials an earlier file-based login
+    wrote, and those stay readable to anything that can read the Codex home.
+    """
+    if settings.get(("cli_auth_credentials_store",)) != "keyring":
+        return
+    auth_file = target.parent / "auth.json"
+    if auth_file.exists():
+        print(
+            f"warning: {auth_file} holds plaintext credentials from a file-based login. "
+            "After confirming Codex works with the keyring store, delete it.",
+            file=sys.stderr,
+        )
 
 
 def load_config(target, write):
@@ -426,10 +929,14 @@ def main(argv):
     flags, target = parse_args(argv)
     current = load_config(target, flags["write"])
     merged = copy.deepcopy(current)
-    settings = desired_settings(flags)
+    settings = desired_settings(flags, current)
 
     for path, value in settings.items():
         set_path(merged, path, value)
+    to_remove = removals(flags, current)
+    for path in to_remove:
+        parent, _ = get_path(merged, path[:-1]) if len(path) > 1 else (merged, True)
+        parent.pop(path[-1], None)
 
     print(f"Hardening changes for {target}:")
     for path, desired in settings.items():
@@ -441,6 +948,15 @@ def main(argv):
             print(f"  ~ {dotted}: {preview_value(current_value)} -> {preview_value(desired)}")
         else:
             print(f"  = {dotted} (unchanged)")
+    for path in to_remove:
+        current_value, _ = get_path(current, path)
+        # A removed credential value isn't echoed, so the preview can't print a secret.
+        if path[:2] == ("shell_environment_policy", "set"):
+            print(f"  - {'.'.join(path)} (removed)")
+        else:
+            print(f"  - {'.'.join(path)} (removed, was {preview_value(current_value)})")
+    warn_about_plaintext_credentials(target, settings)
+    note_shell_snapshot_off(current, settings)
 
     if not flags["write"]:
         print("\n(preview only - nothing written; re-run with --write to apply)")
