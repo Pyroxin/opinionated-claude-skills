@@ -23,6 +23,10 @@ Very few manual changes were made to the skills. The content is written by Claud
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details on the creation process and how to contribute improvements.
 
+## Leak-Scanning Experiments
+
+The repository also serves as a testbed for automating thorough checks against accidental leaks of personal data and secrets in published content. Git hooks scan every commit, merge, and push with gitleaks and Presidio, covering each new file version in every decoding plus paths, commit messages, identities, and ref names. A private denylist adds terms that are always reported, and the hooks' output is filtered so those terms don't reach logs or agent transcripts. The setup is experimental and changes often; [TESTING.md](TESTING.md) describes how it works and how to test it.
+
 ## Installation
 
 ### Claude Code

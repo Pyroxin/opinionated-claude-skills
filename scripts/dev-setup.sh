@@ -10,7 +10,7 @@ set -euo pipefail
 # Usage: ./scripts/dev-setup.sh
 #
 # This script:
-#   1. Verifies required tools are available (jq, shellcheck, dasel, Claude Code)
+#   1. Verifies required tools are available (jq, shellcheck, dasel, uv, gitleaks, Claude Code)
 #   2. Registers the local marketplace in Claude Code
 #   3. Configures git to use the repo's versioned hooks
 
@@ -26,11 +26,18 @@ echo "Setting up development environment..."
 echo ""
 echo "Checking prerequisites..."
 
+required_tools=(jq shellcheck dasel uv gitleaks)
 missing=()
 
-command -v jq >/dev/null 2>&1 || missing+=("jq")
-command -v shellcheck >/dev/null 2>&1 || missing+=("shellcheck")
-command -v dasel >/dev/null 2>&1 || missing+=("dasel")
+# Record a tool as missing when it isn't on $PATH. Every tool is checked before
+# reporting, so one run lists everything that needs installing.
+require_tool() {
+  command -v "$1" >/dev/null 2>&1 || missing+=("$1")
+}
+
+for tool in "${required_tools[@]}"; do
+  require_tool "$tool"
+done
 
 if [[ ${#missing[@]} -gt 0 ]]; then
   echo "FATAL: missing required tools: ${missing[*]}" >&2
@@ -38,9 +45,9 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   exit 1
 fi
 
-echo "  jq: OK"
-echo "  shellcheck: OK"
-echo "  dasel: OK"
+for tool in "${required_tools[@]}"; do
+  echo "  ${tool}: OK"
+done
 
 # --- Claude Code ---
 

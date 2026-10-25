@@ -1,0 +1,22 @@
+#!/bin/bash
+set -euo pipefail
+# Everything this hook prints passes through a filter that hides private
+# denylist terms: run-redacted.sh runs the hook again with --redacted-body,
+# its output piped through the filter (see that script). Nothing runs before
+# the filter but finding that script, because an error from anything else
+# would print unfiltered; a failed exec would too, and bash's message for it
+# names the script's path, which can hold a term, so the check below prints a
+# fixed message instead.
+if [[ "${1:-}" == --redacted-body ]]; then
+  shift
+else
+  redacted="$(dirname "$0")/run-redacted.sh"
+  if [[ ! -f "$redacted" || ! -x "$redacted" ]]; then
+    echo "FATAL: the hook's output filter (run-redacted.sh, beside this hook) is missing or not executable; nothing was checked." >&2
+    exit 1
+  fi
+  exec "$redacted" "$0" "$@"
+fi
+# Commit messages and author identities are published with the commit, so they
+# get the same secret and PII scans as the staged files.
+exec "$(git rev-parse --show-toplevel)/scripts/pii-and-secret-gate.sh" commit-msg "$1"

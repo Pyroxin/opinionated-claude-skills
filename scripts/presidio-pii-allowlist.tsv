@@ -1,0 +1,154 @@
+# Accepted findings for scripts/pii-scan.py.
+#
+# Format: ENTITY<TAB>EXACT TEXT[<TAB>PATH GLOB]. ENTITY or TEXT may be "*"; a
+# missing PATH GLOB means every path, so a "*" TEXT must name a PATH GLOB other
+# than "*", or the scan fails. Add an entry only after confirming the
+# match is public or invented, and keep it in the section that says why.
+# Person names are matched without a trailing possessive ("Kent Beck", not
+# "Kent Beck's").
+
+# --- Positive-control fixtures: invented or published test values -------------
+# Each sample is listed exactly, so anything else added to the fixtures is
+# still reported. The ITIN sample also scores as a US_SSN.
+CREDIT_CARD	4111111111111111	scripts/validator-fixtures/pii-control.*
+US_SSN	219-09-9999	scripts/validator-fixtures/pii-control.*
+US_ITIN	911-70-1234	scripts/validator-fixtures/pii-control.*
+US_SSN	911-70-1234	scripts/validator-fixtures/pii-control.*
+EMAIL_ADDRESS	dan.tailor@example.org	scripts/validator-fixtures/pii-control.*
+PHONE_NUMBER	(415) 555-0132	scripts/validator-fixtures/pii-control.*
+IBAN_CODE	GB29 NWBK 6016 1331 9268 19	scripts/validator-fixtures/pii-control.*
+PERSON	Dan Tailor	scripts/validator-fixtures/pii-control.*
+
+# --- Email: intended author metadata, placeholders, and example domains --------
+EMAIL_ADDRESS	3385984+Pyroxin@users.noreply.github.com
+# Co-Authored-By trailer address in commit messages.
+EMAIL_ADDRESS	noreply@anthropic.com	(commit metadata)
+EMAIL_ADDRESS	alice@example.com
+EMAIL_ADDRESS	your@email.com
+
+# --- Digit runs that are identifiers in URLs and citations, not PII -----------
+# GitHub issue-comment anchor in the generated .gitignore's source URL.
+US_SSN	259490424	.gitignore
+# Apple documentation identifier in a citation.
+US_SSN	141308470	opinionated-apple-development/skills/macos-programmer/SKILL.md
+# Part of an ACM DOI in a citation.
+PHONE_NUMBER	1145/197320	opinionated-software-engineering/skills/object-oriented-programmer/SKILL.md
+# Published AWS link-local metadata endpoints that the Claude hardening script
+# denies to sandboxed commands.
+PHONE_NUMBER	169.254.169.254	extras/harden-claude-config.sh
+PHONE_NUMBER	(169.254.169.254	extras/harden-claude-config.sh
+PHONE_NUMBER	169.254.170.2	extras/harden-claude-config.sh
+PHONE_NUMBER	(169.254.170.2	extras/harden-claude-config.sh
+PHONE_NUMBER	169.254.170.23	extras/harden-claude-config.sh
+PHONE_NUMBER	(169.254.170.23	extras/harden-claude-config.sh
+
+# --- Product, document, and talk names the name model reads as people ---------
+PERSON	Claude CLI
+PERSON	Claude Code
+PERSON	Claude Desktop
+PERSON	Claude Fable
+PERSON	Claude Haiku
+PERSON	Claude Mythos
+PERSON	Claude Opus
+PERSON	Claude Platform
+PERSON	Claude Platform Docs
+PERSON	Claude Sonnet
+PERSON	Comprehensive Javadoc
+PERSON	Django ORM
+PERSON	Elixir GenServers
+PERSON	Fedora Linux
+PERSON	Ghostty Devlog
+PERSON	Git Checkpoints
+PERSON	Kodeco Swift
+PERSON	Revisit JPMS
+PERSON	Share Mutable State
+PERSON	Simple Made Easy
+PERSON	Swift Evolution
+PERSON	Swift Forums
+PERSON	Swift Package
+PERSON	Swift Testing
+
+# --- Invented example organizations ----------------------------------------------
+PERSON	Acme Cloud
+PERSON	Acme LogCloud
+PERSON	Fabrikam DocStore
+PERSON	Vendor X
+
+# --- Authors and speakers cited or quoted by public work -----------------------
+PERSON	Alan Mycroft
+PERSON	Alan Perlis
+PERSON	Alejandro Alonso
+PERSON	Alexis Laferrière
+PERSON	Alistair Cockburn
+PERSON	Barbara Liskov
+PERSON	Barbara Minto
+PERSON	Becca Royal-Gordon
+PERSON	Bill Wake
+PERSON	Brian Kernighan
+PERSON	Chris Beams
+PERSON	Chris Lattner
+PERSON	Chris Matts
+PERSON	Christian Queinnec
+PERSON	Dan North
+PERSON	Dan Shipper
+PERSON	Dave Abrahams
+PERSON	Dave Lester
+PERSON	Dominic Orchard
+PERSON	Doug Gregor
+PERSON	Gerald Jay Sussman
+PERSON	Gerald Weinberg
+PERSON	Gerard Meszaros
+PERSON	Gordon Bell
+PERSON	Greg Hendershott
+PERSON	Guido van Rossum
+PERSON	Hal Abelson
+PERSON	Holly Borla
+PERSON	J. L. Mackie
+PERSON	Jan Wielemaker
+PERSON	Jeannette Wing
+PERSON	Jeffrey Palermo
+PERSON	Joe Groff
+PERSON	John McCall
+PERSON	Katie Parrott
+PERSON	Keith Smiley
+PERSON	Ken Hyland
+PERSON	Kent Beck
+PERSON	Kevin Jiang
+PERSON	Konrad Malawski
+PERSON	Kyle Cordes
+PERSON	Leo Brodie
+PERSON	Linus Torvalds
+PERSON	Luca Compagna
+PERSON	Mark Engelberg
+PERSON	Markus Triska
+PERSON	Martin Fowler
+PERSON	Matt Massicotte
+PERSON	Max Howell
+PERSON	Michael Feathers
+PERSON	Michael Gottesman
+PERSON	Mike Ash
+PERSON	Mike Cohn
+PERSON	Mitchell Hashimoto
+PERSON	Mohammad Azam
+PERSON	Nathan Orick
+PERSON	Norman Adams
+PERSON	Paulo Moura
+PERSON	Pádraig Brady
+PERSON	Pavel Yaskevich
+PERSON	Philip Wadler
+PERSON	Ray Cummings
+PERSON	Rich Hickey
+PERSON	Richard O'Keefe
+PERSON	Robert C. Martin
+PERSON	Robert Kowalski
+PERSON	S. Bradner
+PERSON	Sarah Reichelt
+PERSON	Sean Corfield
+PERSON	Seth Robertson
+PERSON	Sima Nerush
+PERSON	Simon Leeb
+PERSON	Sophia Poirier
+PERSON	Stuart Halloway
+PERSON	Tim Peters
+PERSON	Tomas Petricek
+PERSON	Will Larson

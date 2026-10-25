@@ -1,0 +1,5 @@
+# Denylist used only by the PII scan's positive control. "Tailor" is the
+# surname in pii-control.md, and the second entry checks that an entry is
+# read as a regular expression (a word boundary on each side).
+Tailor
+\bDan\b

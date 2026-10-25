@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+# A merge that completes without conflicts creates its commit without running
+# pre-commit, so the merged content gets the same checks here. pre-commit is
+# found beside this hook rather than through `git rev-parse`, because git's
+# error (e.g., outside a repository) would print before pre-commit's output
+# filter starts; pre-commit then enters the filter as it does for a commit. A
+# missing pre-commit gets a fixed message, because bash's message for the
+# failed exec names its path, which can hold a term.
+pre_commit="$(dirname "$0")/pre-commit"
+if [[ ! -f "$pre_commit" || ! -x "$pre_commit" ]]; then
+  echo "FATAL: the pre-commit hook beside this hook is missing or not executable; nothing was checked." >&2
+  exit 1
+fi
+exec "$pre_commit"

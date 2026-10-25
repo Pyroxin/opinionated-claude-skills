@@ -1,2 +1,26 @@
 #!/bin/bash
-exec "$(git rev-parse --show-toplevel)/scripts/install-and-verify.sh"
+set -euo pipefail
+# Everything this hook prints passes through a filter that hides private
+# denylist terms: run-redacted.sh runs the hook again with --redacted-body,
+# its output piped through the filter (see that script). Nothing runs before
+# the filter but finding that script, because an error from anything else
+# would print unfiltered; a failed exec would too, and bash's message for it
+# names the script's path, which can hold a term, so the check below prints a
+# fixed message instead.
+if [[ "${1:-}" == --redacted-body ]]; then
+  shift
+else
+  redacted="$(dirname "$0")/run-redacted.sh"
+  if [[ ! -f "$redacted" || ! -x "$redacted" ]]; then
+    echo "FATAL: the hook's output filter (run-redacted.sh, beside this hook) is missing or not executable; nothing was checked." >&2
+    exit 1
+  fi
+  exec "$redacted" "$0" "$@"
+fi
+root="$(git rev-parse --show-toplevel)"
+# The PII and secret scans read Git's pre-push lines from stdin to find the
+# commits being pushed, so they run first; install-and-verify.sh doesn't read
+# stdin. $1 is the remote's name (or URL), which bounds what counts as already
+# published.
+"$root/scripts/pii-and-secret-gate.sh" pre-push "$1"
+exec "$root/scripts/install-and-verify.sh"
