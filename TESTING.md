@@ -1055,6 +1055,22 @@ Cover these regression cases when changing the script:
   without a warning; a program whose name only contains the client's (e.g.,
   `SkyComputerUseClient-status-reporter`) is kept,
   with a warning on stderr.
+- With no context flags, existing `model_context_window` and
+  `model_auto_compact_token_limit` values are removed (`-` lines in the
+  preview), so both come from the model catalog.
+- `--match-context-window-to-input-limit` with `model = "gpt-6.1-sol"` writes
+  `model_context_window = 922000`; a second run is a no-op. It fails with an
+  unlisted model (e.g., `claude-opus-5-5`) and with no `model` key.
+- `--allow-arbitrary-context-window` keeps the window as it is; adding
+  `--context-window-size N` writes N. `--allow-arbitrary-compaction-limit` and
+  `--compaction-limit N` do the same for the compaction limit, independently
+  of the window flags; each flag keeps only its own key, and `--name=N` works
+  too.
+- `--context-window-size` without `--allow-arbitrary-context-window`,
+  `--compaction-limit` without `--allow-arbitrary-compaction-limit`,
+  `--match-context-window-to-input-limit` with
+  `--allow-arbitrary-context-window`, and a missing, zero, or non-numeric N
+  each fail with an error.
 - `--allow-workspace-write`, `--allow-network`, `--allow-web-search`,
   `--allow-live-web-search`, `--allow-login-shell`, `--allow-updates`,
   `--allow-feedback`, `--allow-analytics`, `--allow-otel-metrics`,

@@ -126,6 +126,77 @@
 #     --allow-computer-use        plugins."unified-computer-use@openai-bundled"
 #                                .enabled=true, and notify is left as it is.
 #
+#   CONTEXT WINDOW AND COMPACTION (removed unless a flag keeps or sets them):
+#     By default the script removes model_context_window and
+#     model_auto_compact_token_limit, so both come from Codex's model metadata.
+#     Top-level keys only: these flags read and write the top-level
+#     model_context_window and model_auto_compact_token_limit, and the match
+#     flag reads only the top-level model. The same keys in a
+#     [profiles.<name>] table are left as they are, with a warning, and apply
+#     when that profile is selected.
+#     The catalog bundled with Codex gives GPT-6.1 Sol a 272,000-token
+#     context_window (the default) and an 872,000-token max_context_window
+#     (codex-rs/models-manager/models.json; at a09812981de7,
+#     https://github.com/openai/codex/blob/a09812981de703f18f38015cd5d500ab373f616c/codex-rs/models-manager/models.json#L177-L211).
+#     OpenAI's model page says Sol uses a 500K default window in Codex
+#     (https://developers.openai.com/api/docs/models/gpt-6.1-sol), which
+#     doesn't match the bundled catalog's 272,000.
+#     Each flag states an intent; a value is given only with the flag that
+#     allows an arbitrary one.
+#
+#     model_context_window is the ceiling Codex plans against, and a request
+#     past the model's real limit fails. model_auto_compact_token_limit is the
+#     point where Codex summarizes history. Neither changes how the model
+#     computes; they decide how much history Codex sends. Codex's config
+#     reference doesn't say how the two interact. Codex clamps a configured
+#     window to the model metadata's max_context_window (with_config_overrides
+#     in codex-rs/models-manager/src/model_info.rs,
+#     https://github.com/openai/codex/blob/a09812981de703f18f38015cd5d500ab373f616c/codex-rs/models-manager/src/model_info.rs#L19-L28;
+#     https://github.com/openai/codex/issues/19185) and compacts at the lower
+#     of the limit and 90% of the clamped window
+#     (https://github.com/openai/codex/issues/11805).
+#
+#     --match-context-window-to-input-limit
+#                                model_context_window = the configured model's
+#                                maximum input tokens (window minus maximum
+#                                output), the most history a request can carry.
+#                                Codex may use a lower window whether or not
+#                                this flag is given: it caps any window at the
+#                                model metadata's max_context_window, which for
+#                                the four models in the bundled catalog is
+#                                872,000, below their 922,000-token input limit.
+#                                The script writes the input limit anyway, so
+#                                the setting gains capacity when Codex raises
+#                                its cap.
+#                                Fails when the top-level `model` isn't set or
+#                                isn't in the script's table of limits derived
+#                                from OpenAI's published figures; use
+#                                --allow-arbitrary-context-window with
+#                                --context-window-size for other models.
+#     --allow-arbitrary-context-window
+#                                Keep model_context_window as it is, e.g., a value
+#                                set for a Bedrock or other provider's model.
+#     --context-window-size N    model_context_window = N; requires
+#                                --allow-arbitrary-context-window, to confirm the
+#                                intent; contradicts
+#                                --match-context-window-to-input-limit. Each
+#                                value flag may be given once. A compaction
+#                                limit at or above the window set here (or by
+#                                the match flag, or kept by
+#                                --allow-arbitrary-context-window) draws a
+#                                warning, since it then never takes effect.
+#     --allow-arbitrary-compaction-limit
+#                                Keep model_auto_compact_token_limit as it is.
+#     --compaction-limit N       model_auto_compact_token_limit = N; requires
+#                                --allow-arbitrary-compaction-limit. Useful with a
+#                                large window when tokens are billed per request:
+#                                OpenAI's API prices a request to each model in
+#                                the table below with more than 272,000 input
+#                                tokens at a higher rate for the whole request
+#                                (see each model's page), so compacting below
+#                                that keeps normal turns cheap while a single
+#                                large turn can still complete instead of failing.
+#
 #   Operational:
 #     -w, --write       Apply the changes. Without it the script only previews.
 #     -n, --dry-run     Preview only (the default; wins over --write if both are given).
@@ -225,6 +296,17 @@ Relax flags:
   --allow-shell-snapshot
   --allow-file-credentials
   --allow-computer-use
+
+Context window and compaction (removed unless one of these is given):
+  --match-context-window-to-input-limit
+      Request the model's input limit (context window minus maximum output).
+  --allow-arbitrary-context-window [--context-window-size N]
+  --allow-arbitrary-compaction-limit [--compaction-limit N]
+
+  Codex may use a lower context window than the one requested, with or
+  without these flags: it caps any window at its model metadata's
+  max_context_window. See CONTEXT WINDOW AND COMPACTION in this script's
+  header comment.
 
 Path:
   Defaults to ${CODEX_HOME:-$HOME/.codex}/config.toml; override with one path.
@@ -537,6 +619,23 @@ def program_runs_client(words, shell_words=False):
         return name == COMPUTER_USE_CLIENT
     return False
 
+# Maximum input tokens per model, for --match-context-window-to-input-limit,
+# derived as the context window minus the maximum output. Each model's page
+# (https://developers.openai.com/api/docs/models/<model>, e.g.,
+# https://developers.openai.com/api/docs/models/gpt-6.1-sol) lists a
+# 1,050,000-token context window and 128,000 maximum output tokens for all
+# four, as of 2026-11-01. These are API figures; Codex clamps the configured
+# window to its own max_context_window (see CONTEXT WINDOW AND COMPACTION in
+# the header).
+# Add a model only with a source for both numbers; a model missing here makes
+# the option fail rather than guess.
+MODEL_INPUT_TOKEN_LIMITS = {
+    "gpt-6-astra": 922_000,
+    "gpt-6.1-sol": 922_000,
+    "gpt-6.1-terra": 922_000,
+    "gpt-6-luna": 922_000,
+}
+
 
 def die(message):
     print(f"error: {message}", file=sys.stderr)
@@ -665,7 +764,34 @@ def parse_args(argv):
         "allow_shell_snapshot": False,
         "allow_file_credentials": False,
         "allow_computer_use": False,
+        "match_context_window_to_input_limit": False,
+        "allow_arbitrary_context_window": False,
+        "context_window_size": None,
+        "allow_arbitrary_compaction_limit": False,
+        "compaction_limit": None,
     }
+
+    def token_count(option, value):
+        # isdigit() accepts any Unicode decimal digit (e.g., "٣"), which int()
+        # converts and the config stores in ASCII. It also accepts digits int()
+        # rejects (e.g., the superscript "²"), so that ValueError becomes the
+        # same usage error instead of a traceback.
+        if value is None or not value.isdigit():
+            die(f"{option} needs a positive whole number of tokens")
+        try:
+            count = int(value)
+        except ValueError:
+            die(f"{option} needs a positive whole number of tokens")
+        if count <= 0:
+            die(f"{option} needs a positive whole number of tokens")
+        return count
+
+    def set_token_count(key, option, value):
+        # A second value would silently replace the first, so which one the
+        # user meant is unclear; refuse rather than pick.
+        if flags[key] is not None:
+            die(f"{option} given more than once")
+        flags[key] = token_count(option, value)
     target = None
     iterator = iter(argv)
     for arg in iterator:
@@ -708,6 +834,20 @@ def parse_args(argv):
             flags["allow_file_credentials"] = True
         elif arg == "--allow-computer-use":
             flags["allow_computer_use"] = True
+        elif arg == "--match-context-window-to-input-limit":
+            flags["match_context_window_to_input_limit"] = True
+        elif arg == "--allow-arbitrary-context-window":
+            flags["allow_arbitrary_context_window"] = True
+        elif arg == "--context-window-size":
+            set_token_count("context_window_size", arg, next(iterator, None))
+        elif arg.startswith("--context-window-size="):
+            set_token_count("context_window_size", "--context-window-size", arg.split("=", 1)[1])
+        elif arg == "--allow-arbitrary-compaction-limit":
+            flags["allow_arbitrary_compaction_limit"] = True
+        elif arg == "--compaction-limit":
+            set_token_count("compaction_limit", arg, next(iterator, None))
+        elif arg.startswith("--compaction-limit="):
+            set_token_count("compaction_limit", "--compaction-limit", arg.split("=", 1)[1])
         elif arg == "--":
             rest = list(iterator)
             if len(rest) > 1 or (rest and target is not None):
@@ -726,11 +866,53 @@ def parse_args(argv):
     if flags["dry_run"]:
         flags["write"] = False
 
+    # The contradiction is checked first: with it, adding the flag a "requires"
+    # error asks for would only lead to this error next.
+    if flags["match_context_window_to_input_limit"]:
+        for option, given in (
+            ("--allow-arbitrary-context-window", flags["allow_arbitrary_context_window"]),
+            ("--context-window-size", flags["context_window_size"] is not None),
+        ):
+            if given:
+                die(f"--match-context-window-to-input-limit and {option} contradict each other")
+    # A value is accepted only with the flag that allows an arbitrary one, so a
+    # stray number can't pin a setting the user meant to leave to the catalog.
+    if flags["context_window_size"] is not None and not flags["allow_arbitrary_context_window"]:
+        die("--context-window-size requires --allow-arbitrary-context-window")
+    if flags["compaction_limit"] is not None and not flags["allow_arbitrary_compaction_limit"]:
+        die("--compaction-limit requires --allow-arbitrary-compaction-limit")
+
     if target is None:
         codex_home = os.environ.get("CODEX_HOME", os.path.join(os.path.expanduser("~"), ".codex"))
         target = os.path.join(codex_home, "config.toml")
 
     return flags, pathlib.Path(target).expanduser()
+
+
+def warn_about_profile_overrides(flags, current):
+    """Warn about profile keys the context window handling doesn't read.
+
+    The script manages only the top-level model_context_window and
+    model_auto_compact_token_limit, and the match flag reads only the
+    top-level model. A profile's own values apply when that profile is
+    selected, so they're named here rather than silently left in force.
+    """
+    profiles, _ = get_path(current, ("profiles",))
+    if not isinstance(profiles, dict):
+        return
+    keys = ["model_context_window", "model_auto_compact_token_limit"]
+    if flags["match_context_window_to_input_limit"]:
+        keys.append("model")
+    for name, profile in profiles.items():
+        if not isinstance(profile, dict):
+            continue
+        for key in keys:
+            if key in profile:
+                print(
+                    f"warning: profiles.{quote_key(name)}.{key} is left as it is; this "
+                    "script reads and manages only the top-level key.",
+                    file=sys.stderr,
+                )
 
 
 def desired_settings(flags, current):
@@ -816,6 +998,37 @@ def desired_settings(flags, current):
         settings[("cli_auth_credentials_store",)] = "auto"
     if flags["allow_computer_use"]:
         settings[("plugins", COMPUTER_USE_PLUGIN, "enabled")] = True
+    warn_about_profile_overrides(flags, current)
+    if flags["match_context_window_to_input_limit"]:
+        model, exists = get_path(current, ("model",))
+        if not exists:
+            die("--match-context-window-to-input-limit needs the top-level `model` set in "
+                "the config, because the limit depends on the model")
+        if model not in MODEL_INPUT_TOKEN_LIMITS:
+            die(f"no known input limit for model {model!r}; use "
+                "--allow-arbitrary-context-window --context-window-size N for it")
+        settings[("model_context_window",)] = MODEL_INPUT_TOKEN_LIMITS[model]
+    if flags["context_window_size"] is not None:
+        settings[("model_context_window",)] = flags["context_window_size"]
+    if flags["compaction_limit"] is not None:
+        settings[("model_auto_compact_token_limit",)] = flags["compaction_limit"]
+        # Codex compacts at the lower of the limit and 90% of the window (see
+        # the header), so a limit at or above the window never takes effect.
+        # The window is the one this run writes, or the one
+        # --allow-arbitrary-context-window keeps.
+        window = settings.get(("model_context_window",))
+        if window is None and flags["allow_arbitrary_context_window"]:
+            window, _ = get_path(current, ("model_context_window",))
+        # bool is a subclass of int, and a non-integer kept value can't be
+        # compared with the limit, so either is skipped rather than misread.
+        if (isinstance(window, int) and not isinstance(window, bool)
+                and flags["compaction_limit"] >= window):
+            print(
+                f"warning: the compaction limit ({flags['compaction_limit']}) is at or above "
+                f"the context window ({window}), so it won't take effect: Codex compacts at "
+                "the lower of the limit and 90% of the window.",
+                file=sys.stderr,
+            )
 
     return settings
 
@@ -825,9 +1038,11 @@ def removals(flags, current):
 
     A notify command that runs the Computer Use client is removed unless
     Computer Use is allowed; any other notify command is the user's and stays.
-    A credential variable named in shell_environment_policy.set is removed from
-    it, because Codex applies `set` after its excludes, so a value there would
-    reach every command despite them.
+    The context window and compaction limit are removed unless a flag keeps or
+    sets them, so by default both come from the model catalog. A credential
+    variable named in shell_environment_policy.set is removed from it, because
+    Codex applies `set` after its excludes, so a value there would reach every
+    command despite them.
     """
     paths = []
     env_set, _ = get_path(current, ("shell_environment_policy", "set"))
@@ -849,6 +1064,11 @@ def removals(flags, current):
                 "so it was left in place; remove it by hand if it starts Computer Use.",
                 file=sys.stderr,
             )
+    window_kept = flags["match_context_window_to_input_limit"] or flags["allow_arbitrary_context_window"]
+    for key, kept in (("model_context_window", window_kept),
+                      ("model_auto_compact_token_limit", flags["allow_arbitrary_compaction_limit"])):
+        if not kept and get_path(current, (key,))[1]:
+            paths.append((key,))
     return paths
 
 
