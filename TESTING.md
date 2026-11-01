@@ -864,7 +864,11 @@ Cover these regression cases when changing the script:
   preserves the symlink.
 - A second write against an already-hardened file is a semantic no-op and does
   not create a backup.
-- Existing file mode is preserved on a changing write.
+- Existing file mode is preserved on a changing write, with BSD stat (macOS)
+  and with GNU stat (Linux; on macOS, put GNU coreutils first on `PATH`, e.g.,
+  `PATH=/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH`). Cover 600 and 640,
+  and a mode with the sticky bit set (`chmod +t`), which both stats must
+  report the same way; BSD `%Lp` alone drops it.
 - Directory and unreadable-file targets are rejected with a clear error.
 
 Useful focused probes:

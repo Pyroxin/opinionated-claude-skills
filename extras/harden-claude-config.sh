@@ -307,6 +307,14 @@ _usage() {
   sed -n '/^###$/,/^###$/p' "$0" | sed '1d;$d;s/^#\{0,1\} \{0,1\}//'
 }
 
+_resolve_symlink_target() {
+  link_target="$(readlink "$1")" || _die "could not read symlink: $1"
+  case "$link_target" in
+    /*) printf '%s\n' "$link_target" ;;
+    *)  printf '%s/%s\n' "$(cd "$(dirname "$1")" && pwd -P)" "$link_target" ;;
+  esac
+}
+
 # Prints the file a path resolves to after following every symlink in turn.
 # Written as a loop over readlink because `readlink -f` is missing from older
 # macOS releases. Returns 1 on a loop or an unreadable link rather than exiting,
@@ -325,16 +333,24 @@ _resolve_symlink_chain() {
   printf '%s\n' "$path"
 }
 
-_resolve_symlink_target() {
-  link_target="$(readlink "$1")" || _die "could not read symlink: $1"
-  case "$link_target" in
-    /*) printf '%s\n' "$link_target" ;;
-    *)  printf '%s/%s\n' "$(cd "$(dirname "$1")" && pwd -P)" "$link_target" ;;
-  esac
-}
-
+# Prints a file's permission bits in octal. GNU stat (Linux) is tried first:
+# its `-f` means "file system status" and prints a report rather than failing,
+# so trying the BSD form first would capture that report on Linux. BSD stat
+# (macOS) rejects `-c` without printing anything. BSD's `%Lp` alone would drop
+# the setuid, setgid, and sticky bits that GNU's `%a` keeps, so `%Mp` adds them
+# as a leading digit; that digit is always printed, even as 0, while GNU omits
+# a zero one, so one leading 0 is stripped to make both print the same string.
+# The result is checked so a stat that prints something unexpected stops the
+# script instead of reaching chmod.
 _file_mode() {
-  stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1" 2>/dev/null
+  local mode
+  mode="$(stat -c '%a' "$1" 2>/dev/null)" \
+    || { mode="$(stat -f '%Mp%Lp' "$1" 2>/dev/null)" && mode="${mode#0}"; } \
+    || return 1
+  case "$mode" in
+    ''|*[!0-7]*) return 1 ;;
+  esac
+  printf '%s\n' "$mode"
 }
 
 # --- The hardening base. Edit here to evolve the shared posture. --------------
