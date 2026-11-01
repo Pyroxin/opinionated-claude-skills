@@ -29,6 +29,20 @@
 #       name or value shape) from the environment of every subprocess Claude Code
 #       starts — Bash commands, hooks, and stdio MCP servers — sandboxed or not.
 #       GitHub tokens and proxy settings are deliberately kept by the scrub.
+#       CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1 clones GitHub-hosted plugins and
+#       marketplaces over HTTPS. Otherwise Claude Code first checks whether an SSH
+#       key authenticates to github.com and, if one does, clones over SSH, which
+#       uses the key and identifies the account to GitHub for a public download.
+#       Anthropic's official marketplace is one such source: it's hosted on
+#       GitHub and auto-updates by default after a session starts ("Keep plugins
+#       updated" in https://code.claude.com/docs/en/discover-plugins), and
+#       without this setting its refresh was observed connecting to github.com
+#       over SSH when an SSH key was available. The variable needs Claude Code
+#       >= 2.1.141 for plugin installs and updates, and >= 2.1.144 for
+#       marketplace adds and updates (Claude Code's CHANGELOG.md).
+#       See CLAUDE_CODE_PLUGIN_PREFER_HTTPS in https://code.claude.com/docs/en/env-vars
+#       and "Add a private marketplace" in
+#       https://code.claude.com/docs/en/plugins/install
 #       DISABLE_TELEMETRY and DO_NOT_TRACK also turn off feature-flag fetching, which
 #       gates features such as /skill-doctor, the advisor tool, and artifact comments;
 #       see --allow-feature-flags.
@@ -199,8 +213,21 @@
 #     --allow-subprocess-credentials
 #                                  env CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0. For setups where a
 #                                  subprocess genuinely needs a credential from Claude Code's
-#                                  environment, e.g. a stdio MCP server reading an API key that
-#                                  is not set in its own "env" block.
+#                                  environment, e.g., a stdio MCP server reading an API key that
+#                                  isn't set in its own "env" block.
+#     --allow-plugin-ssh-clones    env CLAUDE_CODE_PLUGIN_PREFER_HTTPS=0: GitHub owner/repo
+#                                  plugin and marketplace sources clone over SSH when an SSH
+#                                  key authenticates to github.com (Claude Code's default),
+#                                  for plugin installs and updates and marketplace adds and
+#                                  updates alike.
+#                                  The base setting affects only that shorthand form, and a
+#                                  private repository added that way still clones over HTTPS
+#                                  when a git credential helper has github.com credentials
+#                                  (e.g., from gh auth login or the macOS Keychain); without
+#                                  one the clone fails, since Claude Code turns off git's
+#                                  prompts. A source added by its SSH URL (git@host:path)
+#                                  uses SSH either way. Use this flag for private shorthand
+#                                  sources reachable only with an SSH key.
 #     --allow-cloud-credential-files
 #                                  Remove the "deny" entries for ~/.aws, ~/.config/gcloud,
 #                                  and ~/.azure from sandbox.credentials.files (an entry
@@ -321,6 +348,7 @@ CORE_ENV='{
   "DO_NOT_TRACK": "1",
   "CLAUDE_CODE_ENABLE_AUTO_MODE": "0",
   "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
+  "CLAUDE_CODE_PLUGIN_PREFER_HTTPS": "1",
   "OTEL_SDK_DISABLED": "true",
   "OTEL_PROPAGATORS": "none",
   "OTEL_TRACES_EXPORTER": "none",
@@ -451,6 +479,7 @@ allow_feature_flags=0
 dnt_prefix=""
 dnt_prefix_given=0
 allow_subprocess_credentials=0
+allow_plugin_ssh_clones=0
 allow_cloud_credential_files=0
 allow_metadata_endpoints=0
 allow_only_plugin=0
@@ -478,6 +507,7 @@ while [ "$#" -gt 0 ]; do
       dnt_prefix="$2"; dnt_prefix_given=1; shift ;;
     --dnt-prefix=*)                 dnt_prefix="${1#--dnt-prefix=}"; dnt_prefix_given=1 ;;
     --allow-subprocess-credentials) allow_subprocess_credentials=1 ;;
+    --allow-plugin-ssh-clones)      allow_plugin_ssh_clones=1 ;;
     --allow-cloud-credential-files) allow_cloud_credential_files=1 ;;
     --allow-metadata-endpoints)     allow_metadata_endpoints=1 ;;
     --allow-only-plugin-updates)    allow_only_plugin=1 ;;
@@ -589,6 +619,7 @@ _top_del() {
 [ "$allow_webfetch_preflight" -eq 1 ] && _top '{"skipWebFetchPreflight": false}'
 [ "$allow_auto_mode" -eq 1 ]          && _env '{"CLAUDE_CODE_ENABLE_AUTO_MODE": "1"}'
 [ "$allow_subprocess_credentials" -eq 1 ] && _env '{"CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "0"}'
+[ "$allow_plugin_ssh_clones" -eq 1 ]      && _env '{"CLAUDE_CODE_PLUGIN_PREFER_HTTPS": "0"}'
 if [ "$allow_feature_flags" -eq 1 ]; then
   # Both are presence-only and turn flag fetching off, so a value left from an
   # earlier --disable-nonessential-traffic run must be deleted too.

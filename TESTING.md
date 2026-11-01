@@ -801,6 +801,7 @@ Cover these regression cases when changing the script:
   `FORCE_AUTOUPDATE_PLUGINS=1`. WebFetch preflight remains controlled by
   `--allow-webfetch-preflight`, matching Claude Code's separate WebFetch
   preflight setting.
+- Base hardening writes `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1`.
 - Base hardening writes `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`, adds the managed
   `sandbox.credentials` entries (`files` by path, `envVars` by name), and keeps
   hand-added sibling `sandbox` keys such as `excludedCommands`. A user's own
@@ -852,6 +853,8 @@ Cover these regression cases when changing the script:
   `PATH` too.
 - `--allow-feature-flags` with `--disable-nonessential-traffic` is rejected.
 - `--allow-subprocess-credentials` writes `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0`.
+- `--allow-plugin-ssh-clones` writes `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=0`; a later run
+  without it writes `1` again.
 - A top-level non-object JSON value, e.g., `[]`, is rejected with a clear error.
 - A non-object `.env` value is rejected with a clear error.
 - A symlinked settings path updates the target file and preserves the symlink.
