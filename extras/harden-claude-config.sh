@@ -139,10 +139,21 @@
 #     (denied above) and named profiles for anything granted to Claude.
 #     permissions.ask (additive: missing entries are appended; the existing list, its
 #     order, and the allow/deny arrays are never touched):
-#       Bash(git push), Bash(git push *)      every git push prompts for approval, in every
-#                                             permission mode — ask rules bind auto mode,
+#       Bash(git push), Bash(git push *),     git push, in the forms these rules match,
+#       Bash(git * push), Bash(git * push *)  prompts for approval in every permission
+#                                             mode; ask rules bind auto mode,
 #                                             bypassPermissions, and sandbox auto-allow
-#                                             alike, and win over any matching allow rule
+#                                             alike, and win over any matching allow rule.
+#                                             The last two catch git's global options
+#                                             before the subcommand (e.g., git -C repo push);
+#                                             both are needed because a trailing " *"
+#                                             matches the bare command only in a rule with
+#                                             no other wildcard. They also prompt for any
+#                                             git command with the word "push" later in
+#                                             it, such as a commit message, which costs
+#                                             only a prompt. See "What a Bash rule doesn't
+#                                             match" in
+#                                             https://code.claude.com/docs/en/permissions
 #
 #   RELAX flags:
 #     --allow-updates              env DISABLE_AUTOUPDATER=0. CLI + plugins auto-update.
@@ -342,11 +353,13 @@ CORE_TOP='{
 # merged entry by entry (see CORE_CRED_FILES and CORE_DENIED_DOMAINS).
 # Ask rules the base appends to permissions.ask. Ask rules prompt in every
 # permission mode (including auto and bypassPermissions) and take precedence
-# over matching allow rules, so these hold even when everything else is
-# auto-approved. Additive: existing entries and order are preserved.
+# over matching allow rules, so commands they match prompt even when everything
+# else is auto-approved. Additive: existing entries and order are preserved.
 CORE_ASK='[
   "Bash(git push)",
-  "Bash(git push *)"
+  "Bash(git push *)",
+  "Bash(git * push)",
+  "Bash(git * push *)"
 ]'
 
 CORE_SANDBOX='{

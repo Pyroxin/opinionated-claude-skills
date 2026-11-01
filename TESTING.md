@@ -783,6 +783,10 @@ jq -S . "$cfg"
 Cover these regression cases when changing the script:
 
 - Normal merge preserves unrelated top-level keys and unrelated `.env` entries.
+- Base hardening appends `Bash(git push)`, `Bash(git push *)`,
+  `Bash(git * push)`, and `Bash(git * push *)` to `permissions.ask`, keeps
+  existing entries and their order, and doesn't add duplicates on a rerun; the
+  preview marks rules already present with `=`.
 - Base hardening writes `attribution.commit=""`, `attribution.pr=""`, and
   `attribution.sessionUrl=false`.
 - `--allow-model-attribution` removes the `attribution.commit` and
