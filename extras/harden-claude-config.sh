@@ -389,12 +389,6 @@ CORE_TOP='{
   "attribution": { "commit": "", "pr": "", "sessionUrl": false }
 }'
 
-# The Bash sandbox posture: OS-enforced boundaries with prompts still governed by
-# the permission mode (autoAllowBashIfSandboxed=false), and credential paths made
-# unreadable inside the sandbox — tools that need them fall back to an unsandboxed
-# retry behind a permission prompt. Merged one level deep (like env) so hand-added
-# sibling subkeys survive re-runs; "credentials" and "network.deniedDomains" are
-# merged entry by entry (see CORE_CRED_FILES and CORE_DENIED_DOMAINS).
 # Ask rules the base appends to permissions.ask. Ask rules prompt in every
 # permission mode (including auto and bypassPermissions) and take precedence
 # over matching allow rules, so commands they match prompt even when everything
@@ -406,6 +400,12 @@ CORE_ASK='[
   "Bash(git * push *)"
 ]'
 
+# The Bash sandbox posture: OS-enforced boundaries with prompts still governed by
+# the permission mode (autoAllowBashIfSandboxed=false), and credential paths made
+# unreadable inside the sandbox; tools that need them fall back to an unsandboxed
+# retry behind a permission prompt. Merged one level deep (like env) so hand-added
+# sibling subkeys survive re-runs; "credentials" and "network.deniedDomains" are
+# merged entry by entry (see CORE_CRED_FILES and CORE_DENIED_DOMAINS).
 CORE_SANDBOX='{
   "enabled": true,
   "autoAllowBashIfSandboxed": false,
