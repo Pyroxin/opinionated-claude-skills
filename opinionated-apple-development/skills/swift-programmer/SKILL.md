@@ -214,7 +214,7 @@ func loadFile(_ path: String) throws(FileError) -> Data {
 
 **Testing**: Prefer Swift Testing for new unit tests (native async, `#expect` macro, parameterized tests). Apple's guidance is to "continue using XCTest for any tests which use UI automation APIs like XCUIApplication or use performance testing APIs like XCTMetric as these are not supported in Swift Testing."[^wwdc24-10179]
 
-**Documentation**: document every public API with DocC, using `​``Symbol``​` links, and state algorithmic complexity when it is not O(1).
+**Documentation**: document every public API with DocC, using ``` ``Symbol`` ``` links, and state algorithmic complexity when it is not O(1).
 
 **Configuration files**: See local .swiftlint.yml and .swiftformat in projects for standard configs.
 </tooling>
