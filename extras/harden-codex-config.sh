@@ -7,10 +7,11 @@
 #   unrelated settings, MCP servers, plugins, project trust entries, and unknown
 #   future keys are preserved; only the keys this tool manages are touched.
 #
-#   Previews by default - writes nothing unless you pass --write (-w).
+#   Previews by default - doesn't write anything unless you pass --write (-w).
 #
 #   Symlink-safe: if the target is a symlink, the file it points at is updated and
-#   the link is preserved. A run that would change nothing writes nothing.
+#   the link is preserved; the backup is written beside that file, not beside
+#   the link. A run that wouldn't change anything doesn't write anything.
 #
 #   A changing write re-emits TOML from parsed values. Semantic values are
 #   preserved, but comments, blank lines, and original key ordering are not.
@@ -94,7 +95,9 @@
 #   RELAX flags:
 #     --allow-workspace-write     sandbox_mode="workspace-write".
 #     --allow-network             sandbox_workspace_write.network_access=true.
-#                                Useful only with workspace-write permissions.
+#                                Useful only with workspace-write permissions;
+#                                the script warns when it's given without
+#                                --allow-workspace-write.
 #                                Commands that need the network then run without
 #                                asking, git push included: with on-request
 #                                approvals Codex asks only when a command needs to
@@ -203,10 +206,14 @@
 #         --no-backup   Skip the timestamped backup of the target.
 #     -h, --help        Show this help and exit.
 #
-#   Path: defaults to ${CODEX_HOME:-$HOME/.codex}/config.toml; override by passing
-#   one path argument.
+#   Path: defaults to ${CODEX_HOME:-$HOME/.codex}/config.toml (an empty
+#   CODEX_HOME counts as unset); override by passing one path argument.
 #
 #   Requires: python3 with tomllib (Python 3.11+). Runs on macOS and Linux.
+#   The first of python3, python3.15, ..., python3.11 that provides tomllib is
+#   used; set PYTHON to a command name or path (e.g., PYTHON=python3.13) to use
+#   that interpreter instead, with no fallback. The script stops if it lacks
+#   tomllib, so unset an inherited PYTHON that names an older Python.
 #
 #   Codex may also read ${CODEX_HOME:-$HOME/.codex}/.env for environment values in
 #   desktop and IDE contexts. This script does not manage .env because current
@@ -227,21 +234,30 @@
 
 set -euo pipefail
 
+# Every Python run below uses -I (isolated mode). Without it, `python -` and
+# `python -c` put the current directory first on sys.path, so a shlex.py or
+# tomllib.py in whatever directory the script is run from would run in its
+# place. -I also ignores PYTHON* variables and the user's site-packages; the
+# script needs only the standard library, so it doesn't lose anything by that.
 if [ "${PYTHON:-}" ]; then
   python_bin="$PYTHON"
   command -v "$python_bin" >/dev/null 2>&1 || {
     printf 'error: PYTHON points to %s, but it was not found\n' "$python_bin" >&2
     exit 1
   }
-  "$python_bin" -c 'import tomllib' >/dev/null 2>&1 || {
-    printf 'error: %s does not provide tomllib; use Python 3.11+\n' "$python_bin" >&2
+  "$python_bin" -I -c 'import tomllib' >/dev/null 2>&1 || {
+    printf "error: %s doesn't provide tomllib; use Python 3.11+\n" "$python_bin" >&2
     exit 1
   }
 else
   python_bin=""
-  for candidate in python3.13 python3.12 python3.11 python3; do
+  # python3 first, since it's usually the newest install; the versioned names
+  # cover a python3 older than 3.11. The tomllib probe, not this list, sets the
+  # minimum version, so a release newer than any named here still works as
+  # python3.
+  for candidate in python3 python3.15 python3.14 python3.13 python3.12 python3.11; do
     if command -v "$candidate" >/dev/null 2>&1 \
-      && "$candidate" -c 'import tomllib' >/dev/null 2>&1; then
+      && "$candidate" -I -c 'import tomllib' >/dev/null 2>&1; then
       python_bin="$candidate"
       break
     fi
@@ -252,9 +268,10 @@ else
   }
 fi
 
-exec "$python_bin" - "$@" <<'PY'
+exec "$python_bin" -I - "$@" <<'PY'
 import copy
 import datetime as _datetime
+import errno
 import json
 import os
 import pathlib
@@ -277,39 +294,56 @@ Merge Codex hardening into config.toml. Previews by default; pass --write to app
 Operational:
   -w, --write       Apply the changes
   -n, --dry-run     Preview only (default; wins over --write)
-      --no-backup   Skip timestamped backup
-  -h, --help        Show this help
+      --no-backup   Skip the timestamped backup of the target
+  -h, --help        Show this help and exit
 
-Relax flags:
-  --allow-workspace-write
-  --allow-network
-  --allow-web-search
-  --allow-live-web-search
-  --allow-login-shell
-  --allow-updates
-  --allow-feedback
-  --allow-analytics
-  --allow-otel-metrics
-  --allow-apps
-  --allow-codex-git-commit
-  --allow-memories
-  --allow-shell-snapshot
-  --allow-file-credentials
-  --allow-computer-use
+Relax flags (each writes an explicit relaxed value):
+  --allow-workspace-write     sandbox_mode="workspace-write"
+  --allow-network             sandbox_workspace_write.network_access=true;
+                              applies only with --allow-workspace-write
+  --allow-web-search          web_search="cached" (OpenAI-maintained cache)
+  --allow-live-web-search     web_search="live"; overrides --allow-web-search
+  --allow-login-shell         allow_login_shell=true
+  --allow-updates             check_for_update_on_startup=true
+  --allow-feedback            feedback.enabled=true
+  --allow-analytics           analytics.enabled=true
+  --allow-otel-metrics        otel.metrics_exporter="statsig"
+  --allow-apps                features.apps=true
+  --allow-codex-git-commit    features.codex_git_commit=true
+  --allow-memories            features.memories=true
+  --allow-shell-snapshot      features.shell_snapshot=true, at the cost of the
+                              environment excludes (openai/codex#22124)
+  --allow-file-credentials    cli_auth_credentials_store="auto" (may fall back
+                              to a plaintext auth.json)
+  --allow-computer-use        enable the bundled Computer Use plugin and leave
+                              notify as it is
 
-Context window and compaction (removed unless one of these is given):
+Context window and compaction (removed unless one of these is given; these
+read and write top-level keys only, and warn about the same keys in
+[profiles.<name>] tables, which are left as they are):
   --match-context-window-to-input-limit
-      Request the model's input limit (context window minus maximum output).
-  --allow-arbitrary-context-window [--context-window-size N]
-  --allow-arbitrary-compaction-limit [--compaction-limit N]
+                              model_context_window = the top-level model's
+                              input limit (context window minus maximum output)
+  --allow-arbitrary-context-window
+                              Keep model_context_window as it is
+  --context-window-size N     model_context_window = N; requires
+                              --allow-arbitrary-context-window
+  --allow-arbitrary-compaction-limit
+                              Keep model_auto_compact_token_limit as it is
+  --compaction-limit N        model_auto_compact_token_limit = N; requires
+                              --allow-arbitrary-compaction-limit
 
-  Codex may use a lower context window than the one requested, with or
-  without these flags: it caps any window at its model metadata's
-  max_context_window. See CONTEXT WINDOW AND COMPACTION in this script's
-  header comment.
+  N is a positive whole number of tokens, given once. Codex may use a lower
+  context window than the one requested, with or without these flags: it caps
+  any window at its model metadata's max_context_window. See CONTEXT WINDOW
+  AND COMPACTION in this script's header comment.
 
 Path:
   Defaults to ${CODEX_HOME:-$HOME/.codex}/config.toml; override with one path.
+
+Environment:
+  PYTHON    Interpreter to run instead of the first of python3, python3.15,
+            ..., python3.11 that provides tomllib; it must be Python 3.11+
 """
 
 SAFE_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_-]*$")
@@ -642,10 +676,35 @@ def die(message):
     raise SystemExit(1)
 
 
+# Escapes TOML gives short forms; other control characters use \uXXXX.
+TOML_SHORT_ESCAPES = {'"': '\\"', "\\": "\\\\", "\b": "\\b", "\t": "\\t",
+                      "\n": "\\n", "\f": "\\f", "\r": "\\r"}
+
+
+def toml_string(text):
+    """Quote text as a TOML basic string.
+
+    json.dumps isn't used because it writes a character outside the Basic
+    Multilingual Plane (e.g., an emoji) as a surrogate pair of \\u escapes,
+    which TOML rejects. TOML requires escaping only the quote, the backslash,
+    and control characters (U+0000-U+001F and U+007F); everything else is
+    written as it is, in UTF-8.
+    """
+    escaped = []
+    for char in text:
+        if char in TOML_SHORT_ESCAPES:
+            escaped.append(TOML_SHORT_ESCAPES[char])
+        elif ord(char) < 0x20 or ord(char) == 0x7F:
+            escaped.append(f"\\u{ord(char):04X}")
+        else:
+            escaped.append(char)
+    return '"' + "".join(escaped) + '"'
+
+
 def quote_key(key):
     if SAFE_KEY.match(key):
         return key
-    return json.dumps(key)
+    return toml_string(key)
 
 
 def toml_value(value):
@@ -656,7 +715,7 @@ def toml_value(value):
     if isinstance(value, float):
         return repr(value)
     if isinstance(value, str):
-        return json.dumps(value)
+        return toml_string(value)
     if isinstance(value, (_datetime.datetime, _datetime.date, _datetime.time)):
         return value.isoformat()
     if isinstance(value, list):
@@ -866,6 +925,16 @@ def parse_args(argv):
     if flags["dry_run"]:
         flags["write"] = False
 
+    # network_access lives under [sandbox_workspace_write] and applies only in
+    # workspace-write mode, which the base posture (read-only) doesn't use.
+    if flags["allow_network"] and not flags["allow_workspace_write"]:
+        print(
+            "warning: --allow-network doesn't change anything without --allow-workspace-write: "
+            "sandbox_workspace_write.network_access applies only when sandbox_mode is "
+            "workspace-write. It's written anyway.",
+            file=sys.stderr,
+        )
+
     # The contradiction is checked first: with it, adding the flag a "requires"
     # error asks for would only lead to this error next.
     if flags["match_context_window_to_input_limit"]:
@@ -883,7 +952,9 @@ def parse_args(argv):
         die("--compaction-limit requires --allow-arbitrary-compaction-limit")
 
     if target is None:
-        codex_home = os.environ.get("CODEX_HOME", os.path.join(os.path.expanduser("~"), ".codex"))
+        # `or` rather than get()'s default, so an empty CODEX_HOME counts as
+        # unset, as ${CODEX_HOME:-...} does, instead of naming ./config.toml.
+        codex_home = os.environ.get("CODEX_HOME") or os.path.join(os.path.expanduser("~"), ".codex")
         target = os.path.join(codex_home, "config.toml")
 
     return flags, pathlib.Path(target).expanduser()
@@ -1108,8 +1179,30 @@ def warn_about_plaintext_credentials(target, settings):
         )
 
 
+def target_exists(target):
+    """Report whether target exists, stopping on a path that can't resolve.
+
+    pathlib's exists() returns False for a symlink loop, which would make the
+    preview offer to create a file that can never be written, so os.stat's
+    error is checked instead. A dangling symlink counts as missing, since the
+    write creates the file it points at.
+    """
+    try:
+        os.stat(target)
+    except FileNotFoundError:
+        return False
+    except OSError as exc:
+        if exc.errno in (errno.ELOOP, errno.ENAMETOOLONG):
+            # The OS can't tell a loop from a chain longer than its limit (32
+            # links on macOS, 40 on Linux), so the message names both.
+            die(f"{target} can't be resolved: too many symbolic links (a loop, or a "
+                f"chain longer than the OS allows) or a path that's too long ({exc.strerror})")
+        die(f"couldn't access {target}: {exc}")
+    return True
+
+
 def load_config(target, write):
-    if target.exists():
+    if target_exists(target):
         try:
             with target.open("rb") as handle:
                 data = tomllib.load(handle)
@@ -1128,11 +1221,38 @@ def load_config(target, write):
     return {}
 
 
-def resolve_symlink_target(path):
-    link_target = os.readlink(path)
-    if os.path.isabs(link_target):
-        return pathlib.Path(link_target)
-    return path.parent.joinpath(link_target).absolute()
+# The most symlinks followed before giving up, matching Linux's limit; macOS
+# allows 32, and stat would already have failed on a longer chain there.
+MAX_SYMLINK_HOPS = 40
+
+
+def resolve_write_target(target):
+    """Follow target's symlinks to the file a write should replace.
+
+    Each link is recorded as the real path of its directory plus its own name,
+    so a loop through ``..`` or a relative link is recognized when it comes
+    back to a link already seen. os.path.normpath alone isn't used: it drops
+    ``dir/..`` without consulting the filesystem, which is wrong when ``dir``
+    is itself a symlink, and would send the write to a different file than
+    the link names. The hop cap stops any chain the check above misses.
+    """
+    # realpath gets the directory as written; abspath would normalize the
+    # ``dir/..`` away first.
+    def canonical_link(path):
+        return os.path.join(os.path.realpath(os.path.dirname(path) or "."),
+                            os.path.basename(path))
+
+    path = canonical_link(target)
+    seen = set()
+    while os.path.islink(path):
+        if path in seen or len(seen) >= MAX_SYMLINK_HOPS:
+            die(f"symlink loop or chain of more than {MAX_SYMLINK_HOPS} links while "
+                f"resolving {target}")
+        seen.add(path)
+        resolved = canonical_link(os.path.join(os.path.dirname(path), os.readlink(path)))
+        print(f"note: {path} is a symlink -> writing through to {resolved} (link preserved)")
+        path = resolved
+    return pathlib.Path(path)
 
 
 def parse_toml_file(path):
@@ -1164,7 +1284,9 @@ def main(argv):
         dotted = ".".join(path)
         if not exists:
             print(f"  + {dotted} = {preview_value(desired)}")
-        elif current_value != desired:
+        # Compared as rendered TOML, not with ==, because Python counts
+        # 0 == False and 1 == True, which would label a type change unchanged.
+        elif preview_value(current_value) != preview_value(desired):
             print(f"  ~ {dotted}: {preview_value(current_value)} -> {preview_value(desired)}")
         else:
             print(f"  = {dotted} (unchanged)")
@@ -1187,42 +1309,40 @@ def main(argv):
         return
 
     write_target = target
-    seen_symlinks = set()
-    while write_target.is_symlink():
-        if write_target in seen_symlinks:
-            die(f"symlink cycle detected while resolving {target}")
-        seen_symlinks.add(write_target)
-        write_target = resolve_symlink_target(target)
-        print(f"note: {target} is a symlink -> writing through to {write_target} (link preserved)")
-        target = write_target
-
-    write_target.parent.mkdir(parents=True, exist_ok=True)
-
-    if flags["backup"] and write_target.exists():
-        stamp = _datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        backup = write_target.with_name(write_target.name + f".bak.{stamp}")
-        shutil.copy2(write_target, backup)
-        print(f"backup: {backup}")
-
     rendered = dump_toml(merged)
-    fd, tmp_name = tempfile.mkstemp(
-        prefix=write_target.name + ".tmp.",
-        dir=str(write_target.parent),
-        text=True,
-    )
-    tmp_path = pathlib.Path(tmp_name)
+    # Any filesystem failure here (e.g., a directory without write permission)
+    # stops with one error line instead of a traceback; the target is replaced
+    # only by the final os.replace, so it's left as it was.
     try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
-            handle.write(rendered)
-        reparsed = parse_toml_file(tmp_path)
-        if canonical(reparsed) != canonical(merged):
-            die("merged result did not round-trip through TOML serialization; target left unchanged")
-        if write_target.exists():
-            shutil.copymode(write_target, tmp_path)
-        os.replace(tmp_path, write_target)
-    finally:
-        if tmp_path.exists():
-            tmp_path.unlink()
+        write_target = resolve_write_target(target)
+        write_target.parent.mkdir(parents=True, exist_ok=True)
+
+        if flags["backup"] and write_target.exists():
+            stamp = _datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            backup = write_target.with_name(write_target.name + f".bak.{stamp}")
+            shutil.copy2(write_target, backup)
+            print(f"backup: {backup}")
+
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=write_target.name + ".tmp.",
+            dir=str(write_target.parent),
+            text=True,
+        )
+        tmp_path = pathlib.Path(tmp_name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write(rendered)
+            reparsed = parse_toml_file(tmp_path)
+            if canonical(reparsed) != canonical(merged):
+                die("merged result didn't round-trip through TOML serialization; target left unchanged")
+            if write_target.exists():
+                shutil.copymode(write_target, tmp_path)
+            os.replace(tmp_path, write_target)
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
+    except OSError as exc:
+        die(f"couldn't write {write_target}: {exc}")
 
     print(f"wrote: {write_target}")
 

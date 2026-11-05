@@ -1066,37 +1066,104 @@ Cover these regression cases when changing the script:
   without a warning; a program whose name only contains the client's (e.g.,
   `SkyComputerUseClient-status-reporter`) is kept,
   with a warning on stderr.
+- Inside a shell's `-c` string the client counts as run only in command
+  position. These `notify` commands are removed: `sh -c
+  "/opt/x/SkyComputerUseClient;true"`, `bash -lc "/opt/x/SkyComputerUseClient"`
+  (also `-ec`, `-xc`), `sh -c "true && /opt/x/SkyComputerUseClient"`, a newline
+  before it, `sh -c "FOO=1 nohup env -i /opt/x/SkyComputerUseClient"`, a nested
+  `sh -c 'sh -c ...'`, and `nohup /opt/x/SkyComputerUseClient` outside a shell.
+  These are kept with a warning: `sh -c "echo /opt/x/SkyComputerUseClient"`,
+  `sh -c "printf %s SkyComputerUseClient >> log"`, `sh -c "test -x
+  /opt/x/SkyComputerUseClient || notify-send done"`, a quoted operator
+  (`echo ";" /opt/x/SkyComputerUseClient`), a subshell
+  (`(/opt/x/SkyComputerUseClient)`), an unbalanced quote, a comment
+  (`notify-send done # ; SkyComputerUseClient`, and `echo a #c` followed by a
+  newline and `/opt/x/SkyComputerUseClient`), a heredoc (`cat <<EOF`, a
+  newline, `/opt/x/SkyComputerUseClient`, a newline, `EOF`; also `<<-EOF`),
+  and a here-string (`cat <<< x; /opt/x/SkyComputerUseClient`). A `#` inside
+  a word or quoted (`a#b ; /opt/x/SkyComputerUseClient`, `echo '#' ;
+  /opt/x/SkyComputerUseClient`) isn't a comment, so those are removed.
+- env's options that take an argument consume it: `env -u FOO`, `-uFOO`,
+  `--unset=FOO`, `--unset FOO`, `-C DIR`, `--chdir=DIR`, `-P DIR`, and `-iuFOO`
+  before `/x/SkyComputerUseClient` are removed; `env -u SkyComputerUseClient
+  /usr/bin/notify-send` is kept with a warning. `env -S "FOO=1
+  /x/SkyComputerUseClient"`, `-SFOO=1 ...`, and `--split-string=...` are split
+  and scanned; an unknown env option (e.g., `--frobnicate`) is kept, with a
+  warning when the client's name follows it and without one otherwise (e.g.,
+  `env --frobnicate notify-send`).
 - With no context flags, existing `model_context_window` and
   `model_auto_compact_token_limit` values are removed (`-` lines in the
   preview), so both come from the model catalog.
 - `--match-context-window-to-input-limit` with `model = "gpt-6.1-sol"` writes
   `model_context_window = 922000`; a second run is a no-op. It fails with an
-  unlisted model (e.g., `claude-opus-5-5`) and with no `model` key.
+  unlisted model (e.g., `claude-opus-5-5`) and with no top-level `model` key,
+  naming the top-level `model` in the error.
+- A `[profiles.fast]` table holding `model_context_window` or
+  `model_auto_compact_token_limit` is left as it is, with a warning on stderr
+  for each key; with `--match-context-window-to-input-limit`, a profile's
+  `model` draws the same warning.
 - `--allow-arbitrary-context-window` keeps the window as it is; adding
   `--context-window-size N` writes N. `--allow-arbitrary-compaction-limit` and
   `--compaction-limit N` do the same for the compaction limit, independently
   of the window flags; each flag keeps only its own key, and `--name=N` works
-  too.
+  too. A non-ASCII decimal N (e.g., `٣`) is accepted and written as `3`.
 - `--context-window-size` without `--allow-arbitrary-context-window`,
   `--compaction-limit` without `--allow-arbitrary-compaction-limit`,
   `--match-context-window-to-input-limit` with
   `--allow-arbitrary-context-window`, and a missing, zero, or non-numeric N
-  each fail with an error.
+  each fail with an error. So does N = `2²` (which `str.isdigit()` accepts but
+  `int()` rejects), with the usage error rather than a traceback, and either
+  value flag given twice.
+- `--match-context-window-to-input-limit` with `--context-window-size N` (and
+  no `--allow-arbitrary-context-window`) fails with the contradiction error
+  naming both flags, not the "requires" error.
+- A compaction limit given with `--compaction-limit` at or above the window
+  warns on stderr, whether a flag sets the window (e.g.,
+  `--context-window-size 1000 --compaction-limit 1000`, or the match flag's
+  922000 with `--compaction-limit 922000`) or
+  `--allow-arbitrary-context-window` keeps an existing
+  `model_context_window = 1000`; a limit below the window doesn't, and
+  neither does a kept window that isn't an integer.
 - `--allow-workspace-write`, `--allow-network`, `--allow-web-search`,
   `--allow-live-web-search`, `--allow-login-shell`, `--allow-updates`,
   `--allow-feedback`, `--allow-analytics`, `--allow-otel-metrics`,
   `--allow-apps`, `--allow-codex-git-commit`, and `--allow-memories` write
-  explicit relaxed values.
+  explicit relaxed values. `--allow-network` without `--allow-workspace-write`
+  warns that it doesn't change anything; with it, no warning.
+- `--help` prints a description for every flag and exits 0.
+- With `python3` providing tomllib, the launcher runs `python3`; with a
+  `python3` that lacks it, it falls back to a versioned name (e.g.,
+  `python3.15`). `PYTHON` names the interpreter instead; one without tomllib
+  (e.g., Python 2.7) stops with an error. Run from a directory holding a
+  `shlex.py` or `tomllib.py`, the script doesn't import them (Python runs
+  with `-I`).
+- A value or quoted key holding an emoji (e.g., `x = "🎉"`,
+  `[mcp_servers."srv 🚀"]`), plus `\t`, `\u007F`, `\"`, and `\\` escapes,
+  survives `--write`, and a second `--write` reports that no changes are needed.
+- A current `allow_login_shell = 0` or `features.apps = 0` shows as `~ ... 0
+  -> false` in the preview, not `(unchanged)`.
 - A managed path that collides with a non-table value, e.g.,
   `analytics = true`, is rejected with a clear error.
 - Invalid TOML is rejected with a clear error.
 - Directory and unreadable-file targets are rejected with a clear error rather
   than a traceback.
-- A symlinked config path updates the target file and preserves the symlink.
+- A symlinked config path updates the target file and preserves the symlink;
+  the backup is written beside the target file.
 - A dangling symlinked config path creates the missing target file and
   preserves the symlink.
+- A link whose target goes through a symlinked directory and `..` (e.g.,
+  `link -> d/../x.toml` with `d -> o/sub`) writes `o/x.toml`, the file the
+  kernel resolves, not an `x.toml` beside the link.
+- A symlink loop (`ln -s loop loop`, a two-link cycle, or `ln -s dd/../dl dl`)
+  and a chain longer than the OS allows (more than 32 links on macOS, 40 on
+  Linux) stop with an error in preview and with `--write`; the preview
+  doesn't offer to create the file, and the error doesn't call a long chain
+  a loop. A chain at the limit resolves.
+- A target in a `chmod 555` directory fails with one `error:` line, with and
+  without `--no-backup`, rather than a traceback.
 - A second write against an already-hardened file is a semantic no-op and does
   not create a backup.
-- The default target respects `CODEX_HOME`.
+- The default target respects `CODEX_HOME`; an empty `CODEX_HOME` counts as
+  unset, so the target is `~/.codex/config.toml` rather than `./config.toml`.
 - TOML date, time, datetime, and empty-list values remain valid after a write.
 - Comments and formatting are not preserved on a write that changes values.
