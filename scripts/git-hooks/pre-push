@@ -18,9 +18,20 @@ else
   exec "$redacted" "$0" "$@"
 fi
 root="$(git rev-parse --show-toplevel)"
-# The PII and secret scans read Git's pre-push lines from stdin to find the
-# commits being pushed, so they run first; install-and-verify.sh doesn't read
-# stdin. $1 is the remote's name (or URL), which bounds what counts as already
-# published.
-"$root/scripts/pii-and-secret-gate.sh" pre-push "$1"
+# Git writes the pre-push lines (<local ref> <local sha> <remote ref>
+# <remote sha>) to stdin once, and two scans need them to find the commits
+# being pushed, so they're read here and given to each. $1 is the remote's name
+# (or URL), which bounds what counts as already published.
+push_lines="$(cat)"
+# The PII and secret scans run first, before anything else reads the commits.
+"$root/scripts/pii-and-secret-gate.sh" pre-push "$1" <<<"$push_lines"
+# install-and-verify.sh checks only the working tree for invisible and
+# bidirectional Unicode, and a pushed commit stays retrievable by its own hash
+# even when a later commit removes what it added, so every pushed commit is
+# checked, the same commits the gate scans.
+echo "Invisible-Unicode scan: the pushed commits..."
+if ! uv run --no-cache --quiet "$root/scripts/unicode-scan.py" --pre-push "$1" <<<"$push_lines"; then
+  echo "FATAL: the invisible-Unicode scan of the pushed commits reported the findings above or couldn't finish; see \"Invisible and Bidirectional Unicode\" in TESTING.md." >&2
+  exit 1
+fi
 exec "$root/scripts/install-and-verify.sh"

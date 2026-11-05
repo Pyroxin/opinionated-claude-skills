@@ -22,15 +22,19 @@ existing skills come into line. A skill that couldn't be uploaded outside
 Claude Code (`scripts/portable-skill.sh` lists the rules; it needs dasel v3) is also reported as a
 warning, and `build-skills.sh` leaves it out of the ZIPs. A `SKILL.md` that
 can't be read (e.g., mode 000) stops both the validation and the build with an
-error, rather than being reported as lacking frontmatter and left out.
+error, rather than being reported as lacking frontmatter and left out. Every
+tracked file is also checked for invisible and bidirectional Unicode (see
+[Invisible and Bidirectional Unicode](#invisible-and-bidirectional-unicode)).
 
 Each content check first runs against a fixture in
 `scripts/validator-fixtures/` holding a known instance of every pattern it
 applies, and fails the run if it reports a different number of findings. When
 you change a check, update its fixture and the expected count passed to
-`self_test` in the same change. The portability check is the exception: each
+`self_test` in the same change. Two checks are exceptions: each
 `portable-skill*.md` fixture has a `.expected` file with its exact findings, so
-update those files instead.
+update those files instead, and the invisible-Unicode check compares its count
+with `unicode_expected` (see
+[Invisible and Bidirectional Unicode](#invisible-and-bidirectional-unicode)).
 
 Run the full validation path when you need to exercise the Claude Code plugin
 installation flow in an isolated config directory:
@@ -50,6 +54,78 @@ ZIP builds are deprecated and expected to be removed:
 ```bash
 ./scripts/build-skills.sh
 ```
+
+### Invisible and Bidirectional Unicode
+
+Text in a plugin becomes instructions to a model, and some code points change
+what a model reads without changing what a reviewer sees (e.g., Unicode tag
+characters hiding a copy of ASCII text, or bidirectional controls reordering
+displayed text as in Trojan Source, CVE-2021-42574). `scripts/unicode-scan.py`
+fails on them in every tracked file except the check's own fixture, scripts
+included: format characters (general category Cf, which includes the
+bidirectional controls, the zero-width characters, the zero width joiner, the
+soft hyphen, and U+FEFF even at the start of a file), the whole tag block
+U+E0000–U+E007F, the variation selector supplement U+E0100–U+E01EF, and a
+variation selector U+FE00–U+FE0F that starts a line or follows another one. A
+single selector after an emoji (e.g., U+26A0 U+FE0F, the warning sign as an
+emoji) is allowed. The script's docstring gives the reason for each rule,
+including what it would take to allow the zero width joiner in emoji
+sequences. `uv` runs it with a Python it supplies, as it does the PII scanner;
+the categories and names come from that Python's `unicodedata`, so a newer
+Python also knows format characters added in later Unicode versions.
+
+Each place the check runs reads the version of the files that matters there:
+
+| Where | Mode | What it reads |
+| --- | --- | --- |
+| `install-and-verify.sh` (Step 9), standalone and in CI | no arguments | Every tracked file in the working tree |
+| `pre-commit` and `pre-merge-commit` hooks | `--staged` | Every file in the index, i.e., what the commit records, even when the working tree differs |
+| `pre-push` hook | `--pre-push REMOTE` | The files each pushed commit adds or changes, as that commit records them |
+
+The `pre-push` hook reads Git's pre-push lines once and passes them to both
+`pii-and-secret-gate.sh` and the Unicode scan, which works out the same
+commits the gate does (a known remote tip anchors `remote..local`; otherwise
+the pushed history without what the remote's own tracking refs already hold).
+Every pushed commit is checked, not only the tip, because a commit stays
+retrievable by its hash after a later one removes what it added. The two
+copies of that range logic have to change together; `pushed_commits` in the
+script names the gate's as authoritative. `--rev REV` (every file at a
+revision) and `--commits` (commit IDs on stdin) are there for checking history
+by hand.
+
+It reports each finding as `path:line:column: U+XXXX NAME`, with the column
+counted in code points, and doesn't print the line, so the log can't pass the
+hidden characters on to whoever reads it, including an LLM agent. A finding in
+a commit names the file as `COMMIT:path`, with the commit's first 12 hex
+digits. The script exits 1 when it reports findings and 2 when it can't finish
+(e.g., an unreadable file or a missing blob), so content it can't read stops
+the run rather than passing as clean. To look at a flagged line, escape
+everything outside printable ASCII (here, line 12 of a file):
+
+```bash
+sed -n 12p path/to/file.md | uv run --no-cache --quiet --no-project python -c 'import sys; print("".join(c if " " <= c <= "~" else "<U+%04X>" % ord(c) for c in sys.stdin.buffer.read().decode("utf-8", "replace").rstrip("\n")))'
+```
+
+In the hooks, the scan's output passes through the denylist filter described
+under [PII and Secret Scans](#pii-and-secret-scans), so a path or ref name
+holding a private denylist term prints `[denylist line N]` in its place; run
+by hand, the script prints it as is. To check, use a scratch denylist holding
+`{term}` and an `!` exception covering `{term} harmless`, so the PII scan
+passes the file, and stage `notes/{term} harmless.md` holding a U+200B: the
+`pre-commit` hook fails with
+`notes/[denylist line N] harmless.md:1:7: U+200B ZERO WIDTH SPACE`, and a
+case-insensitive grep of its output doesn't find `{term}`. The same holds for the
+commit through the `pre-push` hook (run directly, with a pre-push line on
+stdin), where the finding names `{commit}:notes/[denylist line N] harmless.md`.
+
+Its fixture, `scripts/validator-fixtures/invisible-unicode.md`, holds one
+instance of each rule on its own line, which names that code point in ASCII,
+and look-alikes the check must skip; the control in `install-and-verify.sh`
+names the fixture as a path, the one way to scan it, and expects 14 findings
+(`unicode_expected`). Most editors don't show these characters, and some strip
+them on save, so change the fixture with a script that writes each one as an
+escape (e.g., `uv run --no-cache --quiet --no-project python -c 'print("[\u200B]")'`)
+and confirm the result with the command above.
 
 ## PII and Secret Scans
 

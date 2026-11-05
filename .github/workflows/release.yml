@@ -64,6 +64,15 @@ jobs:
           rm dasel
           dasel version
 
+      # uv runs scripts/unicode-scan.py, the invisible-Unicode check in
+      # install-and-verify.sh, and the Ubuntu runner image doesn't include it.
+      # Astral's installer fetches the latest release (unpinned, like
+      # ShellCheck) and, on a GitHub runner, adds its directory to GITHUB_PATH
+      # for the later steps. The image's Python 3.12 satisfies the script.
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+
       - name: Install and verify plugins
         run: ./scripts/install-and-verify.sh
 

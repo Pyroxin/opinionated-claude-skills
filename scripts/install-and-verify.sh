@@ -22,8 +22,11 @@ set -euo pipefail
 #      themes, output styles) exist on disk in the working tree
 #   6. Runs shellcheck on all shell scripts
 #   7-8. Checks placeholder notation and skill content conventions
-#   9. Checks that Anthropic documentation links resolve to real pages
-#   10. Removes the isolated config dir (an EXIT trap, so it runs on failure too)
+#   9. Checks every tracked file in the working tree for invisible and
+#      bidirectional Unicode (the hooks also check what a commit or push
+#      records; see Step 9)
+#   10. Checks that Anthropic documentation links resolve to real pages
+#   11. Removes the isolated config dir (an EXIT trap, so it runs on failure too)
 #
 #   Full mode is used by pre-push and CI. Pre-push is the last gate before
 #   changes become public; the cost of full validation (including plugin
@@ -36,8 +39,9 @@ set -euo pipefail
 #   Checks JSON validity, verifies declared components exist on disk, runs the
 #   shell linter, and checks skill content conventions (placeholder notation,
 #   footnotes, reasoning-in-output instructions; heading tags, bracket
-#   placeholders, and skills that could not be uploaded outside Claude Code as
-#   warnings), each behind a positive control. No Claude CLI
+#   placeholders, and skills that couldn't be uploaded outside Claude Code as
+#   warnings), and checks every tracked file for invisible and bidirectional
+#   Unicode, each behind a positive control. No Claude CLI
 #   calls, no installation, no state mutation.
 #   Used by pre-commit for fast local feedback.
 
@@ -79,6 +83,16 @@ fi
 
 if ! command -v dasel >/dev/null 2>&1; then
   echo "FATAL: dasel v3 is required but not found on \$PATH." >&2
+  exit 1
+fi
+
+# uv runs scripts/unicode-scan.py, the invisible-Unicode check (Step 9), with a
+# Python it supplies, as it does the PII scanner the hooks run. Every call
+# passes --no-cache: the script has no dependencies to cache, and uv's cache
+# lock needs write access to ~/.cache/uv, which a sandboxed shell (e.g., Claude
+# Code's) refuses, so the validation would fail there. It costs about 40 ms.
+if ! command -v uv >/dev/null 2>&1; then
+  echo "FATAL: uv is required but not found on \$PATH." >&2
   exit 1
 fi
 
@@ -549,7 +563,7 @@ self_test reasoning "$reasoning_check" 13
 self_test heading-tags "$heading_check" 1
 self_test brackets "$bracket_check" 2
 
-# The list stays until Step 9, which extracts documentation links from it.
+# The list stays until Step 10, which extracts documentation links from it.
 content_list=$(mktemp "${tmp_root}/claude-marketplace-content.XXXXXXXXXX")
 if ! find "$PROJECT_DIR" \( -path '*/skills/*/*.md' -o -path '*/agents/*.md' -o -path '*/output-styles/*.md' \) -not -path '*/.git/*' -type f -print0 > "$content_list"; then
   error "Failed to enumerate skill, agent, and output-style markdown under ${PROJECT_DIR}"
@@ -638,7 +652,55 @@ if [[ "$skills_checked" -eq 0 ]]; then
 fi
 info "  ${skills_checked} skills checked for portability outside Claude Code; warnings: ${portable_warnings}"
 
-# --- Step 9: Documentation links (full mode only) ---
+# --- Step 9: Invisible and bidirectional Unicode ---
+#
+# Some code points change what a model reads without changing what a reviewer
+# sees (e.g., tag characters hiding a copy of ASCII text, or bidirectional
+# controls reordering displayed text as in Trojan Source, CVE-2021-42574).
+# scripts/unicode-scan.py reports them; its docstring gives the rules and the
+# reason for each. Here it reads every tracked file in the working tree, as the
+# other steps do. The working tree isn't what a commit or push records, though:
+# a file can be staged with a hidden character and then edited on disk, or a
+# pushed commit can hold one that a later commit removed. So the pre-commit
+# hook also runs it on the index (--staged), and the pre-push hook on every
+# pushed commit (--pre-push), reading the same pre-push lines the PII and
+# secret gate reads.
+#
+# The script exits 0 when it doesn't find anything, 1 when it prints findings,
+# and 2 when it can't finish (e.g., a tracked file it can't read), so an
+# unreadable file stops the run rather than passing as clean. Findings print
+# as path:line:column: U+XXXX NAME and never echo the line, so the log can't
+# pass the hidden characters on to whoever reads it, including an LLM agent.
+
+echo ""
+echo "Checking for invisible and bidirectional Unicode..."
+
+# The control names the fixture explicitly; every other mode skips it.
+unicode_fixture="scripts/validator-fixtures/invisible-unicode.md"
+unicode_expected=14
+control_status=0
+control=$(cd "$PROJECT_DIR" && uv run --no-cache --quiet "${SCRIPT_DIR}/unicode-scan.py" "$unicode_fixture") \
+  || control_status=$?
+found=$(printf '%s' "$control" | grep -c . || true)
+if [[ "$control_status" -ne 1 || "$found" -ne "$unicode_expected" ]]; then
+  error "check 'invisible-unicode' reported ${found} findings on its fixture (exit ${control_status}), which holds ${unicode_expected}; its results can't be trusted"
+else
+  info "  invisible-unicode control: ${found} of ${unicode_expected} known cases reported"
+fi
+
+unicode_status=0
+findings=$(cd "$PROJECT_DIR" && uv run --no-cache --quiet "${SCRIPT_DIR}/unicode-scan.py") || unicode_status=$?
+case "$unicode_status" in
+  0) info "  tracked files in the working tree checked" ;;
+  1)
+    while IFS= read -r finding; do
+      error "invisible or bidirectional Unicode at ${finding}"
+    done <<< "$findings"
+    ;;
+  *) error "invisible-Unicode check failed to run (exit ${unicode_status})" ;;
+esac
+
+# --- Step 10: Documentation links (full mode only) ---
 #
 # Anthropic's documentation sites answer HTTP 200 for pages that do not exist,
 # so a status code cannot show that a page exists. The check reads each page's
@@ -700,7 +762,7 @@ if [[ "$VALIDATE_ONLY" != "true" ]]; then
 fi
 rm -f "$content_list"
 
-# --- Step 10: Teardown (full mode only) ---
+# --- Step 11: Teardown (full mode only) ---
 # The entire installation lives under the isolated CLAUDE_CONFIG_DIR, so
 # teardown is a single recursive remove of that directory. It is performed by
 # the cleanup trap registered in Step 1 rather than here, so it runs on every
@@ -713,7 +775,7 @@ rm -f "$content_list"
 echo ""
 if [[ "$errors" -eq 0 ]]; then
   if [[ "$VALIDATE_ONLY" == "true" ]]; then
-    echo "Structural validation passed (${plugin_count} plugins; shellcheck, placeholder notation, and skill content checks clean)."
+    echo "Structural validation passed (${plugin_count} plugins; shellcheck, placeholder notation, skill content, and invisible-Unicode checks clean)."
   else
     echo "Full verification passed (${plugin_count} plugins installed and validated)."
   fi

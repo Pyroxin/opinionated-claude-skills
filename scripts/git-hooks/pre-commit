@@ -20,4 +20,13 @@ fi
 root="$(git rev-parse --show-toplevel)"
 # Secrets and personal data are checked first, before anything enters a commit.
 "$root/scripts/pii-and-secret-gate.sh" pre-commit
+# install-and-verify.sh checks the working tree for invisible and bidirectional
+# Unicode; this checks the index, i.e., what the commit records. The two can
+# differ, e.g., when a file is staged with a hidden character and then fixed
+# only on disk.
+echo "Invisible-Unicode scan: the staged files..."
+if ! uv run --no-cache --quiet "$root/scripts/unicode-scan.py" --staged; then
+  echo "FATAL: the invisible-Unicode scan of the staged files reported the findings above or couldn't finish; see \"Invisible and Bidirectional Unicode\" in TESTING.md." >&2
+  exit 1
+fi
 exec "$root/scripts/install-and-verify.sh" --validate-only
