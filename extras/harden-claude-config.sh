@@ -7,10 +7,11 @@
 #   overwrites: existing settings and unrelated env vars are preserved; only the
 #   keys this tool manages are touched.
 #
-#   Previews by default — writes nothing unless you pass --write (-w).
+#   Previews by default; doesn't write anything unless you pass --write (-w).
 #
 #   Symlink-safe: if the target is a symlink, the file it points at is updated and
-#   the link is preserved. A run that would change nothing writes nothing.
+#   the link is preserved. A run that wouldn't change anything doesn't write
+#   anything.
 #
 #   The model is compositional. The base is the full hardening set; each flag
 #   either ADDS a key or RELAXES a channel. Relaxations pin an explicit "off"
@@ -19,12 +20,18 @@
 #   session URL attribution. They are separate because the former is useful
 #   project provenance, while the latter identifies a shareable session.
 #
-#   BASE (no flags) — maximum lockdown:
+#   BASE (no flags; maximum lockdown):
 #     env:
 #       CLAUDE_CODE_ENABLE_TELEMETRY=0, DISABLE_TELEMETRY=1, DISABLE_ERROR_REPORTING=1,
 #       DISABLE_FEEDBACK_COMMAND=1, CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY=1,
-#       DISABLE_AUTOUPDATER=1, DO_NOT_TRACK=1, CLAUDE_CODE_ENABLE_AUTO_MODE=0, and the
-#       OTel SDK/exporters off with the content + identifier gates pinned disabled.
+#       DISABLE_AUTOUPDATER=1, DO_NOT_TRACK=1, and the OTel SDK/exporters off with
+#       the content + identifier gates pinned disabled.
+#       CLAUDE_CODE_ENABLE_AUTO_MODE, which earlier versions of this script wrote, is
+#       removed on every run: the env-vars doc says it's "Accepted for compatibility
+#       with older releases and has no effect" (it gated auto mode on third-party
+#       providers only in v2.1.158 through v2.1.206). The base doesn't forbid the
+#       "auto" permission mode; permissions.disableAutoMode="disable" in a settings
+#       file does (https://code.claude.com/docs/en/permissions).
 #       CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1 strips credentials (recognized by variable
 #       name or value shape) from the environment of every subprocess Claude Code
 #       starts — Bash commands, hooks, and stdio MCP servers — sandboxed or not.
@@ -61,7 +68,7 @@
 #       autoAllowBashIfSandboxed=false        sandboxed commands still use the regular
 #                                             permission flow in every permission mode
 #       failIfUnavailable=true                fail closed: refuse to start Claude Code when
-#                                             the sandbox can't initialize (e.g. missing
+#                                             the sandbox can't initialize (e.g., missing
 #                                             bubblewrap/socat on Linux), instead of the
 #                                             default warn-and-run-unsandboxed
 #       credentials.files                     read-deny ~/.ssh, ~/.aws, ~/.gnupg, ~/.netrc,
@@ -209,7 +216,9 @@
 #                                  --allow-feature-flags. Write the path unquoted, even with
 #                                  spaces: in Claude Code 2.1.310, quotes in the value became
 #                                  part of the file name, and a prefix that named a missing
-#                                  file made every Bash call fail.
+#                                  file made every Bash call fail. A run without this flag
+#                                  removes CLAUDE_CODE_SHELL_PREFIX, so a prefix stays only
+#                                  while a run passes its path and the path passes the check.
 #     --allow-subprocess-credentials
 #                                  env CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0. For setups where a
 #                                  subprocess genuinely needs a credential from Claude Code's
@@ -250,15 +259,20 @@
 #                                  ECS and Pod Identity endpoints it un-denies go unused.
 #     --allow-webfetch-preflight   settings skipWebFetchPreflight=false. Restores the WebFetch
 #                                  domain safety check (the hostname preflight to Anthropic).
-#     --allow-model-attribution    Allow commit/PR model/tool attribution while keeping
-#                                  attribution.sessionUrl=false.
-#     --allow-session-attribution  Allow session URL attribution. Combine with
-#                                  --allow-model-attribution to use Claude Code's full default.
-#     --allow-auto-mode            env CLAUDE_CODE_ENABLE_AUTO_MODE=1: let the user cycle into
-#                                  the "auto" permission mode. The variable gates availability
-#                                  on Bedrock/Vertex/Foundry/gateway providers; on the Anthropic
-#                                  API auto mode is available regardless of it, and only managed
-#                                  settings (permissions.disableAutoMode) can forbid it there.
+#     --allow-model-attribution    settings attribution={"sessionUrl":false}, so commit and PR
+#                                  attribution use Claude Code's defaults while session URL
+#                                  attribution stays off. Every run, with or without the
+#                                  attribution flags, writes the attribution object whole,
+#                                  so a custom attribution.commit or attribution.pr template
+#                                  you set doesn't survive a run.
+#     --allow-session-attribution  settings attribution={"commit":"","pr":""}: session URL
+#                                  attribution uses Claude Code's default while commit and PR
+#                                  attribution stay empty. Combine with
+#                                  --allow-model-attribution to remove attribution entirely,
+#                                  which gives Claude Code's full default.
+#     --allow-auto-mode            Accepted so earlier invocations still run, but it doesn't
+#                                  write anything and prints a note: the variable it used to set,
+#                                  CLAUDE_CODE_ENABLE_AUTO_MODE, doesn't change anything (see BASE).
 #     --allow-sandbox-auto-allow   sandbox autoAllowBashIfSandboxed=true: sandboxed Bash runs
 #                                  without permission prompts in every permission mode (the
 #                                  sandbox's own auto-allow, independent of the "auto"
@@ -270,7 +284,9 @@
 #                                  sandbox dependencies can't be installed.
 #     --disable-sandbox            Pin sandbox.enabled=false. Other sandbox keys are left in
 #                                  place (inert while disabled). Overrides the other sandbox
-#                                  flags.
+#                                  flags, including --allow-cloud-credential-files and
+#                                  --allow-metadata-endpoints: in the sandbox block, a run
+#                                  with it changes only enabled.
 #
 #     The "0" off-value relies on Claude Code's value parser, which reads 0/false/no/off as
 #     off for on/off variables. CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC, DISABLE_TELEMETRY,
@@ -278,12 +294,22 @@
 #     set, so "0" still turns them on; relaxing one of them means deleting the key, which
 #     is why --allow-feature-flags removes DISABLE_TELEMETRY.
 #
-#   ADD flags:
+#   ADD flags (each key one of these writes is managed: a run without the flag
+#   removes it, and the preview shows the removal as a "-" line; so pass the
+#   flag on every run that should keep it):
 #     --allow-only-plugin-updates     env DISABLE_AUTOUPDATER=1 + FORCE_AUTOUPDATE_PLUGINS=1
 #                                     ("binary manual, plugins fresh"; overrides --allow-updates).
 #     --disable-nonessential-traffic  env + CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 (future-proof layer;
 #                                     re-pins env-governed optional traffic channels after relaxation).
-#     --enable-1h-cache               env + ENABLE_PROMPT_CACHING_1H=1 (Bedrock/API-key; no-op on subscription).
+#                                     The variable is presence-only, so a run without the flag
+#                                     deletes it; any value left in place, even 0 or false, would
+#                                     still turn off what --allow-updates and --allow-feedback allow.
+#     --enable-1h-cache               env + ENABLE_PROMPT_CACHING_1H=1: request the 1-hour prompt cache
+#                                     TTL. Meant for API-key and cloud-provider (e.g., Bedrock) use;
+#                                     a subscription within its included usage already gets the
+#                                     1-hour TTL on the main conversation, and one drawing on usage
+#                                     credits can set this to keep it (ENABLE_PROMPT_CACHING_1H in
+#                                     https://code.claude.com/docs/en/env-vars).
 #
 #   Operational:
 #     -w, --write       Apply the changes. Without it the script only previews.
@@ -362,7 +388,6 @@ CORE_ENV='{
   "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
   "DISABLE_AUTOUPDATER": "1",
   "DO_NOT_TRACK": "1",
-  "CLAUDE_CODE_ENABLE_AUTO_MODE": "0",
   "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
   "CLAUDE_CODE_PLUGIN_PREFER_HTTPS": "1",
   "OTEL_SDK_DISABLED": "true",
@@ -598,7 +623,8 @@ command -v jq >/dev/null 2>&1 || _die "jq is required but not found (macOS: brew
 # ENV_SET / TOP_SET = keys to write. TOP_UNSET = top-level keys to delete (the
 # attribution relaxation, whose "relaxed" state is "use the product default").
 # ENV_UNSET = env keys to delete, for presence-only variables such as
-# DISABLE_TELEMETRY, where any value (even "0") keeps the behavior on.
+# DISABLE_TELEMETRY, where any value (even "0") keeps the behavior on, and for
+# the keys ADD flags write when their flag is absent.
 # Everything else is additive; later values win, so re-runs are idempotent.
 ENV_SET="$CORE_ENV"
 TOP_SET="$CORE_TOP"
@@ -630,10 +656,30 @@ _top_del() {
 
 [ "$allow_updates" -eq 1 ]            && _env '{"DISABLE_AUTOUPDATER": "0"}'
 [ "$allow_feedback" -eq 1 ]           && _env '{"DISABLE_FEEDBACK_COMMAND": "0", "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "0"}'
-[ "$allow_only_plugin" -eq 1 ]        && _env '{"DISABLE_AUTOUPDATER": "1", "FORCE_AUTOUPDATE_PLUGINS": "1"}'
-[ "$enable_1h" -eq 1 ]                && _env '{"ENABLE_PROMPT_CACHING_1H": "1"}'
+# Each key an ADD flag writes is removed on a run without that flag, so the file
+# reflects this run's flags rather than every earlier run's; otherwise a key
+# left from an earlier run would keep acting with nothing on the command line
+# to show it.
+if [ "$allow_only_plugin" -eq 1 ]; then
+  _env '{"DISABLE_AUTOUPDATER": "1", "FORCE_AUTOUPDATE_PLUGINS": "1"}'
+else
+  _env_del 'FORCE_AUTOUPDATE_PLUGINS'
+fi
+if [ "$enable_1h" -eq 1 ]; then
+  _env '{"ENABLE_PROMPT_CACHING_1H": "1"}'
+else
+  _env_del 'ENABLE_PROMPT_CACHING_1H'
+fi
 [ "$allow_webfetch_preflight" -eq 1 ] && _top '{"skipWebFetchPreflight": false}'
-[ "$allow_auto_mode" -eq 1 ]          && _env '{"CLAUDE_CODE_ENABLE_AUTO_MODE": "1"}'
+# Current Claude Code ignores CLAUDE_CODE_ENABLE_AUTO_MODE (see the
+# header), so a value an earlier run wrote is removed rather than left to suggest
+# it does something. The flag is still accepted so scripted invocations keep
+# working, with a note that it no longer changes anything.
+_env_del 'CLAUDE_CODE_ENABLE_AUTO_MODE'
+if [ "$allow_auto_mode" -eq 1 ]; then
+  echo "note: --allow-auto-mode doesn't change anything: CLAUDE_CODE_ENABLE_AUTO_MODE is ignored by current" \
+    "Claude Code, and auto mode is available unless permissions.disableAutoMode forbids it." >&2
+fi
 [ "$allow_subprocess_credentials" -eq 1 ] && _env '{"CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "0"}'
 [ "$allow_plugin_ssh_clones" -eq 1 ]      && _env '{"CLAUDE_CODE_PLUGIN_PREFER_HTTPS": "0"}'
 if [ "$allow_feature_flags" -eq 1 ]; then
@@ -651,7 +697,14 @@ if [ "$allow_feature_flags" -eq 1 ]; then
     fi
   done
 fi
-[ -n "$dnt_prefix" ] && _env "$(jq -n --arg p "$dnt_prefix" '{"CLAUDE_CODE_SHELL_PREFIX": $p}')"
+# Removed without --dnt-prefix, so a prefix this script never checked (e.g.,
+# one from an earlier run whose file has since moved) can't stay in place; with
+# the flag, the path was checked above.
+if [ -n "$dnt_prefix" ]; then
+  _env "$(jq -n --arg p "$dnt_prefix" '{"CLAUDE_CODE_SHELL_PREFIX": $p}')"
+else
+  _env_del 'CLAUDE_CODE_SHELL_PREFIX'
+fi
 [ "$allow_sandbox_auto_allow" -eq 1 ] && _sandbox '{"autoAllowBashIfSandboxed": true}'
 [ "$allow_unsandboxed_start" -eq 1 ]  && _sandbox '{"failIfUnavailable": false}'
 if [ "$allow_cloud_credential_files" -eq 1 ]; then
@@ -688,21 +741,35 @@ fi
 # Nonessential traffic is an additive umbrella switch in Claude Code, but this
 # script also writes the concrete switches so the JSON remains explicit
 # and internally consistent after any earlier relaxation flag.
-[ "$disable_nonessential" -eq 1 ]     && _env '{
-  "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-  "DISABLE_TELEMETRY": "1",
-  "DISABLE_ERROR_REPORTING": "1",
-  "DISABLE_FEEDBACK_COMMAND": "1",
-  "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
-  "DISABLE_AUTOUPDATER": "1",
-  "DO_NOT_TRACK": "1"
-}'
+# Without the flag the umbrella key is deleted: it's presence-only (even "0" or
+# "false" keeps the traffic off), so a value left from an earlier run would
+# silently cancel --allow-updates and --allow-feedback.
+if [ "$disable_nonessential" -eq 1 ]; then
+  _env '{
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "DISABLE_TELEMETRY": "1",
+    "DISABLE_ERROR_REPORTING": "1",
+    "DISABLE_FEEDBACK_COMMAND": "1",
+    "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
+    "DISABLE_AUTOUPDATER": "1",
+    "DO_NOT_TRACK": "1"
+  }'
+else
+  _env_del 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC'
+fi
 
 # --- Load and validate the target --------------------------------------------
 if [ -e "$target" ]; then
   [ ! -d "$target" ] || _die "$target is a directory, not a JSON file; refusing to touch it"
   [ -r "$target" ] || _die "$target is not readable; refusing to touch it"
   jq empty "$target" >/dev/null 2>&1 || _die "$target exists but is not valid JSON; refusing to touch it"
+  # jq reads a stream, so "jq empty" also accepts an empty file and a file of
+  # several documents; count them so neither reaches the merge, which assumes one.
+  doc_count="$(jq -s length "$target")" || _die "could not count the JSON documents in $target"
+  [ "$doc_count" -ne 0 ] \
+    || _die "$target is empty or holds only whitespace; expected one JSON object; refusing to touch it"
+  [ "$doc_count" -eq 1 ] \
+    || _die "$target holds $doc_count JSON documents; expected one JSON object; refusing to touch it"
   current="$(cat "$target")"
 else
   if [ "$do_write" -eq 1 ]; then
@@ -715,40 +782,40 @@ fi
 
 current_type="$(printf '%s' "$current" | jq -r 'type')"
 [ "$current_type" = "object" ] \
-  || _die "existing top-level JSON is a $current_type, not an object; refusing to merge"
+  || _die "existing top-level JSON is not an object (its type is $current_type); refusing to merge"
 
 env_type="$(printf '%s' "$current" | jq -r '.env | type')"
 [ "$env_type" = "object" ] || [ "$env_type" = "null" ] \
-  || _die "existing .env is a $env_type, not an object; refusing to merge"
+  || _die "existing .env is not an object (its type is $env_type); refusing to merge"
 
 sandbox_type="$(printf '%s' "$current" | jq -r '.sandbox | type')"
 [ "$sandbox_type" = "object" ] || [ "$sandbox_type" = "null" ] \
-  || _die "existing .sandbox is a $sandbox_type, not an object; refusing to merge"
+  || _die "existing .sandbox is not an object (its type is $sandbox_type); refusing to merge"
 
 network_type="$(printf '%s' "$current" | jq -r '.sandbox.network | type')"
 [ "$network_type" = "object" ] || [ "$network_type" = "null" ] \
-  || _die "existing .sandbox.network is a $network_type, not an object; refusing to merge"
+  || _die "existing .sandbox.network is not an object (its type is $network_type); refusing to merge"
 
 denied_type="$(printf '%s' "$current" | jq -r '.sandbox.network.deniedDomains | type')"
 [ "$denied_type" = "array" ] || [ "$denied_type" = "null" ] \
-  || _die "existing .sandbox.network.deniedDomains is a $denied_type, not an array; refusing to merge"
+  || _die "existing .sandbox.network.deniedDomains is not an array (its type is $denied_type); refusing to merge"
 
 cred_type="$(printf '%s' "$current" | jq -r '.sandbox.credentials | type')"
 [ "$cred_type" = "object" ] || [ "$cred_type" = "null" ] \
-  || _die "existing .sandbox.credentials is a $cred_type, not an object; refusing to merge"
+  || _die "existing .sandbox.credentials is not an object (its type is $cred_type); refusing to merge"
 for cred_key in files envVars; do
   cred_key_type="$(printf '%s' "$current" | jq -r --arg k "$cred_key" '.sandbox.credentials[$k] | type')"
   [ "$cred_key_type" = "array" ] || [ "$cred_key_type" = "null" ] \
-    || _die "existing .sandbox.credentials.$cred_key is a $cred_key_type, not an array; refusing to merge"
+    || _die "existing .sandbox.credentials.$cred_key is not an array (its type is $cred_key_type); refusing to merge"
 done
 
 perm_type="$(printf '%s' "$current" | jq -r '.permissions | type')"
 [ "$perm_type" = "object" ] || [ "$perm_type" = "null" ] \
-  || _die "existing .permissions is a $perm_type, not an object; refusing to merge"
+  || _die "existing .permissions is not an object (its type is $perm_type); refusing to merge"
 
 ask_type="$(printf '%s' "$current" | jq -r '.permissions.ask | type')"
 [ "$ask_type" = "array" ] || [ "$ask_type" = "null" ] \
-  || _die "existing .permissions.ask is a $ask_type, not an array; refusing to merge"
+  || _die "existing .permissions.ask is not an array (its type is $ask_type); refusing to merge"
 
 current_env="$(printf '%s' "$current" | jq -c '.env // {}')"
 current_sandbox="$(printf '%s' "$current" | jq -c '.sandbox // {}')"
@@ -869,7 +936,7 @@ merged="$(printf '%s' "$current" | jq \
 
 if [ "$do_write" -eq 0 ]; then
   _info ""
-  _info "(preview only — nothing written; re-run with --write to apply)"
+  _info "(preview only: nothing written; re-run with --write to apply)"
   exit 0
 fi
 
@@ -877,7 +944,7 @@ fi
 # in canonical form so formatting/key-order differences don't force a rewrite.
 if [ "$(printf '%s' "$current" | jq -S .)" = "$(printf '%s' "$merged" | jq -S .)" ]; then
   _info ""
-  _info "(no changes needed — already hardened)"
+  _info "(no changes needed; already hardened)"
   exit 0
 fi
 

@@ -790,18 +790,35 @@ Cover these regression cases when changing the script:
 - Base hardening writes `attribution.commit=""`, `attribution.pr=""`, and
   `attribution.sessionUrl=false`.
 - `--allow-model-attribution` removes the `attribution.commit` and
-  `attribution.pr` overrides while keeping `attribution.sessionUrl=false`.
+  `attribution.pr` overrides while keeping `attribution.sessionUrl=false`; a
+  custom `attribution.commit` or `attribution.pr` template is removed too, as
+  the header says.
 - `--allow-session-attribution` removes only the session URL override; when
   combined with `--allow-model-attribution`, the managed `attribution` object
   is removed entirely.
 - `--allow-only-plugin-updates` keeps `DISABLE_AUTOUPDATER=1` even when
   combined with `--allow-updates`, and writes `FORCE_AUTOUPDATE_PLUGINS=1`.
+- Each ADD key is removed by a later run without its flag, and the preview
+  shows the removal as a `- KEY (removed, was VALUE)` line; a second run
+  without the flag doesn't change anything. Cover `FORCE_AUTOUPDATE_PLUGINS`
+  (`--allow-only-plugin-updates`), `ENABLE_PROMPT_CACHING_1H`
+  (`--enable-1h-cache`), `CLAUDE_CODE_SHELL_PREFIX` (`--dnt-prefix`, with
+  `--allow-feature-flags` kept on the later run), and
+  `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` (`--disable-nonessential-traffic`).
+  After `--disable-nonessential-traffic`, a run with `--allow-updates` and
+  `--allow-feedback` doesn't leave an umbrella key behind to cancel them. A prefix
+  the script didn't write (e.g., `{"env":{"CLAUDE_CODE_SHELL_PREFIX":"/nonexistent"}}`)
+  is removed by a plain run.
 - `--disable-nonessential-traffic` wins after `--allow-updates` and
   `--allow-feedback`, while `--allow-only-plugin-updates` still writes
   `FORCE_AUTOUPDATE_PLUGINS=1`. WebFetch preflight remains controlled by
   `--allow-webfetch-preflight`, matching Claude Code's separate WebFetch
   preflight setting.
 - Base hardening writes `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1`.
+- Base hardening never writes `CLAUDE_CODE_ENABLE_AUTO_MODE` and removes a
+  value an earlier version wrote (`"0"` or `"1"`), shown as a `-` line in the
+  preview; a second run doesn't change anything. `--allow-auto-mode` doesn't
+  write anything and prints a note on stderr.
 - Base hardening writes `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`, adds the managed
   `sandbox.credentials` entries (`files` by path, `envVars` by name), and keeps
   hand-added sibling `sandbox` keys such as `excludedCommands`. A user's own
@@ -816,6 +833,11 @@ Cover these regression cases when changing the script:
   reorder entries. `--disable-sandbox` leaves an existing credentials block as it is
   and doesn't create one. A non-object `credentials` or a non-array `files` or
   `envVars` is rejected with a clear error.
+- `--disable-sandbox` combined with each sandbox relax flag
+  (`--allow-metadata-endpoints`, `--allow-cloud-credential-files`,
+  `--allow-sandbox-auto-allow`, `--allow-unsandboxed-start`), from a hardened
+  file and from `{}`, changes only `sandbox.enabled` (compare `jq -S .sandbox`
+  before and after).
 - The `envVars` deny list names exactly the variables in
   `extras/harden-codex-config.sh`'s `CREDENTIAL_ENV_VARS`, so both scripts
   strip the same credentials. Compare them when changing either list:
@@ -829,7 +851,11 @@ Cover these regression cases when changing the script:
   `sandbox.network.deniedDomains`, keeping existing `allowedDomains` and
   `deniedDomains` entries; a rerun doesn't add duplicates.
 - `--allow-metadata-endpoints` removes only those five entries, keeps entries
-  the user added, and doesn't create a `network` block in a file that has none.
+  the user added, and doesn't create a `network` block in a file without one.
+  On a hardened file whose `deniedDomains` holds only the five, it removes the
+  emptied array, and the `network` object too when nothing else is in it,
+  rather than leaving `deniedDomains: []`; an empty `deniedDomains` or
+  `network` written by hand is kept.
 - `--allow-cloud-credential-files` removes the `deny` entries for `~/.aws`,
   `~/.config/gcloud`, and `~/.azure` from `sandbox.credentials.files` (the
   preview shows each as `-`), keeps `~/.ssh`, `~/.gnupg`, `~/.netrc`, and the
@@ -856,6 +882,12 @@ Cover these regression cases when changing the script:
 - `--allow-plugin-ssh-clones` writes `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=0`; a later run
   without it writes `1` again.
 - A top-level non-object JSON value, e.g., `[]`, is rejected with a clear error.
+  Type errors read "is not an object (its type is array)", with no "a array"
+  or "a object".
+- An empty file, a whitespace-only file, two objects (`{}` then `{}`), and an
+  object followed by an array are each rejected with a message naming the
+  problem (empty, or the document count); under `--write` the exit status is
+  non-zero, the file is unchanged, and no backup is made.
 - A non-object `.env` value is rejected with a clear error.
 - A symlinked settings path updates the target file and preserves the symlink.
 - A symlink chain updates the final target file and preserves every symlink in
