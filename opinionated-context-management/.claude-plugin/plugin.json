@@ -1,0 +1,29 @@
+{
+  "name": "opinionated-context-management",
+  "description": "Lets Claude manage its own context window in Claude Code, so a long task can run to completion unattended. Mods are an early-access plugin component, so the API this one is written against may change between releases.",
+  "author": {
+    "name": "Pyroxin",
+    "email": "3385984+Pyroxin@users.noreply.github.com",
+    "url": "https://github.com/Pyroxin"
+  },
+  "repository": "https://github.com/Pyroxin/opinionated-claude-skills",
+  "license": "EPL-2.0",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "remainingContextNoticePercents": {
+      "type": "string",
+      "multiple": true,
+      "title": "Compaction notice thresholds (percent of context remaining)",
+      "description": "Claude is told that compacting at its next resumable point would be useful when the context remaining before the limit falls to one of these percentages; percentages passed in one step send one notice. The limit is the auto-compaction threshold, or the context window when auto-compaction is off. Enter the percentages separated by commas (e.g., 60, 40, 20), or auto for the defaults: 50, 30, and 15.",
+      "default": [
+        "auto"
+      ]
+    },
+    "remainingContextFinalNoticeTokens": {
+      "type": "string",
+      "title": "Final compaction notice (tokens of context remaining)",
+      "description": "How many tokens before the limit Claude is told how little room is left and asked to compact at the nearest resumable point. Enter a whole number of tokens, or auto for the default: 30000.",
+      "default": "auto"
+    }
+  }
+}

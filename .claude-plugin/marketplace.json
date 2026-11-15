@@ -20,6 +20,7 @@
     { "name": "opinionated-research", "source": "./opinionated-research" },
     { "name": "opinionated-themes", "source": "./opinionated-themes" },
     { "name": "opinionated-communication", "source": "./opinionated-communication" },
-    { "name": "opinionated-status-band", "source": "./opinionated-status-band" }
+    { "name": "opinionated-status-band", "source": "./opinionated-status-band" },
+    { "name": "opinionated-context-management", "source": "./opinionated-context-management" }
   ]
 }
