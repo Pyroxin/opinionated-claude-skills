@@ -51,7 +51,7 @@ On a paid plan (Pro, Max, Team, or Enterprise), claude.ai, the Chat tab of the C
 
 - Skills load in chat, Cowork, and Claude Code.
 - The `opinionated-research` agents load in Cowork and Claude Code. Chat ignores them, so `interactive-research` loads in chat but can't delegate to them there.
-- Output styles and themes (`opinionated-communication` and `opinionated-themes`) load only in Claude Code.
+- Output styles, themes, and mods (`opinionated-communication`, `opinionated-themes`, and `opinionated-status-band`) load only in Claude Code.
 
 Plugins enabled on claude.ai also [load in Claude Code terminal sessions](https://code.claude.com/docs/en/plugins/loading#synced-plugins) signed in with the same claude.ai account.
 
@@ -173,7 +173,7 @@ Output styles are a plugin component like skills and themes, so this plugin vend
 
 ### opinionated-themes
 
-The only plugin that doesn't ship any instructions for Claude. Themes are a plugin component like skills and agents, so a marketplace can vend terminal color schemes the same way it vends skills. Both themes target high contrast and remain legible under warm-shift filters such as macOS Night Shift and Redshift, which reduce blue output and flatten the contrast of blue-heavy palettes. Claude Code only; Claude Desktop doesn't have a theme equivalent to package.
+This plugin doesn't ship any instructions for Claude. Themes are a plugin component like skills and agents, so a marketplace can vend terminal color schemes the same way it vends skills. Both themes target high contrast and remain legible under warm-shift filters such as macOS Night Shift and Redshift, which reduce blue output and flatten the contrast of blue-heavy palettes. Claude Code only; Claude Desktop doesn't have a theme equivalent to package.
 
 | Component | Description |
 |-----------|-------------|
@@ -181,6 +181,18 @@ The only plugin that doesn't ship any instructions for Claude. Themes are a plug
 | `nightshift-safe` | Minimal variant: the stock light theme with only the suggestion color corrected |
 
 Plugin themes are read-only. Select one in `/theme` and press `Ctrl+E` to copy it into `~/.claude/themes/`, then edit your copy. Themes are currently an experimental plugin component, so the JSON format may change between Claude Code releases.
+
+### opinionated-status-band
+
+A mod is a plugin component written as code: a hooks module that Claude Code loads into a session, where it can draw in the interface and intercept the session's events. Claude Code accepts one hooks module per plugin and gives each plugin one row above the prompt, so each mod in this marketplace is a plugin of its own. This one draws a status row. Deciding when to compact, pause, or resume a long session takes knowing how full the context window is, how close the account is to its rate limits, and how long the conversation has sat idle, and the stock interface shows these in separate places or only on request. Mods are an early-access plugin component, so the API this one is written against may change between Claude Code releases. Claude Code only.
+
+| Component | Description |
+|-----------|-------------|
+| `status band` | A Powerline-style status row above the terminal prompt: context left, model, project and branch, turn timing, rate limits, and cost |
+
+The band shows a context gauge with the tokens used and the percentage left before auto-compaction, the model and reasoning effort, the project and git branch, how long the current turn has run or how long ago the last one ended, rate-limit usage with reset times, and the session's cost and turn count. The gauge updates after every model response, including during a long turn, and changes color when half the context is left and again when 15% is left. The band draws in the Claude Code terminal only; Claude Code's desktop and mobile surfaces show nothing for it, because the row is built from character cells and Powerline glyphs. When the terminal is narrow, segments are removed in a fixed order and the context gauge is kept. The colors are fixed, based on the same Adwaita-inspired colors as the `adwaita-inspired-light` theme in `opinionated-themes`, with light gray blocks and dark text. Each block sets its own background and text, so the band is legible on light and dark terminal backgrounds but does not follow the session's theme.
+
+**Font requirement:** the terminal has to be able to draw the Powerline symbols, which it can when its font includes them. The band uses three: the two segment separators (U+E0B0 and U+E0B2) and the branch glyph (U+E0A0). They are in Unicode's Private Use Area, so a font has them only if it was made or patched to include them. Without them the separators typically draw as empty boxes or question marks, while the text stays readable. If the terminal's font lacks them, [DejaVu Sans Mono for Powerline](https://github.com/powerline/fonts) is the suggested font to install; any other Powerline-patched font, or a [Nerd Font](https://www.nerdfonts.com/), also supplies them. Set it as the terminal's font, or as its fallback font for non-ASCII characters where the terminal has that setting.
 
 ## License
 

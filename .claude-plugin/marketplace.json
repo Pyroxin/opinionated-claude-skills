@@ -4,7 +4,7 @@
     "name": "Pyroxin"
   },
   "metadata": {
-    "description": "Opinionated Claude Code plugins that favor judgment over procedure: software engineering and programming languages, research, tutoring, writing style, and terminal themes.",
+    "description": "Opinionated Claude Code plugins that favor judgment over procedure: software engineering and programming languages, research, tutoring, writing style, terminal themes, and mods for the Claude Code interface.",
     "version": "1.0.0"
   },
   "plugins": [
@@ -19,6 +19,7 @@
     { "name": "opinionated-tutoring", "source": "./opinionated-tutoring" },
     { "name": "opinionated-research", "source": "./opinionated-research" },
     { "name": "opinionated-themes", "source": "./opinionated-themes" },
-    { "name": "opinionated-communication", "source": "./opinionated-communication" }
+    { "name": "opinionated-communication", "source": "./opinionated-communication" },
+    { "name": "opinionated-status-band", "source": "./opinionated-status-band" }
   ]
 }

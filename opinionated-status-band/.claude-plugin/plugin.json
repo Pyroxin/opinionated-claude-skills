@@ -1,0 +1,12 @@
+{
+  "name": "opinionated-status-band",
+  "description": "A status line for Claude Code, drawn as a row above the prompt in the terminal, that shows the session's context use, model, project and branch, turn timing, rate limits, and cost. The terminal's font has to include the Powerline symbols. Mods are an early-access plugin component, so the API this one is written against may change between releases.",
+  "author": {
+    "name": "Pyroxin",
+    "email": "3385984+Pyroxin@users.noreply.github.com",
+    "url": "https://github.com/Pyroxin"
+  },
+  "repository": "https://github.com/Pyroxin/opinionated-claude-skills",
+  "license": "EPL-2.0",
+  "types": "./types/index.d.ts"
+}
