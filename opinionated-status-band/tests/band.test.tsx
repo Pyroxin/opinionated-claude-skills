@@ -2,7 +2,10 @@ import { expect, mock, test } from 'claude-code/testing'
 
 // Each hook registered here stands for the engine beneath the mod: it
 // answers what the band asks for when a session starts.
-type On = Parameters<Parameters<typeof test>[1]>[1]
+// `test` also accepts an options object in place of a body, so the body is
+// picked out as the function among its second parameter's types.
+type TestBody = Extract<Parameters<typeof test>[1], (...args: never[]) => unknown>
+type On = Parameters<TestBody>[1]
 const withSession = (on: On) => {
   mock.clock(on)
   on('session.usage', () => ({
@@ -103,5 +106,75 @@ test('the band still draws when the session answers nothing about itself', async
 
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   expect(await ui.find({ type: 'Text', text: /ctx/ })).toBeDefined()
+  await ui.unmount()
+})
+
+// Stands for the model beneath the mod: each response reports the usage
+// `responses` holds next, and lists a tool the API ran itself when that
+// entry says so.
+type StepUsage = { input: number; output: number; isSummed?: boolean }
+const withModel = (on: On, responses: StepUsage[]) => {
+  on('turn.step', async function* (_, e) {
+    const { input, output, isSummed } = responses.shift() ?? { input: 0, output: 0 }
+
+    return {
+      turnId: e.turnId,
+      index: e.index,
+      answer: '',
+      toolUses: [],
+      stopReason: 'end_turn',
+      usage: {
+        input_tokens: input,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 0,
+        output_tokens: output,
+      },
+      ...(isSummed === true
+        ? { serverToolUses: [{ id: 's1', name: 'advisor', input: {}, startedAt: 0, endedAt: 1 }] }
+        : {}),
+    } as never
+  })
+}
+const STEP = { turnId: 't1', index: 0 as number, model: 'claude-test-1', messageCount: 1 }
+// Runs one model step to its end. The test kit hands a step back as a
+// stream, and the band measures once the stream has ended.
+const step = async ($: Parameters<TestBody>[0], input: typeof STEP) => {
+  const chunks = ($.turn.step(input) as unknown as AsyncIterable<unknown>)[Symbol.asyncIterator]()
+  let chunk = await chunks.next()
+  while (chunk.done !== true) chunk = await chunks.next()
+}
+
+test('the gauge shows what a response reports as used', async ($, on) => {
+  withSession(on)
+  withModel(on, [{ input: 78_000, output: 2_000 }])
+  await $.session.start(START)
+  await step($, STEP)
+
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: /80k\/160k/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a response in which the API ran a tool adds its output and is not taken as a size', async ($, on) => {
+  withSession(on)
+  // The second response's usage is summed over two requests, each answered
+  // over the conversation of about 80k: 161k in, 3k out.
+  withModel(on, [
+    { input: 78_000, output: 2_000 },
+    { input: 161_000, output: 3_000, isSummed: true },
+    { input: 84_000, output: 1_000 },
+  ])
+  await $.session.start(START)
+  await step($, STEP)
+  await step($, { ...STEP, index: 1 })
+
+  // 80k held plus the 3k generated, and not the 164k sum.
+  const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: /83k\/160k/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /164k/ })).toBeUndefined()
+
+  // The next response made by one request reports the size exactly.
+  await step($, { ...STEP, index: 2 })
+  expect(await ui.find({ type: 'Text', text: /85k\/160k/ })).toBeDefined()
   await ui.unmount()
 })

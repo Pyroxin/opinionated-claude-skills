@@ -287,15 +287,32 @@ export const register: Register = on => {
       // which approximates what the next request sends back. It can run
       // high, since some of what a response generates (its thinking, for
       // one) may be left out of later requests.
-      const tokens =
+      const reported =
         usage.input_tokens +
         usage.cache_read_input_tokens +
         usage.cache_creation_input_tokens +
         usage.output_tokens
+      // When the API ran a tool itself inside the response (the advisor is
+      // one), the engine reports the usage summed over the several requests
+      // it made, each answered over the conversation again. That sum is not
+      // a size: taken as one, it showed about twice the real fill until the
+      // next response. Such a response adds what it generated to the figure
+      // already held, and the next response made by one request reports the
+      // size exactly.
+      const isSummed = (response.serverToolUses?.length ?? 0) > 0
       try {
-        await update($, status, (held): Status =>
-          held.context === undefined ? held : { ...held, context: { ...held.context, tokens } },
-        )
+        await update($, status, (held): Status => {
+          if (held.context === undefined) return held
+          if (!isSummed) return { ...held, context: { ...held.context, tokens: reported } }
+          // Without a held figure there is nothing to add to, so the gauge
+          // stays empty until a response reports a size.
+          if (held.context.tokens === undefined) return held
+
+          return {
+            ...held,
+            context: { ...held.context, tokens: held.context.tokens + usage.output_tokens },
+          }
+        })
       } catch (error) {
         // The measurement is secondary to the request it follows: a failure
         // here is reported and the response is returned as it came.
