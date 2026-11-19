@@ -215,6 +215,33 @@ test('the section and both notices leave an instruction not to write to the work
   }
 })
 
+test('both notices and the tool description say where notes go and set them apart from memory', async () => {
+  // Each restates the section's documentation expectations to bring them
+  // back to the model's attention when they apply; they reinforce the
+  // section and don't replace it.
+  const texts = [
+    NOTICE_TEXT,
+    TOOL_DESCRIPTION,
+    ...(['on', 'off', 'unknown'] as const).map(autoCompact => finalNoticeText(20_000, autoCompact)),
+  ]
+  for (const text of texts) {
+    expect(text).toContain('`{project-root}/.tmp/notes/{task-name}/`')
+    expect(text).toContain('memory directory')
+    expect(text).toContain('readable from the workspace by whoever resumes the task')
+  }
+})
+
+test('the ordinary notice leaves the timing to the two conditions', async () => {
+  // Models compacted at the first notice without checking for a checkpoint,
+  // so the notice says it is not a request to compact now and gives both
+  // conditions; the section and the tool description say the same.
+  expect(NOTICE_TEXT).toContain("This notice doesn't ask you to compact before both conditions below hold")
+  expect(NOTICE_TEXT).toContain('Partway through a step is not a checkpoint')
+  expect(NOTICE_TEXT).toContain('The detail in the conversation is no longer needed there')
+  expect(SECTION_TEXT).toContain("A notice doesn't change the two conditions above")
+  expect(TOOL_DESCRIPTION).toContain("A context notice doesn't change these conditions")
+})
+
 test('the stale-notes refusal allows for a prompt the model has not read yet', async () => {
   expect(STALE_NOTES_REPLY).toContain('The later event can be a prompt you have not read yet')
   expect(STALE_NOTES_REPLY).toContain('including that prompt when it has reached you')

@@ -28,7 +28,8 @@
 // text. A rename has to change every one:
 //
 // - `.claude-plugin/plugin.json` (`name`), the catalog entry in the
-//   repository's `.claude-plugin/marketplace.json`, and the README.
+//   repository's `.claude-plugin/marketplace.json`, the repository's
+//   README, and this plugin's README.
 // - `types/index.d.ts`: the key under `PluginState`.
 // - `hooks/compaction.ts`: each atom's `plugin`, and the matcher of the
 //   tool's own hook.
@@ -48,11 +49,30 @@ const formatTokens = (count: number): string => {
 
 export const TOOL_NAME = 'compact'
 
-// Said in both notices as well as in the section, because a notice is read
-// in a conversation that began before the mod loaded, where the section is
-// not in force, and it tells the model to write notes.
+// Said in both notices as well as in the section, because each notice tells
+// the model to write notes on its own terms, and without this exception
+// that instruction could be read as overriding a read-only task.
 const NOT_OVER_READ_ONLY =
   'This notice does not override an instruction not to write to the workspace: when the task\'s instructions do not allow writing files there (for example, a read-only review), do not write notes or call the tool, and carry on with the task.'
+
+// The notes step of both notices, kept in one place so the two stay alike.
+// It restates where notes go and what they hold, which the section already
+// says, and adds the distinction from a memory store, which the section
+// covers only as "a notebook or knowledge base outside the workspace". It
+// does so to remind the model of the section's documentation expectations
+// when a compaction is near, because by then much of the conversation lies
+// between the section and the current work; it reinforces the section and
+// does not stand in for it. The memory distinction is added because the
+// project author observed sessions recording task progress in a persistent
+// memory store instead of in workspace notes. It names Claude
+// Code's memory directory as an example of such a store, gives the section's
+// reason for the workspace (a new context window or another agent reads the
+// notes from there), and leaves memory in use for facts that outlast the
+// task.
+const NOTES_STEP = `Bring the task's notes up to date. They are files in the workspace: the location within the workspace that the user's or project's instructions name for task notes or progress records, or \`{project-root}/.tmp/notes/{task-name}/\` when none is named. Write them there and not to a persistent memory store outside the workspace (e.g., Claude Code's memory directory and its \`MEMORY.md\` index), even when other instructions name such a store, a notebook, or a knowledge base for general notes: the notes have to be readable from the workspace by whoever resumes the task. Keep using a memory store for facts meant to outlast the task. Write the notes for a reader who has them and the repository and nothing else, for example a new context window or another agent:
+   - The progress record: the task's goal and constraints, what is finished and how it was verified, what remains, each decision with its reason, any request or correction of the user's that still applies, and the next step.
+   - Detail notes: go through what this conversation holds that a later step may need and that is not yet in a file, and write each item down with where it came from. Such items include findings from code or documentation with their file paths and line numbers, the relevant part of a command's output with the command, the exact text of an error you are diagnosing, an interface you worked out, options you considered with the reason each was kept or set aside, and open questions.
+   The notes are complete when the next step could be done from them and the repository without rereading anything in this conversation.`
 
 export const SECTION_ID = 'opinionated-context-management:context_checkpoints'
 
@@ -93,7 +113,7 @@ When the work is at a checkpoint but later steps still depend on detail that is 
 
 Compacting whenever both hold keeps the conversation small, so every later step is answered over the material that step needs instead of over the whole history.
 
-As the conversation grows, the context-management mod sends you a context notice saying that a compaction would now be useful. After one arrives, compact at the next point where the work can be resumed; the notice is not a request to stop sooner than the work allows.
+As the conversation grows, the context-management mod sends you a context notice saying that a compaction would now be useful. A notice doesn't change the two conditions above: after one arrives, carry on until both hold, then compact. The notice is not a request to stop sooner than the work allows. The last notice is the exception: it asks for a compaction at the nearest resumable point, because by then the conversation is close to the point where Claude Code compacts it on its own, or to the end of the context window when automatic compaction is off.
 
 Wait to compact while a question to the user is unanswered, or while work you started in the background (for example, a subagent or a background command) is still running, because its answer or result would arrive in a conversation that no longer holds the question or the work it belongs to. A notice that tells you not to wait takes precedence over this rule, and says what to do instead.
 </when_to_compact>
@@ -112,14 +132,26 @@ The tool checks steps 2 and 3. It refuses a call that doesn't list any note file
 Only the main conversation compacts this way: a subagent leaves compaction to the session that started it.
 </context_checkpoints>`
 
-export const TOOL_DESCRIPTION = `Compacts this conversation when the current turn ends, then resumes the work. The conversation so far is replaced with a summary written under your \`instructions\`, and your \`continuation\` is submitted as the next prompt, so the work carries on without the user.
+// The description restates the system-prompt section (`SECTION_TEXT`) in
+// brief: where notes go, the two kinds of note, the standard they are
+// written to, when to call, and when not to. It reinforces the section and
+// does not stand in for it: the model reads the description when it
+// considers calling the tool, which is when the documentation expectations
+// apply, and by then much of the conversation lies between the section and
+// the current work. Keep the two texts in agreement when either changes.
+export const TOOL_DESCRIPTION = `Compacts this conversation when the current turn ends, then resumes the work. The conversation so far is replaced with a summary written under your \`instructions\`, and your \`continuation\` is submitted as the next prompt, so the work carries on without the user. After compaction you have the summary, the files on disk, and at most a few recent messages, so the task's notes are what carries its knowledge.
 
-Use it when the work can be resumed and the detail in the conversation is no longer needed for the next steps: for example, after a milestone is completed and verified, at a change of topic, or at the next such point after a context notice.
+Notes. During any task with more than a few steps, keep notes as you work, in files in the workspace: the location the user's or project's instructions name for task notes or progress records, or \`{project-root}/.tmp/notes/{task-name}/\` when none is named. Keep the task's notes there and not in a persistent memory store outside the workspace (e.g., Claude Code's memory directory), even when other instructions name a notebook, knowledge base, or memory store for general notes, because the notes have to be readable from the workspace by whoever resumes the task, for example a new context window or another agent. Keep two kinds:
+- A progress record: the goal and constraints, what is finished and how it was verified, what remains, each decision with its reason, any request or correction of the user's that still applies, and the next step. Update it when a step completes.
+- Detail notes: anything a later step may need that the step in hand does not, with where it came from (e.g., findings with file paths and line numbers, a command with the relevant part of its output, the exact text of an error). Write each one as soon as the step in hand no longer needs it in view.
+Write the notes for a reader who has them and the repository and nothing else.
 
-Updating the task's notes is required before every call, and it has to be the last thing you do before the call. After compaction the summary and the files on disk remain, with at most a few recent messages, so the notes are what carries the task's knowledge. Do the steps in this order:
+When to call it. Call it, without waiting for a context notice, each time work on the task remains and both of these hold: the work is at a point you can resume from (for example, a milestone completed and verified, the end of a phase of a plan, or a change of topic), and everything a later step needs from the conversation is in the notes or in other files. A context notice doesn't change these conditions: after one, call it when both hold, and not before. The last notice is the exception: it asks for a call at the nearest resumable point. Wait while a question to the user is unanswered or work you started in the background is still running, unless a notice tells you not to wait. When the task's instructions don't allow writing files in the workspace (for example, a read-only review), don't write notes or call this tool.
+
+Updating the notes is required before every call, and it has to be the last thing you do before the call. Do the steps in this order:
 
 1. Finish everything else: bring the step in progress to a resumable state, and make any other tool calls the work still needs (for example, running a check or committing).
-2. Update the notes in workspace files: a progress record (e.g., the goal, what is finished and verified, what remains, decisions with their reasons, and the next step), plus any detail a later step may need. Write them so that a new context window or another agent could continue from them without the summary. A short task still needs a brief progress record.
+2. Update the notes as the Notes paragraph above describes: the progress record, and any detail from the conversation a later step may need that is not yet in a file. A short task still needs a brief progress record.
 3. Call this tool as the next tool call, listing the note files' paths in \`notes\`.
 4. End your turn without calling another tool.
 
@@ -153,15 +185,34 @@ export const TOOL_INPUT_SCHEMA = {
 /**
  * The notice sent when the conversation's size passes a threshold: with the
  * tool result that passed it, or appended after the response that did.
- * It repeats the procedure in brief because the system-prompt section is not
- * in force in a conversation that began before the mod loaded.
+ * It repeats the procedure, and gives its notes step (`NOTES_STEP`) in full,
+ * to remind the model of the section's expectations at the point where they
+ * apply; it reinforces the section and does not stand in for it. Every
+ * conversation started after the mod is enabled has the section. A
+ * conversation already under way when the mod is enabled may lack it until
+ * that conversation ends, which is a transient case the notice is not
+ * written for.
+ *
+ * It states the two conditions of `<when_to_compact>` and says that it is
+ * not a request to compact now, because the project author observed models
+ * compacting at the first notice without checking whether the work was at a
+ * checkpoint or still needed the conversation's detail. It says that later
+ * notices follow, so the model knows a final notice will still come if it
+ * waits for a checkpoint, and it says not to wait for a later notice when
+ * both conditions already hold, so that waiting doesn't stretch to the last.
  */
 export const NOTICE_TEXT = `<context_notice source="opinionated-context-management">
-This notice was generated by the context-management mod; the user did not write it. The conversation has grown to a size where compacting it at your next resumable point would be useful.
+This notice was generated by the context-management mod; the user did not write it. The conversation has grown to a size where a compaction would be useful once the work reaches a checkpoint. This notice doesn't ask you to compact before both conditions below hold. When both already hold, compact without waiting for a later notice. If the conversation keeps growing, later notices follow, and the last of them asks for a compaction at the nearest resumable point.
 
-The task doesn't change: keep its full scope and standard, and finish the step you are on properly. When you next reach a point where the work can be resumed (for example, the current step completed and verified), compact the conversation; the rest of the task then continues from your notes and your continuation. Wait to compact while a question to the user is unanswered or work you started in the background is still running. ${NOT_OVER_READ_ONLY}
+Compact when both of these hold:
+- The work is at a checkpoint, that is, a state you can resume from, such as a milestone completed and verified, the end of a phase of a plan, or a change of topic. Partway through a step is not a checkpoint.
+- The detail in the conversation is no longer needed there, that is, everything a later step may need is in the notes or in other files. While a step in progress still uses detail that is only in the conversation (for example, a diff under discussion, tool output you would otherwise re-read, or the wording of an error you are still diagnosing), this condition doesn't hold.
 
-1. Bring the task's notes up to date, written so that a new context window or another agent could continue from them without a summary of this conversation: a progress record (e.g., what is finished and verified, what remains, decisions with their reasons, and the next step), and any detail a later step may need, with where it came from.
+At a checkpoint where a later step still depends on detail that is only in the conversation, write that detail to the notes; the second condition then holds. When the work is not at a checkpoint, carry on and check both conditions again at the next one. A compaction made before then means the detail a step in progress uses has to be read again or worked out again. In the meantime, write each detail to the notes once the step in hand no longer needs it in view, so that the second condition holds by the time a checkpoint arrives. Also wait while a question to the user is unanswered or work you started in the background is still running. ${NOT_OVER_READ_ONLY}
+
+The task doesn't change: keep its full scope and standard, and finish the step you are on properly. When both conditions hold, compact; the rest of the task then continues from your notes and your continuation. To compact:
+
+1. ${NOTES_STEP}
 2. Call \`mcp__opinionated-context-management__${TOOL_NAME}\` with \`instructions\` for the summary, a \`continuation\` prompt that names the next step, and \`notes\` listing the paths of the note files, the progress record first. Make this call directly after updating the notes, without another tool call in between.
 3. End your turn without calling another tool; the work resumes from the continuation after compaction.
 </context_notice>`
@@ -199,7 +250,7 @@ This notice was generated by the context-management mod; the user did not write 
 Compact now, at the nearest point where the work can be resumed, so that the compaction is yours. ${NOT_OVER_READ_ONLY}
 
 1. Bring the step you are on to the nearest resumable state. Where finishing it would take more than a few tool calls, record exactly where it stands instead. Where work you started in the background is still running, or a question to the user is unanswered, do not wait for it: record it in the notes and in the continuation, because its result or answer can arrive after the compaction.
-2. Bring the task's notes up to date, written so that a new context window or another agent could continue from them without a summary of this conversation: a progress record (e.g., what is finished and verified, what remains, decisions with their reasons, and the next step), and any detail a later step may need, with where it came from.
+2. ${NOTES_STEP}
 3. Call \`mcp__opinionated-context-management__${TOOL_NAME}\` with \`instructions\` for the summary, a \`continuation\` prompt that names the next step, and \`notes\` listing the paths of the note files, the progress record first. Make this call directly after updating the notes, without another tool call in between.
 4. End your turn without calling another tool.
 
