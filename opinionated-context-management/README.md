@@ -8,7 +8,7 @@ Mods are an early-access plugin component, so the API this one is written agains
 
 The mod adds three things to a session:
 
-- **A system prompt section** that tells Claude to keep task notes in files inside the workspace, by default under `{project-root}/.tmp/notes/{task-name}/`, and to compact whenever the work is at a resumable point and the conversation's detail is in those notes.
+- **A system prompt section** that tells Claude to keep task notes in files inside the workspace, by default under `{project-root}/.tmp/notes/{task-name}/`, and to compact at each resumable point after updating those notes.
 - **A tool, `compact`,** which takes Claude's instructions for the summary, the prompt to resume with, and the paths of the note files. When that turn ends with Claude's answer, the mod compacts and then submits the prompt, led by the note files' absolute paths.
 - **Notices** sent to Claude as the conversation grows (see "Notices").
 
@@ -32,7 +32,7 @@ A known limitation follows from the rule about prompts: when a background task (
 
 ## Notices
 
-An ordinary notice is sent to Claude when the context left before the limit falls to a threshold, saying that a compaction would be useful. It doesn't ask for a compaction at once (the final notice, described below, does): it restates the section's two conditions (the work is at a checkpoint, and the conversation's detail is in the notes) and asks Claude to compact when both hold, so that a notice arriving partway through a step, or while that step still needs detail that is only in the conversation, doesn't interrupt it.
+An ordinary notice is sent to Claude when the context left before the limit falls to a threshold, saying that a compaction would be useful. It asks Claude to compact at the next point where the work can be resumed, and says that it is not an instruction to compact right away, so that a notice arriving partway through a step doesn't interrupt it. The final notice, described below, asks for a compaction at the nearest resumable point.
 
 Thresholds passed in one step send one notice. A threshold the conversation is already past at the first response after a compaction doesn't send its notice, because compacting again wouldn't make the conversation smaller; a transcript line says so, and later thresholds still send theirs. The limit is the auto-compaction threshold, or the whole window when auto-compaction is off or Claude Code hasn't yet reported whether it is on; in that last case the last notice says that the status isn't known. A line in the transcript tells the person when a notice is sent.
 

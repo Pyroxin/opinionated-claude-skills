@@ -231,15 +231,13 @@ test('both notices and the tool description say where notes go and set them apar
   }
 })
 
-test('the ordinary notice leaves the timing to the two conditions', async () => {
-  // Models compacted at the first notice without checking for a checkpoint,
-  // so the notice says it is not a request to compact now and gives both
-  // conditions; the section and the tool description say the same.
-  expect(NOTICE_TEXT).toContain("This notice doesn't ask you to compact before both conditions below hold")
-  expect(NOTICE_TEXT).toContain('Partway through a step is not a checkpoint')
-  expect(NOTICE_TEXT).toContain('The detail in the conversation is no longer needed there')
-  expect(SECTION_TEXT).toContain("A notice doesn't change the two conditions above")
-  expect(TOOL_DESCRIPTION).toContain("A context notice doesn't change these conditions")
+test('the ordinary notice says it is not an instruction to compact right away', async () => {
+  // Models compacted as soon as the first notice arrived, so the notice, the
+  // section, and the tool description each say that a notice doesn't ask
+  // for that.
+  expect(NOTICE_TEXT).toContain('This notice is not an instruction to compact right away')
+  expect(SECTION_TEXT).toContain('A notice is not an instruction to compact right away')
+  expect(TOOL_DESCRIPTION).toContain('A context notice is not an instruction to call it right away')
 })
 
 test('the stale-notes refusal allows for a prompt the model has not read yet', async () => {

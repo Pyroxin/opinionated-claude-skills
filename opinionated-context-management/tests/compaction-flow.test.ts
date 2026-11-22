@@ -376,7 +376,7 @@ test('a tool result that passes a threshold carries the notice with it', async (
   // 52k of 100k: past the threshold at half the context left.
   const large = await $.tool.call(READ)
   expect(large.context?.length).toBe(1)
-  expect(large.context?.[0]).toContain("This notice doesn't ask you to compact before both conditions below hold")
+  expect(large.context?.[0]).toContain("This notice is not an instruction to compact right away")
   expect(large.text).toBe(textOfTokens(6_000))
   // The notice went with the result and was not appended as a row of its own.
   expect(appended).toEqual([])
@@ -417,7 +417,7 @@ test('a response that passes a threshold appends the notice, once', async ($, on
   await step($, { ...STEP, index: 2 })
 
   expect(appended.length).toBe(1)
-  expect(appended[0]).toContain("This notice doesn't ask you to compact before both conditions below hold")
+  expect(appended[0]).toContain("This notice is not an instruction to compact right away")
 })
 
 test('after the conversation shrinks, its thresholds are ahead of it again', async ($, on) => {
@@ -1514,7 +1514,7 @@ test('while a request is scheduled a threshold notice is held, and sent once the
   await step($, { ...STEP, index: 2 })
 
   expect(appended.length).toBe(2)
-  expect(appended[1]).toContain("This notice doesn't ask you to compact before both conditions below hold")
+  expect(appended[1]).toContain("This notice is not an instruction to compact right away")
 })
 
 test('a new request clears the owed notice of an earlier one', async ($, on) => {
@@ -1561,7 +1561,7 @@ test('a threshold notice that was refused is sent by a later response', async ($
   isRefusing = false
   await step($, { ...STEP, index: 1 })
 
-  expect(appended.filter(row => row.includes("This notice doesn't ask you to compact before both conditions below hold")).length).toBe(1)
+  expect(appended.filter(row => row.includes("This notice is not an instruction to compact right away")).length).toBe(1)
 })
 
 test('a measurement that comes before the turn\'s end leaves the request for the turn\'s end', async ($, on) => {
@@ -1705,7 +1705,7 @@ test('after a response that used a server-side tool, the size carried forward st
   await step($, { ...STEP, index: 1 })
 
   expect(appended.length).toBe(1)
-  expect(appended[0]).toContain("This notice doesn't ask you to compact before both conditions below hold")
+  expect(appended[0]).toContain("This notice is not an instruction to compact right away")
 })
 
 test('a summed response right after a compaction leaves the thresholds to the next exact size', async ($, on) => {
