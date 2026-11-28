@@ -24,7 +24,7 @@ When Claude Code compacts the conversation by itself, the person runs `/compact`
 
 Except after a `/clear` or `/resume`, the mod tells Claude that the request ended without a compaction: with the result of the tool call that canceled it, or otherwise by a notice added to the conversation, which names the cause and says what to do next: for most causes, to attend to what canceled the request and then to ask again. When another compaction had replaced the conversation before the request was canceled, the notice says so and lists the note files, because Claude then has the summary and not the conversation it asked from.
 
-When Claude Code declines or fails the compaction itself, the mod submits a notice in place of Claude's prompt, so the work carries on in the conversation as it stands; Claude's own prompt is submitted only after a compaction, because it was written for a reader who has just the summary. When a prompt can't be submitted, the mod tries once more and then leaves a notice in the conversation, which Claude reads with the next prompt.
+When Claude Code declines or fails the compaction itself, the mod submits a notice in place of Claude's prompt, so the work carries on in the conversation as it stands; Claude's own prompt is submitted only after a compaction, because it was written for a reader who has the summary in place of the earlier conversation. When a prompt can't be submitted, the mod tries once more and then leaves a notice in the conversation, which Claude reads with the next prompt.
 
 A line in the transcript tells the person each of these outcomes, including a compaction that ran; where Claude Code gave a reason for declining or failing a compaction, that line carries it and Claude's notice doesn't.
 
